@@ -129,6 +129,12 @@ CAMERA_ZONES = {
 -- ------------------------------------------------------------
 -- Pannello centrale
 -- ------------------------------------------------------------
+-- Barra di attesa al posto dei bottoni di fase
+WAITPANEL = {
+    bg        = "rgba(0,0,0,0.35)",
+    textColor = "#BBBBBB",
+}
+
 CENTERPANEL = {
     doneColor     = COLOR.NOARMY,   -- bottone di chi ha completato
     doneText      = "Black",

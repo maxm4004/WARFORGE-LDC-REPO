@@ -361,8 +361,68 @@ function main_updateCenterPanel()
         end
     end
 
+    -- Chi aspetta l'altro schieramento vede la barra di attesa
+    main_updateWaiting(phase)
+
     -- Sottofasi: pannelli e blocco dei bottoni di fase
     engine_subRedraw()
+end
+-- ============================================================
+-- FUNZIONE: main_waitingText(phase, slot)
+-- Testo di attesa per lo schieramento, nil se non aspetta.
+--   ACTIVE: aspetta chi non è attivo
+--   OWNER:  aspetta chi ha completato, finché l'altro non ha
+--           completato anche lui
+-- ============================================================
+function main_waitingText(phase, slot)
+    local altro = main_otherSide(slot)
+
+    if phase.inputMode == INPUT_MODE.ACTIVE then
+        if TURN.activeSide and TURN.activeSide ~= slot then
+            local titolo = phase.title or ""
+            titolo = titolo:sub(1, 1) .. titolo:sub(2):lower()
+            return "In attesa di " .. main_sideName(TURN.activeSide) .. " - " .. titolo
+        end
+        return nil
+    end
+
+    if phase.inputMode == INPUT_MODE.OWNER then
+        if TURN.completed[slot] and not TURN.completed[altro] then
+            return "In attesa di " .. main_sideName(altro)
+        end
+        return nil
+    end
+
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_updateWaiting(phase)
+-- Barra di attesa per chi aspetta; i bottoni di fase restano
+-- visibili solo agli altri. Se nessuno aspetta, bottoni a tutti.
+-- ============================================================
+function main_updateWaiting(phase)
+    local panel = (phase.inputMode == INPUT_MODE.ACTIVE) and "panelBtnDown" or "panelBtnUp"
+    local vedono = {}
+
+    for slot = 1, 2 do
+        local testo = main_waitingText(phase, slot)
+        UI.setAttribute("panelWait" .. slot, "visibility", main_sideVisibility(slot))
+        UI.setAttribute("panelWait" .. slot, "active", testo and "true" or "false")
+        UI.setAttribute("textWait" .. slot, "text", testo or "")
+        if not testo then
+            table.insert(vedono, main_sideVisibility(slot))
+        end
+    end
+
+    if #vedono == 2 then
+        -- nessuno aspetta: bottoni a tutti (anche a chi non ha
+        -- ancora un esercito)
+        UI.setAttribute(panel, "visibility", "")
+    elseif #vedono == 1 then
+        UI.setAttribute(panel, "visibility", vedono[1])
+    else
+        UI.setAttribute(panel, "active", "false")
+    end
 end
 -- ============================================================
 -- FUNZIONE: main_buttonDone(phase, slot)
