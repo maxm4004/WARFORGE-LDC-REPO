@@ -18,6 +18,11 @@ TURN = TURN or {
     completed  = { [1] = false, [2] = false },
 }
 
+-- Scelta degli eserciti (SITTING): colore che ha preso ogni
+-- schieramento, nil = libero. Conta la scelta, non chi è seduto
+-- ora: da soli si prova cambiando colore a mano.
+SIDE_CHOSEN = SIDE_CHOSEN or { [1] = nil, [2] = nil }
+
 -- Tiro per stabilire chi inizia (fase FIRST_PLAYER)
 FIRST_ROLL = FIRST_ROLL or {
     rolled = { [1] = nil, [2] = nil },

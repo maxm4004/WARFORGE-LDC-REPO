@@ -331,10 +331,10 @@ function main_updateCenterPanel()
     UI.setAttribute("textFase",  "text", phase.title or ENGINE.phase)
     UI.setAttribute("textDesc",  "text", phase.desc or "")
 
-    -- Nomi degli schieramenti: colorati se hanno un giocatore
+    -- Nomi degli schieramenti: colorati se sono stati scelti
     for slot = 1, 2 do
         UI.setAttribute("army" .. slot, "text",  main_sideName(slot))
-        UI.setAttribute("army" .. slot, "color", main_sideHasPlayer(slot) and main_sideMainColor(slot) or COLOR.NOARMY)
+        UI.setAttribute("army" .. slot, "color", SIDE_CHOSEN[slot] ~= nil and main_sideMainColor(slot) or COLOR.NOARMY)
     end
     main_setActiveIcon(TURN.activeSide)
 
@@ -367,11 +367,11 @@ end
 -- ============================================================
 -- FUNZIONE: main_buttonDone(phase, slot)
 -- Il bottone dello schieramento va mostrato come completato?
--- In SITTING: lo schieramento ha già il suo giocatore.
+-- In SITTING: lo schieramento è già stato scelto.
 -- ============================================================
 function main_buttonDone(phase, slot)
     if ENGINE.phase == PHASE.SITTING then
-        return main_sideHasPlayer(slot)
+        return SIDE_CHOSEN[slot] ~= nil
     end
     return TURN.completed[slot] == true
 end

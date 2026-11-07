@@ -4,29 +4,33 @@
 
 -- ============================================================
 -- FUNZIONE: sitting_btn_all(player, value, id, buttonConfig)
--- Il giocatore prende lo schieramento del bottone. Per ora
+-- Il giocatore sceglie lo schieramento del bottone. Per ora
 -- 1 contro 1: un solo colore per schieramento.
+-- Da soli: si sceglie un esercito, si cambia colore a mano e
+-- si sceglie l'altro (come in IEF).
 -- ============================================================
 function sitting_btn_all(player, value, id, buttonConfig)
     local slot = main_sideOfButton(id)
     if not slot then return false end
 
-    if main_colorInSide(player.color, slot) then return false end
-
-    if main_sideHasPlayer(slot) then
-        warningToColor("Esercito già scelto da un altro giocatore", player, "Yellow", 5, false)
+    if SIDE_CHOSEN[slot] ~= nil then
+        if not main_colorInSide(player.color, slot) then
+            warningToColor("Esercito già scelto", player, "Yellow", 5, false)
+        end
         return false
     end
 
-    player.changeColor(main_sideMainColor(slot))
+    -- Chi cambia schieramento libera quello che aveva scelto
+    local altro = main_otherSide(slot)
+    if SIDE_CHOSEN[altro] == player.color then
+        SIDE_CHOSEN[altro] = nil
+    end
 
-    -- Il cambio di colore può non essere già visibile in questo
-    -- frame: si riprova la transizione poco dopo
-    Wait.frames(function()
-        if ENGINE.phase == PHASE.SITTING then
-            engine_tryTransition(nil)
-        end
-    end, 10)
+    local colore = main_sideMainColor(slot)
+    SIDE_CHOSEN[slot] = colore
+    if player.color ~= colore then
+        player.changeColor(colore)
+    end
 
     return true
 end

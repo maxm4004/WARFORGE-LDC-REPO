@@ -30,6 +30,7 @@ function main_onSave()
         players_saved = saved,
         turn          = TURN,
         first_roll    = FIRST_ROLL,
+        side_chosen   = SIDE_CHOSEN,
         sub           = ENGINE and ENGINE.sub or nil,
     }
     return JSON.encode(main_saveSanitize(saveData, "save"))
@@ -114,6 +115,8 @@ function main_restoreState(save_state)
         FIRST_ROLL = data.first_roll
         FIRST_ROLL.rolled = main_slotPair(FIRST_ROLL.rolled)
     end
+
+    SIDE_CHOSEN = main_slotPair(data.side_chosen)
 
     if data.sub then
         ENGINE.sub = data.sub

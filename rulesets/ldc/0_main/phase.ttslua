@@ -39,6 +39,8 @@ function initPhases()
         completed  = { [1] = false, [2] = false },
     }
 
+    SIDE_CHOSEN = { [1] = nil, [2] = nil }
+
     FIRST_ROLL = {
         rolled = { [1] = nil, [2] = nil },
         winner = nil,

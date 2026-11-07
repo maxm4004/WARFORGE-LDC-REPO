@@ -8,9 +8,9 @@
 -- ============================================================
 function registerDefaultConditions()
 
-    -- Ogni schieramento ha almeno un giocatore seduto (SITTING)
+    -- Entrambi gli schieramenti sono stati scelti (SITTING)
     registerCondition(COND.REQUIREMENT_MET, function(action)
-        return main_sideHasPlayer(1) and main_sideHasPlayer(2)
+        return SIDE_CHOSEN[1] ~= nil and SIDE_CHOSEN[2] ~= nil
     end)
 
     -- Entrambi gli schieramenti hanno completato (fasi OWNER)

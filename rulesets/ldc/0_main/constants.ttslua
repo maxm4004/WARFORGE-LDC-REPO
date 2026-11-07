@@ -25,7 +25,7 @@ ACTION = {
 }
 
 COND = {
-    REQUIREMENT_MET       = "requirement_met",        -- ogni schieramento ha il suo giocatore
+    REQUIREMENT_MET       = "requirement_met",        -- entrambi gli schieramenti sono stati scelti
     BOTH_PLAYERS_SELECTED = "both_players_selected",  -- entrambi gli schieramenti hanno completato
     CONFIRM_IMMEDIATE     = "confirm_immediate",      -- il giocatore attivo ha chiuso la fase
     WINNER                = "winner",                 -- il tiro per chi inizia ha un vincitore
