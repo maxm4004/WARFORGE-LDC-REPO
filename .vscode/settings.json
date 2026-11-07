@@ -1,0 +1,26 @@
+{
+    "Lua.diagnostics.globals": [
+        "printToAll",
+        "warningToColor",
+        "engine_handleChat",
+        "UI",
+        "Wait",
+        "warningListToColor",
+        "engine_diceSetNext",
+        "engine_diceReadResults",
+        "engine_diceButtons3DShow",
+        "getObjectFromGUID",
+        "engine_diceRollPanelXml",
+        "Physics",
+        "spawnObjectData",
+        "printToColor",
+        "main_onSave",
+        "main_saveSanitize",
+        "main_slotPair",
+        "main_restoreState",
+        "players_saved",
+        "main_restorePlayersColors",
+        "Player",
+        "JSON"
+    ]
+}
