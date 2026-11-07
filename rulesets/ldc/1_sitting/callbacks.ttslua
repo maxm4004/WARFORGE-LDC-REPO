@@ -1,0 +1,32 @@
+-- ============================================================
+-- WARFORGE LDC — 1_sitting/callbacks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: sitting_btn_all(player, value, id, buttonConfig)
+-- Il giocatore prende lo schieramento del bottone. Per ora
+-- 1 contro 1: un solo colore per schieramento.
+-- ============================================================
+function sitting_btn_all(player, value, id, buttonConfig)
+    local slot = main_sideOfButton(id)
+    if not slot then return false end
+
+    if main_colorInSide(player.color, slot) then return false end
+
+    if main_sideHasPlayer(slot) then
+        warningToColor("Esercito già scelto da un altro giocatore", player, "Yellow", 5, false)
+        return false
+    end
+
+    player.changeColor(main_sideMainColor(slot))
+
+    -- Il cambio di colore può non essere già visibile in questo
+    -- frame: si riprova la transizione poco dopo
+    Wait.frames(function()
+        if ENGINE.phase == PHASE.SITTING then
+            engine_tryTransition(nil)
+        end
+    end, 10)
+
+    return true
+end

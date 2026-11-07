@@ -1,0 +1,312 @@
+-- ============================================================
+-- WARFORGE — engine/dice.ttslua
+-- Dadi fisici: lancio dal sacchetto dello schieramento verso
+-- il suo vassoio, lettura dei risultati a dadi fermi.
+--
+-- Il tiro parte SEMPRE dal bottone 3D Roll sul vassoio
+-- (engine_diceRoll_start), mai in automatico. Destinazione del
+-- tiro, in ordine:
+--   1. la sottofase attiva dello schieramento (engine_subRoll)
+--   2. l'handler onRoll della fase corrente (player, slot)
+--   3. tiro libero
+-- ============================================================
+
+-- Template del dado (preso dal primo dado del sacchetto)
+ENGINE_DICE_TEMPLATE = nil
+
+-- Prossimo tiro per schieramento: numero di dadi e soglia di
+-- successo (nil = nessun conteggio dei successi)
+ENGINE_DICE_ROLL_TRY = ENGINE_DICE_ROLL_TRY or {
+    [1] = { dadi = 1, soglia = nil },
+    [2] = { dadi = 1, soglia = nil },
+}
+
+-- Dadi dell'ultimo tiro sul tavolo, per schieramento
+ENGINE_DICE_LAST_ROLL = ENGINE_DICE_LAST_ROLL or {
+    [1] = {},
+    [2] = {},
+}
+
+-- ============================================================
+-- FUNZIONE: engine_diceSetNext(slot, dadi, soglia)
+-- Prepara il prossimo tiro dello schieramento.
+-- ============================================================
+function engine_diceSetNext(slot, dadi, soglia)
+    ENGINE_DICE_ROLL_TRY[slot] = { dadi = dadi or 1, soglia = soglia }
+end
+-- ============================================================
+-- FUNZIONE: engine_diceReadResults(slot, dadi, sogliaSuccesso, onComplete)
+-- Aspetta che i dadi siano fermi, legge le facce, le manda al
+-- pannello dadi e ai giocatori dello schieramento.
+-- onComplete(risultati, successi) — successi nil senza soglia.
+-- ============================================================
+function engine_diceReadResults(slot, dadi, sogliaSuccesso, onComplete)
+    Wait.frames(function()
+        Wait.condition(
+            function()
+                local risultati = {}
+                for _, d in ipairs(dadi) do
+                    if not d.isDestroyed() then
+                        table.insert(risultati, d.getValue())
+                    end
+                end
+
+                local testo = {}
+                for _, v in ipairs(risultati) do
+                    table.insert(testo, tostring(v))
+                end
+
+                for _, p in ipairs(main_sidePlayers(slot)) do
+                    warningToColor("Dadi: " .. table.concat(testo, ", "), p, "Yellow", 3, true)
+                end
+                engine_dicePanelResults(slot, risultati)
+
+                Wait.time(function()
+                    engine_diceClearLastRoll(slot)
+                end, 2)
+
+                local successi = nil
+                if sogliaSuccesso then
+                    successi = 0
+                    for _, v in ipairs(risultati) do
+                        if v >= sogliaSuccesso then successi = successi + 1 end
+                    end
+                end
+                onComplete(risultati, successi)
+            end,
+            function()
+                for _, d in ipairs(dadi) do
+                    if not d.isDestroyed() and not d.resting then return false end
+                end
+                return true
+            end
+        )
+    end, 10)
+end
+-- ============================================================
+-- FUNZIONE: engine_diceButtons3DShow()
+-- Bottoni 3D Roll e Cestino sui vassoi dei due schieramenti.
+-- ============================================================
+function engine_diceButtons3DShow()
+
+    Wait.condition(function()
+        for slot = 1, 2 do
+            local tray = getObjectFromGUID(ENGINE_DICE_TRAY_GUID[slot])
+            if not tray then
+                print("[DICE] Vassoio non trovato: Army" .. slot)
+            else
+                engine_diceClearLastRoll(slot)
+                Wait.time(function()
+                    tray.UI.setXml(engine_diceRollPanelXml(slot))
+                end, 1)
+            end
+        end
+    end, function()
+        return getObjectFromGUID(ENGINE_DICE_TRAY_GUID[1]) ~= nil
+           and getObjectFromGUID(ENGINE_DICE_TRAY_GUID[2]) ~= nil
+    end, 10)
+end
+-- ============================================================
+-- FUNZIONE: engine_diceRollPanelXml(slot)
+-- XML dei bottoni 3D sul vassoio dello schieramento.
+-- ============================================================
+function engine_diceRollPanelXml(slot)
+    local colors = ENGINE_DICE_BTN_COLORS[slot]
+    return string.format([[
+            <Panel id="panelDiceRoll%d" active="true" position="0 2 0" rotation="0 0 180">
+                <Button
+                    offsetXY="210 -600"
+                    height="200"
+                    width="200"
+                    icon="Dice_Roll"
+                    textColor="#ffffff"
+                    alignment="MiddleCenter"
+                    padding="12 12 12 12"
+                    colors="%s"
+                    showAnimation="Grow"
+                    hideAnimation="Shrink"
+                    animationDuration="0.1"
+                    id="btn_diceRoll_start%d"
+                    onClick="Global/engine_diceRoll_start"
+                />
+                <Button
+                    offsetXY="-210 -600"
+                    height="200"
+                    width="200"
+                    icon="Icon_Trashcan"
+                    textColor="#ffffff"
+                    alignment="MiddleCenter"
+                    padding="12 12 12 12"
+                    colors="%s"
+                    showAnimation="Grow"
+                    hideAnimation="Shrink"
+                    animationDuration="0.1"
+                    id="btn_diceRoll_clear%d"
+                    onClick="Global/engine_diceRoll_clear"
+                />
+            </Panel>
+    ]], slot, colors, slot, colors, slot)
+end
+-- ============================================================
+-- FUNZIONE: engine_diceGetTemplate(bagGuid)
+-- ============================================================
+function engine_diceGetTemplate(bagGuid)
+
+    if ENGINE_DICE_TEMPLATE then return ENGINE_DICE_TEMPLATE end
+
+    local bag = getObjectFromGUID(bagGuid)
+    if not bag then print("[DICE] Sacchetto non trovato: " .. tostring(bagGuid)) return nil end
+
+    local data = bag.getData()
+    if not data.ContainedObjects or #data.ContainedObjects == 0 then
+        print("[DICE] Sacchetto vuoto, impossibile creare il template")
+        return nil
+    end
+
+    ENGINE_DICE_TEMPLATE = data.ContainedObjects[1]
+    return ENGINE_DICE_TEMPLATE
+end
+-- ============================================================
+-- FUNZIONE: engine_diceThrowFromBag(slot, opts, callback)
+-- Lancia ENGINE_DICE_ROLL_TRY[slot].dadi dadi dal sacchetto
+-- dello schieramento verso il suo vassoio.
+-- callback(risultati, successi)
+-- ============================================================
+function engine_diceThrowFromBag(slot, opts, callback)
+
+    local bagGuid        = ENGINE_DICE_BAG_GUID[slot]
+    local zonaTarget     = ENGINE_DICE_ZONE[slot]
+    local numDadi        = ENGINE_DICE_ROLL_TRY[slot].dadi
+    local sogliaSuccesso = ENGINE_DICE_ROLL_TRY[slot].soglia
+
+    if not bagGuid then print("[DICE] bagGuid è nil") return end
+    if not zonaTarget then print("[DICE] zonaTarget è nil") return end
+
+    local template = engine_diceGetTemplate(bagGuid)
+    if not template then return end
+
+    opts = opts or {}
+    local rollHeight = opts.rollHeight or 4
+    local spread     = opts.spread or 3
+    local stagger    = opts.stagger or 0.15   -- ritardo tra un dado e il successivo
+
+    local bag = getObjectFromGUID(bagGuid)
+    local originPos = bag.getPosition()
+    local g = Physics.getGravity()
+    local h = 0.25 + rollHeight / 4
+
+    local offsetX = zonaTarget.x - originPos.x
+    local offsetY = zonaTarget.y - originPos.y
+    local offsetZ = zonaTarget.z - originPos.z
+
+    local velX = (offsetX / h - g.x * h) * 0.68
+    local velY = (offsetY / h - g.y * h) * 0.68
+    local velZ = (offsetZ / h - g.z * h) * 0.68
+
+    local rolledDice = {}
+
+    for i = 1, numDadi do
+        Wait.time(function()
+            local rx = (math.random() - 0.5) * spread
+            local ry = (math.random() - 0.5) * spread
+            local rz = (math.random() - 0.5) * spread
+
+            local finalVel = { x = velX + rx, y = velY + ry, z = velZ + rz }
+
+            local obj = spawnObjectData({
+                data     = template,
+                position = { x = originPos.x, y = originPos.y + 4, z = originPos.z },
+                rotation = { x = 0, y = 180, z = 0 }
+            })
+
+            table.insert(ENGINE_DICE_LAST_ROLL[slot], obj)
+            table.insert(rolledDice, obj)
+
+            Wait.frames(function()
+                if not obj.isDestroyed() then
+                    obj.randomize()
+                    obj.setVelocity(finalVel)
+                    obj.setAngularVelocity({
+                        x = math.random(8, 16),
+                        y = math.random(8, 16),
+                        z = math.random(8, 16)
+                    })
+                end
+            end, 3)
+        end, (i - 1) * stagger)
+    end
+
+    -- I risultati si leggono dopo il lancio dell'ultimo dado,
+    -- altrimenti rolledDice sarebbe incompleta
+    Wait.time(function()
+        engine_diceReadResults(slot, rolledDice, sogliaSuccesso, callback)
+    end, numDadi * stagger + 0.5)
+end
+-- ============================================================
+-- FUNZIONE: engine_diceClearLastRoll(slot)
+-- ============================================================
+function engine_diceClearLastRoll(slot)
+
+    if not ENGINE_DICE_LAST_ROLL[slot] then return end
+
+    for _, d in ipairs(ENGINE_DICE_LAST_ROLL[slot]) do
+        if not d.isDestroyed() then d.destruct() end
+    end
+    ENGINE_DICE_LAST_ROLL[slot] = {}
+end
+-- ============================================================
+-- FUNZIONE: engine_diceRoll_start(player)
+-- Bottone 3D Roll sul vassoio.
+-- ============================================================
+function engine_diceRoll_start(player)
+
+    local slot = main_sideOfColor(player.color)
+    if not slot then
+        warningToColor("Scegli prima un esercito", player, "Yellow", 4, false)
+        return
+    end
+
+    -- 1. sottofase attiva dello schieramento
+    if engine_subRoll(player, slot) then return end
+
+    -- 2. tiro della fase corrente
+    local phase = ENGINE and ENGINE.phases and ENGINE.phases[ENGINE.phase]
+    if phase and phase.onRoll then
+        callHandler(phase.onRoll, player, slot)
+        return
+    end
+
+    -- 3. tiro libero
+    engine_diceClearLastRoll(slot)
+    engine_diceThrowFromBag(slot, nil, function(risultati, successi)
+        engine_diceCameraReturn(player)
+    end)
+end
+-- ============================================================
+-- FUNZIONE: engine_diceRoll_clear(player)
+-- Bottone 3D Cestino sul vassoio.
+-- ============================================================
+function engine_diceRoll_clear(player)
+    local slot = main_sideOfColor(player.color)
+    if not slot then
+        warningToColor("Scegli prima un esercito", player, "Yellow", 4, false)
+        return
+    end
+    engine_diceClearLastRoll(slot)
+end
+-- ============================================================
+-- FUNZIONE: engine_diceCameraZoom(player)
+-- Camera del giocatore sul vassoio dei dadi.
+-- ============================================================
+function engine_diceCameraZoom(player)
+    engine_cameraByName(player, nil, CAMERA_ZONE.ARMY_ROLL_DICES)
+end
+-- ============================================================
+-- FUNZIONE: engine_diceCameraReturn(player, secondi)
+-- Dopo il tiro, camera di nuovo sulla vista home.
+-- ============================================================
+function engine_diceCameraReturn(player, secondi)
+    Wait.time(function()
+        engine_cameraByName(player, nil, CAMERA_ZONE.ARMY_HOME)
+    end, secondi or 2)
+end

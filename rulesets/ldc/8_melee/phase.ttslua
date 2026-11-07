@@ -1,0 +1,27 @@
+-- ============================================================
+-- WARFORGE LDC — 8_melee/phase.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: melee_phase()
+-- ============================================================
+function melee_phase()
+    return {
+        [PHASE.MELEE] = {
+            title  = "MISCHIE",
+            desc   = "Risoluzione delle mischie",
+            before = "before_melee",
+            after  = "after_melee",
+            allowedActions = { ACTION.CONFIRM },
+            render = "1BtnClick",
+            enforceOwnership = true,
+            inputMode = INPUT_MODE.ACTIVE,
+            buttons = {
+                BTN_SINGLE = { action = ACTION.CONFIRM, label = "Mischie completate", callback = "melee_btn" },
+            },
+            transitions = {
+                { to = PHASE.COMMAND, conditions = { COND.CONFIRM_IMMEDIATE } },
+            },
+        },
+    }
+end

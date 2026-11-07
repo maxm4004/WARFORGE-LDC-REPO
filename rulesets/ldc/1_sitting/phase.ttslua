@@ -1,0 +1,28 @@
+-- ============================================================
+-- WARFORGE LDC — 1_sitting/phase.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: sitting_phase()
+-- ============================================================
+function sitting_phase()
+    return {
+        [PHASE.SITTING] = {
+            title  = "SCEGLI IL TUO ESERCITO",
+            desc   = "",
+            before = "before_sitting",
+            after  = "after_sitting",
+            allowedActions = { ACTION.ARMY1_CLICK, ACTION.ARMY2_CLICK },
+            render = "2BtnClick",
+            enforceOwnership = false,
+            inputMode = INPUT_MODE.FREE,
+            buttons = {
+                BTN_ARMY1 = { action = ACTION.ARMY1_CLICK, label = "Army1", callback = "sitting_btn_all" },
+                BTN_ARMY2 = { action = ACTION.ARMY2_CLICK, label = "Army2", callback = "sitting_btn_all" },
+            },
+            transitions = {
+                { to = PHASE.FIELD, conditions = { COND.REQUIREMENT_MET } },
+            },
+        },
+    }
+end

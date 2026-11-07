@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 8_melee/loader.ttslua
+-- ============================================================
+
+require("rulesets.ldc.8_melee.constants")
+require("rulesets.ldc.8_melee.state")
+require("rulesets.ldc.8_melee.callbacks")
+require("rulesets.ldc.8_melee.hooks")
+require("rulesets.ldc.8_melee.lib")
+require("rulesets.ldc.8_melee.phase")
+require("rulesets.ldc.8_melee.register")

@@ -1,0 +1,27 @@
+-- ============================================================
+-- WARFORGE LDC — 7_maneuver/phase.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: maneuver_phase()
+-- ============================================================
+function maneuver_phase()
+    return {
+        [PHASE.MANEUVER] = {
+            title  = "CARICHE E MANOVRE",
+            desc   = "Cariche, movimenti e cambi di formazione",
+            before = "before_maneuver",
+            after  = "after_maneuver",
+            allowedActions = { ACTION.CONFIRM },
+            render = "1BtnClick",
+            enforceOwnership = true,
+            inputMode = INPUT_MODE.ACTIVE,
+            buttons = {
+                BTN_SINGLE = { action = ACTION.CONFIRM, label = "Manovre completate", callback = "maneuver_btn" },
+            },
+            transitions = {
+                { to = PHASE.MELEE, conditions = { COND.CONFIRM_IMMEDIATE } },
+            },
+        },
+    }
+end

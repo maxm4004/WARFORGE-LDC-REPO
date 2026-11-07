@@ -1,0 +1,12 @@
+-- ============================================================
+-- WARFORGE LDC — 5_command/callbacks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: command_btn(player, value, id, buttonConfig)
+-- Lo schieramento attivo chiude la fase (solo lui arriva qui:
+-- main_canUseButton, modalità ACTIVE).
+-- ============================================================
+function command_btn(player, value, id, buttonConfig)
+    return true
+end

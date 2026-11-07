@@ -1,0 +1,42 @@
+-- ============================================================
+-- WARFORGE — engine/ui.ttslua
+-- Pannelli comuni a ogni ruleset e costruzione della UI.
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: getEngineUiXml()
+-- Logo, messaggi al giocatore, versione.
+-- ============================================================
+function getEngineUiXml()
+    return [[
+        <Panel id="logo_panel" rectAlignment="UpperCenter" width="650" height="500" offsetXY="-700 80" active="true">
+            <Image image="https://raw.githubusercontent.com/maxm4004/warforge-ief/refs/heads/main/images/warforge.png" preserveAspect="1"/>
+        </Panel>
+        <Panel rectAlignment="LowerCenter" width="1100" height="60" color="rgba(0,0,0,0)" offsetXY="0 300">
+            <Text id="playerGameMessage" text="" fontStyle="Bold" font="warforge_font" fontSize="18" color="rgba(212,175,55,0.9)" outline="#000000"
+            outlineSize="1" alignment="LeftCenter"/>
+        </Panel>
+        <Panel id="panelVersion" active="true"
+            rectAlignment="UpperCenter"
+            width="420"
+            height="30"
+            color="rgba(0,0,0,0.35)"
+            offsetXY="-700 -320">
+            <Text id="versione" text="" font="warforge_font" fontSize="13" color="Yellow" alignment="MiddleCenter" outline="#000000" outlineSize="1"/>
+        </Panel>
+    ]]
+end
+-- ============================================================
+-- FUNZIONE: buildUI()
+-- Ruleset + pannelli comuni + sottofasi + pannello dadi.
+-- UI.setXml è asincrono: un setAttribute fatto mentre
+-- UI.loading è vero può andare perso.
+-- ============================================================
+function buildUI()
+    local rulesetXml = callHandler("getRulesetUiXml") or ""
+    local header = [[<XmlLayout xmlns="XmlLayout"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="XmlLayout ../../../Configuration/XmlLayout.xsd">]]
+    local bottom = "</XmlLayout>"
+    UI.setXml(header .. rulesetXml .. getEngineUiXml() .. engine_subPanelsXml() .. engine_dicePanelsXml() .. bottom)
+end

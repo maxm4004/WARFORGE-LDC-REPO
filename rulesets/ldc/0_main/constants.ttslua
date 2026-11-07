@@ -1,0 +1,136 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/constants.ttslua
+-- Costanti del ruleset (valori fissi). Lo stato della partita
+-- sta in state.ttslua.
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- Identità del ruleset (lette dal Global comune e dal motore)
+-- ------------------------------------------------------------
+RULESET_NAME = "LDC"
+VERSION      = "LA DERNIERE CHARGE - v0.1.0"
+
+-- ------------------------------------------------------------
+-- Debug
+-- ------------------------------------------------------------
+DEBUG = false
+
+-- ------------------------------------------------------------
+-- Azioni e condizioni del motore
+-- ------------------------------------------------------------
+ACTION = {
+    ARMY1_CLICK = "ARMY1_CLICK",
+    ARMY2_CLICK = "ARMY2_CLICK",
+    CONFIRM     = "CONFIRM",
+}
+
+COND = {
+    REQUIREMENT_MET       = "requirement_met",        -- ogni schieramento ha il suo giocatore
+    BOTH_PLAYERS_SELECTED = "both_players_selected",  -- entrambi gli schieramenti hanno completato
+    CONFIRM_IMMEDIATE     = "confirm_immediate",      -- il giocatore attivo ha chiuso la fase
+    WINNER                = "winner",                 -- il tiro per chi inizia ha un vincitore
+}
+
+BUTTONS = {
+    BTN_ARMY1  = "BTN_ARMY1",
+    BTN_ARMY2  = "BTN_ARMY2",
+    BTN_SINGLE = "BTN_SINGLE",
+}
+
+-- Modalità di input dei bottoni di fase:
+--   FREE   tutti possono cliccare
+--   OWNER  ogni schieramento clicca il suo bottone (in parallelo)
+--   ACTIVE un solo bottone, solo lo schieramento attivo
+INPUT_MODE = {
+    FREE   = "FREE",
+    OWNER  = "OWNER",
+    ACTIVE = "ACTIVE",
+}
+
+PHASE = {
+    SITTING      = "SITTING",
+    FIELD        = "FIELD",
+    DEPLOY       = "DEPLOY",
+    FIRST_PLAYER = "FIRST_PLAYER",
+    COMMAND      = "COMMAND",
+    FIRE         = "FIRE",
+    MANEUVER     = "MANEUVER",
+    MELEE        = "MELEE",
+}
+
+-- ------------------------------------------------------------
+-- Colori dei giocatori e schieramenti
+-- ------------------------------------------------------------
+COLOR = {
+    RED    = "Red",
+    YELLOW = "Yellow",
+    GREEN  = "Green",
+    BLUE   = "Blue",
+    NOARMY = "Grey",
+}
+
+-- Modalità di partita
+GAME_MODE = {
+    ONE_VS_ONE = "1VS1",
+    TWO_VS_TWO = "2VS2",
+}
+
+-- Colori di ogni schieramento per modalità. Il primo colore è
+-- quello principale (bottoni, pannelli dello schieramento).
+SIDE_COLORS = {
+    [GAME_MODE.ONE_VS_ONE] = {
+        [1] = { COLOR.RED },
+        [2] = { COLOR.GREEN },
+    },
+    [GAME_MODE.TWO_VS_TWO] = {
+        [1] = { COLOR.RED,   COLOR.YELLOW },
+        [2] = { COLOR.GREEN, COLOR.BLUE },
+    },
+}
+
+-- Modalità in uso: per ora fissa 1 contro 1
+GAME_MODE_CURRENT = GAME_MODE.ONE_VS_ONE
+
+SIDE_NAMES = {
+    [1] = "Army1",
+    [2] = "Army2",
+}
+
+-- ------------------------------------------------------------
+-- Camere (engine/lib.ttslua). Posizioni del tavolo IEF, da
+-- verificare sul tavolo LDC.
+-- ------------------------------------------------------------
+CAMERA_ZONE = {
+    ARMY_ROLL_DICES = "ArmyRollDices",
+    ARMY_HOME       = "ArmyHome",
+}
+
+CAMERA_ZONES = {
+    [CAMERA_ZONE.ARMY_ROLL_DICES] = {
+        position = {
+            [1] = { x = -77.26, y = 1.31, z = -40.57 },
+            [2] = { x =  77.26, y = 1.31, z =  40.57 },
+        },
+        yaw = { [1] = 0, [2] = 180 },
+        pitch = 30,
+        distance = 12,
+    },
+    [CAMERA_ZONE.ARMY_HOME] = {
+        position = {
+            [1] = { x = 0, y = 1.31, z = -51.79 },
+            [2] = { x = 0, y = 1.31, z =  51.79 },
+        },
+        yaw = { [1] = 0, [2] = 180 },
+        pitch = 40,
+        distance = 80,
+    },
+}
+
+-- ------------------------------------------------------------
+-- Pannello centrale
+-- ------------------------------------------------------------
+CENTERPANEL = {
+    doneColor     = COLOR.NOARMY,   -- bottone di chi ha completato
+    doneText      = "Black",
+    activeText    = "White",
+}

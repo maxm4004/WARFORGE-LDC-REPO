@@ -1,0 +1,35 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/debug.ttslua
+-- Comandi di prova, da console: /execute debug_...()
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: debug_moveToPhase(phaseName)
+-- Salta a una fase, senza condizioni.
+-- ============================================================
+function debug_moveToPhase(phaseName)
+    main_goToPhase(phaseName)
+end
+-- ============================================================
+-- FUNZIONE: debug_reset()
+-- Azzera sottofasi, dadi e completamenti, resta nella fase
+-- corrente.
+-- ============================================================
+function debug_reset()
+    engine_subInitState()
+    engine_dicePanelClose(1)
+    engine_dicePanelClose(2)
+    engine_diceClearLastRoll(1)
+    engine_diceClearLastRoll(2)
+    main_resetCompleted()
+    main_updateCenterPanel()
+    print("[DEBUG] reset nella fase " .. tostring(ENGINE.phase))
+end
+-- ============================================================
+-- FUNZIONE: debug_turn()
+-- Stampa fase, turno e schieramento attivo.
+-- ============================================================
+function debug_turn()
+    print("[DEBUG] fase " .. tostring(ENGINE.phase) .. ", turno " .. tostring(ENGINE.turn))
+    printTable(TURN)
+end

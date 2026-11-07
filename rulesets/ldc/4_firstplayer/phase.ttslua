@@ -1,0 +1,31 @@
+-- ============================================================
+-- WARFORGE LDC — 4_firstplayer/phase.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: firstplayer_phase()
+-- Regolamento, Sequenza di gioco: chi inizia si determina con
+-- un tiro di 1D6, poi turni alternati nello stesso ordine.
+-- ============================================================
+function firstplayer_phase()
+    return {
+        [PHASE.FIRST_PLAYER] = {
+            title  = "CHI INIZIA",
+            desc   = "Ogni esercito tira 1D6: il risultato più alto gioca per primo",
+            before = "before_firstplayer",
+            after  = "after_firstplayer",
+            onRoll = "firstplayer_onRoll",
+            allowedActions = { ACTION.ARMY1_CLICK, ACTION.ARMY2_CLICK },
+            render = "2BtnClick",
+            enforceOwnership = true,
+            inputMode = INPUT_MODE.OWNER,
+            buttons = {
+                BTN_ARMY1 = { action = ACTION.ARMY1_CLICK, label = "Tira 1D6", callback = "firstplayer_btn_all" },
+                BTN_ARMY2 = { action = ACTION.ARMY2_CLICK, label = "Tira 1D6", callback = "firstplayer_btn_all" },
+            },
+            transitions = {
+                { to = PHASE.COMMAND, conditions = { COND.WINNER } },
+            },
+        },
+    }
+end

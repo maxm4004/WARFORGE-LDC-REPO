@@ -1,0 +1,10 @@
+-- ============================================================
+-- WARFORGE LDC — 4_firstplayer/constants.ttslua
+-- Costanti della fase (valori fissi).
+-- ============================================================
+
+-- Secondi prima di ritirare dopo un pareggio
+FIRSTPLAYER_TIE_DELAY = 3
+
+-- Secondi prima di chiudere il pannello dadi a fine fase
+FIRSTPLAYER_PANEL_CLOSE = 3

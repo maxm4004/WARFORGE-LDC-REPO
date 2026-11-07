@@ -1,0 +1,6 @@
+-- ============================================================
+-- WARFORGE LDC — 8_melee/register.ttslua
+-- Handler della fase non nominati nella definizione
+-- (before, after, onRoll e callback dei bottoni sono
+-- registrati da engine_autoRegisterFromPhases).
+-- ============================================================

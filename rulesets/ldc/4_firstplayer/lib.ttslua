@@ -1,0 +1,85 @@
+-- ============================================================
+-- WARFORGE LDC — 4_firstplayer/lib.ttslua
+-- Tiro per stabilire chi inizia.
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: firstplayer_resetRolls()
+-- ============================================================
+function firstplayer_resetRolls()
+    FIRST_ROLL.rolled   = { [1] = nil, [2] = nil }
+    FIRST_ROLL.winner   = nil
+    FIRSTPLAYER_ROLLING = { [1] = false, [2] = false }
+end
+-- ============================================================
+-- FUNZIONE: firstplayer_check()
+-- Dopo ogni tiro: se hanno tirato entrambi, vincitore o
+-- pareggio da ritirare.
+-- ============================================================
+function firstplayer_check()
+    local r1, r2 = FIRST_ROLL.rolled[1], FIRST_ROLL.rolled[2]
+
+    if r1 == nil or r2 == nil then
+        firstplayer_dicePanelOutcome(r1, r2, nil)
+        return
+    end
+
+    if r1 == r2 then
+        firstplayer_dicePanelOutcome(r1, r2, nil)
+        warning("Pareggio, il tiro si ripete", "Yellow")
+        Wait.time(function()
+            if ENGINE.phase ~= PHASE.FIRST_PLAYER then return end
+            firstplayer_resetRolls()
+            main_resetCompleted()
+            for slot = 1, 2 do
+                engine_diceClearLastRoll(slot)
+                firstplayer_dicePanelOpen(slot)
+            end
+            callHandler("updateCenterPanel")
+        end, FIRSTPLAYER_TIE_DELAY)
+        return
+    end
+
+    local winner = (r1 > r2) and 1 or 2
+    FIRST_ROLL.winner = winner
+    firstplayer_dicePanelOutcome(r1, r2, winner)
+
+    -- La condizione WINNER chiude la fase
+    local action = (winner == 1) and ACTION.ARMY1_CLICK or ACTION.ARMY2_CLICK
+    engine_handleAction({ type = action })
+end
+-- ============================================================
+-- FUNZIONE: firstplayer_dicePanelOpen(slot)
+-- ============================================================
+function firstplayer_dicePanelOpen(slot)
+    engine_dicePanelOpen(slot, {
+        titolo      = "CHI INIZIA",
+        sottotitolo = main_sideName(slot),
+        righe       = {
+            { "Dadi", "1D6" },
+            { "Modificatori", "nessuno" },
+        },
+        serve       = "Vince il risultato più alto",
+    })
+end
+-- ============================================================
+-- FUNZIONE: firstplayer_dicePanelOutcome(r1, r2, winner)
+-- Esito nelle colonne del pannello dadi.
+-- ============================================================
+function firstplayer_dicePanelOutcome(r1, r2, winner)
+    local tiri = { [1] = r1, [2] = r2 }
+    for slot = 1, 2 do
+        local mio, suo = tiri[slot], tiri[3 - slot]
+        if mio ~= nil and engine_dicePanelIsOpen(slot) then
+            if suo == nil then
+                engine_dicePanelOutcome(slot, "In attesa dell'avversario", DICEPANEL.textColor)
+            elseif winner == slot then
+                engine_dicePanelOutcome(slot, string.format("Inizi tu: %d contro %d", mio, suo), DICEPANEL.okColor)
+            elseif winner == 3 - slot then
+                engine_dicePanelOutcome(slot, string.format("Inizia l'avversario: %d contro %d", mio, suo), DICEPANEL.koColor)
+            else
+                engine_dicePanelOutcome(slot, string.format("Pareggio %d a %d: si ritira", mio, suo), DICEPANEL.titleColor)
+            end
+        end
+    end
+end

@@ -1,0 +1,32 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/conditions.ttslua
+-- Condizioni delle transizioni di fase.
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: registerDefaultConditions()
+-- ============================================================
+function registerDefaultConditions()
+
+    -- Ogni schieramento ha almeno un giocatore seduto (SITTING)
+    registerCondition(COND.REQUIREMENT_MET, function(action)
+        return main_sideHasPlayer(1) and main_sideHasPlayer(2)
+    end)
+
+    -- Entrambi gli schieramenti hanno completato (fasi OWNER)
+    registerCondition(COND.BOTH_PLAYERS_SELECTED, function(action)
+        return TURN ~= nil and TURN.completed ~= nil
+            and TURN.completed[1] == true
+            and TURN.completed[2] == true
+    end)
+
+    -- Il giocatore attivo ha chiuso la fase (fasi ACTIVE)
+    registerCondition(COND.CONFIRM_IMMEDIATE, function(action)
+        return action ~= nil and action.type == ACTION.CONFIRM
+    end)
+
+    -- Il tiro per chi inizia ha un vincitore
+    registerCondition(COND.WINNER, function(action)
+        return FIRST_ROLL ~= nil and FIRST_ROLL.winner ~= nil
+    end)
+end

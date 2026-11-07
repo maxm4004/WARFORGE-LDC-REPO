@@ -1,0 +1,28 @@
+-- ============================================================
+-- WARFORGE LDC — 3_deploy/phase.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: deploy_phase()
+-- ============================================================
+function deploy_phase()
+    return {
+        [PHASE.DEPLOY] = {
+            title  = "SCHIERAMENTO",
+            desc   = "Schieramento degli eserciti (da sviluppare)",
+            before = "before_deploy",
+            after  = "after_deploy",
+            allowedActions = { ACTION.ARMY1_CLICK, ACTION.ARMY2_CLICK },
+            render = "2BtnClick",
+            enforceOwnership = true,
+            inputMode = INPUT_MODE.OWNER,
+            buttons = {
+                BTN_ARMY1 = { action = ACTION.ARMY1_CLICK, label = "Schieramento completato", callback = "deploy_btn_all" },
+                BTN_ARMY2 = { action = ACTION.ARMY2_CLICK, label = "Schieramento completato", callback = "deploy_btn_all" },
+            },
+            transitions = {
+                { to = PHASE.FIRST_PLAYER, conditions = { COND.BOTH_PLAYERS_SELECTED } },
+            },
+        },
+    }
+end

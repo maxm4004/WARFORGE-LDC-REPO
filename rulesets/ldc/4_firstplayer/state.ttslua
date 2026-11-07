@@ -1,0 +1,9 @@
+-- ============================================================
+-- WARFORGE LDC — 4_firstplayer/state.ttslua
+-- Stato della fase. I risultati del tiro sono in FIRST_ROLL
+-- (0_main/state, salvato).
+-- ============================================================
+
+-- Tiro in corso per schieramento (non salvato): blocca un
+-- secondo Roll mentre i dadi rotolano
+FIRSTPLAYER_ROLLING = { [1] = false, [2] = false }

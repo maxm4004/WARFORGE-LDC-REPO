@@ -1,0 +1,47 @@
+-- ============================================================
+-- WARFORGE LDC — 4_firstplayer/callbacks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: firstplayer_btn_all(player, value, id, buttonConfig)
+-- Il bottone porta solo la camera sui dadi: il tiro parte dal
+-- bottone 3D Roll sul vassoio (firstplayer_onRoll).
+-- Ritorna false: il click non chiude la fase.
+-- ============================================================
+function firstplayer_btn_all(player, value, id, buttonConfig)
+    local slot = main_sideOfButton(id)
+    if not slot or TURN.completed[slot] then return false end
+
+    engine_diceCameraZoom(player)
+    if not engine_dicePanelIsOpen(slot) then
+        firstplayer_dicePanelOpen(slot)
+    end
+    warningToColor("Premi Roll sul vassoio dei dadi", player, "Yellow", 4, false)
+    return false
+end
+-- ============================================================
+-- FUNZIONE: firstplayer_onRoll(player, slot)
+-- Bottone 3D Roll durante la fase (phase.onRoll).
+-- ============================================================
+function firstplayer_onRoll(player, slot)
+    if FIRST_ROLL.rolled[slot] ~= nil or FIRSTPLAYER_ROLLING[slot] then
+        warningToColor("Hai già tirato", player, "Yellow", 3, false)
+        return
+    end
+
+    FIRSTPLAYER_ROLLING[slot] = true
+    engine_diceClearLastRoll(slot)
+    engine_diceSetNext(slot, 1, nil)
+
+    engine_diceThrowFromBag(slot, nil, function(risultati, successi)
+        FIRSTPLAYER_ROLLING[slot] = false
+        if ENGINE.phase ~= PHASE.FIRST_PLAYER then return end
+
+        FIRST_ROLL.rolled[slot] = risultati[1]
+        main_markSideDone(slot)
+        engine_diceCameraReturn(player)
+
+        firstplayer_check()
+        callHandler("updateCenterPanel")
+    end)
+end

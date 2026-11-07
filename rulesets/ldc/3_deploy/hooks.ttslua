@@ -1,0 +1,16 @@
+-- ============================================================
+-- WARFORGE LDC — 3_deploy/hooks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: before_deploy(phaseName, phase)
+-- ============================================================
+function before_deploy(phaseName, phase)
+    main_resetCompleted()
+    callHandler("updateCenterPanel")
+end
+-- ============================================================
+-- FUNZIONE: after_deploy(phaseName, phase)
+-- ============================================================
+function after_deploy(phaseName, phase)
+end

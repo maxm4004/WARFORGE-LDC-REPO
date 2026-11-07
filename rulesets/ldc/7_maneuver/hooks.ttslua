@@ -1,0 +1,15 @@
+-- ============================================================
+-- WARFORGE LDC — 7_maneuver/hooks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: before_maneuver(phaseName, phase)
+-- ============================================================
+function before_maneuver(phaseName, phase)
+    callHandler("updateCenterPanel")
+end
+-- ============================================================
+-- FUNZIONE: after_maneuver(phaseName, phase)
+-- ============================================================
+function after_maneuver(phaseName, phase)
+end

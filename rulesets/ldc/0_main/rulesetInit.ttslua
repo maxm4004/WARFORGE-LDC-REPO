@@ -1,0 +1,37 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/rulesetInit.ttslua
+-- Avvio del ruleset. Per ora nessun JSON da caricare: il boot
+-- parte subito (con i dati di gioco passerà dal caricamento).
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_rulesetInit(save_state)
+-- Chiamata da engine_boot tramite l'handler "rulesetInit".
+-- ============================================================
+function main_rulesetInit(save_state)
+    main_boot(save_state)
+end
+-- ============================================================
+-- FUNZIONE: main_boot(save_state)
+-- Fasi → handler → condizioni → stato salvato → motore.
+-- ============================================================
+function main_boot(save_state)
+
+    callHandler("initPhases")
+    callHandler("autoRegisterFromPhases")
+    callHandler("registerDefaultConditions")
+
+    local restored = false
+    if save_state and save_state ~= "" then
+        restored = callHandler("restoreState", save_state)
+    end
+
+    engine_init()
+    engine_diceButtons3DShow()
+
+    if restored then
+        Wait.time(function()
+            callHandler("afterRestoreState", save_state)
+        end, 1)
+    end
+end

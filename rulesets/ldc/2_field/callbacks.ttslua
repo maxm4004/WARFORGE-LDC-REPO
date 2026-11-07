@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 2_field/callbacks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: field_btn_all(player, value, id, buttonConfig)
+-- Lo schieramento del bottone ha completato la fase.
+-- ============================================================
+function field_btn_all(player, value, id, buttonConfig)
+    return main_ownerPhaseClick(id)
+end

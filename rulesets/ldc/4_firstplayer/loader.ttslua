@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 4_firstplayer/loader.ttslua
+-- ============================================================
+
+require("rulesets.ldc.4_firstplayer.constants")
+require("rulesets.ldc.4_firstplayer.state")
+require("rulesets.ldc.4_firstplayer.callbacks")
+require("rulesets.ldc.4_firstplayer.hooks")
+require("rulesets.ldc.4_firstplayer.lib")
+require("rulesets.ldc.4_firstplayer.phase")
+require("rulesets.ldc.4_firstplayer.register")

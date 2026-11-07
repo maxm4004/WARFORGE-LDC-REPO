@@ -1,0 +1,27 @@
+-- ============================================================
+-- WARFORGE — engine/loader.ttslua
+-- Motore comune: macchina a fasi, sottofasi, dadi, UI di base.
+--
+-- Il ruleset deve fornire:
+--   main_sideOfColor(color)    -> 1 | 2 | nil
+--   main_sidePlayers(slot)     -> giocatori seduti dello schieramento
+--   main_sideVisibility(slot)  -> colori per l'attributo visibility
+--   main_sideName(slot)        -> nome dello schieramento
+--   CAMERA_ZONE, CAMERA_ZONES  -> zone delle camere
+--   handler "getRulesetUiXml", "canUseButton", "updateCenterPanel",
+--           "onPhaseEntered", "rulesetInit", "restart"
+-- ============================================================
+
+require("engine.constants")
+require("engine.dispatcher")
+require("engine.conditions")
+require("engine.boot")
+require("engine.core")
+require("engine.utils")
+require("engine.input")
+require("engine.lib")
+require("engine.ui")
+require("engine.renderers")
+require("engine.subphase")
+require("engine.dicepanel")
+require("engine.dice")

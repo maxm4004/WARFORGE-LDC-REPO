@@ -1,0 +1,29 @@
+-- ============================================================
+-- WARFORGE — engine/renderers.ttslua
+-- Renderer del pannello centrale, disponibili a ogni ruleset.
+-- Il renderer della fase attiva i pannelli dei bottoni; testi e
+-- colori li imposta poi il ruleset (updateCenterPanel).
+-- I ruleset aggiungono renderer propri con registerRenderer().
+-- ============================================================
+RENDERERS = RENDERERS or {}
+
+-- ============================================================
+-- RENDERER: 1BtnClick
+-- Un solo bottone (BTN_SINGLE), al posto dei due.
+-- ============================================================
+RENDERERS["1BtnClick"] = function(phase)
+    UI.setAttribute("panelBtnUp",   "active", "false")
+    UI.setAttribute("panelBtnDown", "active", "true")
+    UI.setAttribute("panelBtnDown", "offsetXY", "0 -223")
+    UI.setAttribute("BTN_SINGLE",   "active", "true")
+end
+
+-- ============================================================
+-- RENDERER: 2BtnClick
+-- Due bottoni, uno per schieramento (BTN_ARMY1, BTN_ARMY2).
+-- ============================================================
+RENDERERS["2BtnClick"] = function(phase)
+    UI.setAttribute("panelBtnUp",   "active", "true")
+    UI.setAttribute("panelBtnDown", "active", "false")
+    UI.setAttribute("panelBtnUp",   "offsetXY", "0 -223")
+end

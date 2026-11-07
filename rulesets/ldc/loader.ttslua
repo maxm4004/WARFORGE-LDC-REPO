@@ -1,0 +1,14 @@
+-- ============================================================
+-- WARFORGE LDC — rulesets/ldc/loader.ttslua
+-- Loader principale del ruleset La Dernière Charge.
+-- ============================================================
+
+require("rulesets.ldc.0_main.loader")
+require("rulesets.ldc.1_sitting.loader")
+require("rulesets.ldc.2_field.loader")
+require("rulesets.ldc.3_deploy.loader")
+require("rulesets.ldc.4_firstplayer.loader")
+require("rulesets.ldc.5_command.loader")
+require("rulesets.ldc.6_fire.loader")
+require("rulesets.ldc.7_maneuver.loader")
+require("rulesets.ldc.8_melee.loader")

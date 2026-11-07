@@ -1,0 +1,27 @@
+-- ============================================================
+-- WARFORGE LDC — 5_command/phase.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: command_phase()
+-- ============================================================
+function command_phase()
+    return {
+        [PHASE.COMMAND] = {
+            title  = "FASE DI COMANDO",
+            desc   = "Attivazione delle Divisioni e delle Brigate",
+            before = "before_command",
+            after  = "after_command",
+            allowedActions = { ACTION.CONFIRM },
+            render = "1BtnClick",
+            enforceOwnership = true,
+            inputMode = INPUT_MODE.ACTIVE,
+            buttons = {
+                BTN_SINGLE = { action = ACTION.CONFIRM, label = "Comando completato", callback = "command_btn" },
+            },
+            transitions = {
+                { to = PHASE.FIRE, conditions = { COND.CONFIRM_IMMEDIATE } },
+            },
+        },
+    }
+end

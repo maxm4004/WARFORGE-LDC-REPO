@@ -1,0 +1,38 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/register.ttslua
+-- Handler del motore, del ciclo di vita del ruleset e della UI.
+-- Gli handler di ogni fase sono nel register della sua cartella.
+-- ============================================================
+
+-- Motore
+registerHandler("engine_validatePhases",     function()             return engine_validatePhases()              end)
+registerHandler("engine_resetState",         function()             return engine_resetState()                  end)
+registerHandler("engine_cameraResetAll",     function()             return engine_cameraResetAll()              end)
+registerHandler("onPhaseEntered",            function(n, p)         return main_onPhaseEntered(n, p)            end)
+
+-- Ciclo di vita del ruleset
+registerHandler("rulesetInit",               function(ss)           return main_rulesetInit(ss)                 end)
+registerHandler("initPhases",                function()             return initPhases()                         end)
+registerHandler("autoRegisterFromPhases",    function()             return engine_autoRegisterFromPhases()      end)
+registerHandler("registerDefaultConditions", function()             return registerDefaultConditions()          end)
+
+-- UI
+registerHandler("initUI",                    function()             return main_initUI()                        end)
+registerHandler("buildUI",                   function()             return buildUI()                            end)
+registerHandler("getRulesetUiXml",           function()             return getRulesetUiXml()                    end)
+registerHandler("updateCenterPanel",         function()             return main_updateCenterPanel()             end)
+registerHandler("confirm",                   function(a)            return engine_handleAction(a)               end)
+
+-- Persistenza
+registerHandler("onSave",                    function()             return main_onSave()                        end)
+registerHandler("restoreState",              function(ss)           return main_restoreState(ss)                end)
+registerHandler("restorePlayersColors",      function()             return main_restorePlayersColors()          end)
+registerHandler("afterRestoreState",         function(ss)
+    callHandler("restorePlayersColors")
+    callHandler("updateCenterPanel")
+end)
+
+-- Giocatori e flusso
+registerHandler("canUseButton",              function(s,p,v,i,b,ph) return main_canUseButton(s,p,v,i,b,ph)      end)
+registerHandler("resetPlayers",              function()             return main_resetPlayers()                  end)
+registerHandler("restart",                   function()             return main_restart()                       end)

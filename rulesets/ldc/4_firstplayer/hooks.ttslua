@@ -1,0 +1,32 @@
+-- ============================================================
+-- WARFORGE LDC — 4_firstplayer/hooks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: before_firstplayer(phaseName, phase)
+-- ============================================================
+function before_firstplayer(phaseName, phase)
+    main_resetCompleted()
+    firstplayer_resetRolls()
+
+    for slot = 1, 2 do
+        engine_diceClearLastRoll(slot)
+        firstplayer_dicePanelOpen(slot)
+    end
+
+    callHandler("updateCenterPanel")
+end
+-- ============================================================
+-- FUNZIONE: after_firstplayer(phaseName, phase)
+-- Il vincitore gioca per primo in ogni turno.
+-- ============================================================
+function after_firstplayer(phaseName, phase)
+    local winner = FIRST_ROLL.winner
+    main_startGameTurns(winner)
+
+    for slot = 1, 2 do
+        engine_dicePanelCloseAfter(slot, FIRSTPLAYER_PANEL_CLOSE)
+    end
+
+    warning("Inizia " .. main_sideName(winner), "Yellow")
+end

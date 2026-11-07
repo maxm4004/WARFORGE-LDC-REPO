@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 7_maneuver/loader.ttslua
+-- ============================================================
+
+require("rulesets.ldc.7_maneuver.constants")
+require("rulesets.ldc.7_maneuver.state")
+require("rulesets.ldc.7_maneuver.callbacks")
+require("rulesets.ldc.7_maneuver.hooks")
+require("rulesets.ldc.7_maneuver.lib")
+require("rulesets.ldc.7_maneuver.phase")
+require("rulesets.ldc.7_maneuver.register")

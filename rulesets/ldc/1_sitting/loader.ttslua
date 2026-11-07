@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 1_sitting/loader.ttslua
+-- ============================================================
+
+require("rulesets.ldc.1_sitting.constants")
+require("rulesets.ldc.1_sitting.state")
+require("rulesets.ldc.1_sitting.callbacks")
+require("rulesets.ldc.1_sitting.hooks")
+require("rulesets.ldc.1_sitting.lib")
+require("rulesets.ldc.1_sitting.phase")
+require("rulesets.ldc.1_sitting.register")

@@ -1,0 +1,144 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/persistence.ttslua
+-- Salvataggio e ripristino dello stato della partita.
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_onSave()
+-- ============================================================
+function main_onSave()
+
+    -- Giocatori seduti di ogni schieramento
+    local saved = {}
+    for slot = 1, 2 do
+        for _, p in ipairs(main_sidePlayers(slot)) do
+            table.insert(saved, {
+                steam_id   = p.steam_id,
+                steam_name = p.steam_name,
+                color      = p.color,
+                slot       = slot,
+            })
+        end
+    end
+
+    local saveData = {
+        engine = {
+            phase = ENGINE and ENGINE.phase or nil,
+            turn  = ENGINE and ENGINE.turn  or nil,
+        },
+        game_mode     = GAME_MODE_CURRENT,
+        players_saved = saved,
+        turn          = TURN,
+        first_roll    = FIRST_ROLL,
+        sub           = ENGINE and ENGINE.sub or nil,
+    }
+    return JSON.encode(main_saveSanitize(saveData, "save"))
+end
+-- ============================================================
+-- FUNZIONE: main_saveSanitize(valore, percorso, visti)
+-- Copia dei dati senza ciò che JSON non può codificare
+-- (oggetti TTS, funzioni, chiavi non stringa/numero). Stampa
+-- il percorso di ogni valore scartato, per trovarne l'origine.
+-- ============================================================
+function main_saveSanitize(valore, percorso, visti)
+    local t = type(valore)
+    if t == "string" or t == "number" or t == "boolean" or t == "nil" then
+        return valore
+    end
+    if t ~= "table" then
+        print("[SAVE] scartato " .. t .. " in " .. tostring(percorso))
+        return nil
+    end
+    visti = visti or {}
+    if visti[valore] then
+        print("[SAVE] riferimento circolare scartato in " .. tostring(percorso))
+        return nil
+    end
+    visti[valore] = true
+    local out = {}
+    for k, v in pairs(valore) do
+        local tk = type(k)
+        if tk == "string" or tk == "number" then
+            out[k] = main_saveSanitize(v, tostring(percorso) .. "." .. tostring(k), visti)
+        else
+            print("[SAVE] scartata chiave " .. tk .. " (" .. tostring(k) .. ") in " .. tostring(percorso))
+        end
+    end
+    visti[valore] = nil
+    return out
+end
+-- ============================================================
+-- FUNZIONE: main_slotPair(t)
+-- Tabella {[1]=..., [2]=...} da un valore decodificato da JSON
+-- (le chiavi numeriche possono tornare come stringhe).
+-- ============================================================
+function main_slotPair(t)
+    t = t or {}
+    local a, b = t[1], t[2]
+    if a == nil then a = t["1"] end
+    if b == nil then b = t["2"] end
+    return { [1] = a, [2] = b }
+end
+-- ============================================================
+-- FUNZIONE: main_restoreState(save_state)
+-- ============================================================
+function main_restoreState(save_state)
+
+    if not save_state or save_state == "" then return false end
+
+    local ok, data = pcall(JSON.decode, save_state)
+    if not ok or not data then
+        print("[LOAD] JSON non leggibile")
+        return false
+    end
+
+    ENGINE = ENGINE or {}
+
+    if data.engine then
+        ENGINE.phase = data.engine.phase or ENGINE.phase
+        ENGINE.turn  = data.engine.turn  or ENGINE.turn
+    end
+
+    GAME_MODE_CURRENT = data.game_mode or GAME_MODE_CURRENT
+    players_saved     = data.players_saved or {}
+
+    if data.turn then
+        TURN = data.turn
+        TURN.completed = main_slotPair(TURN.completed)
+        TURN.completed[1] = TURN.completed[1] == true
+        TURN.completed[2] = TURN.completed[2] == true
+        TURN.half = TURN.half or 1
+    end
+
+    if data.first_roll then
+        FIRST_ROLL = data.first_roll
+        FIRST_ROLL.rolled = main_slotPair(FIRST_ROLL.rolled)
+    end
+
+    if data.sub then
+        ENGINE.sub = data.sub
+        Wait.time(function()
+            engine_subRestore()
+        end, 2)
+    else
+        engine_subInitState()
+    end
+
+    return true
+end
+-- ============================================================
+-- FUNZIONE: main_restorePlayersColors()
+-- Ogni giocatore salvato riprende il suo colore.
+-- ============================================================
+function main_restorePlayersColors()
+    if not players_saved then return end
+
+    local currentPlayers = Player.getPlayers()
+    for _, saved in pairs(players_saved) do
+        for _, p in ipairs(currentPlayers) do
+            if tostring(p.steam_id) == tostring(saved.steam_id) and p.color ~= saved.color then
+                p.changeColor(saved.color)
+            end
+        end
+    end
+end

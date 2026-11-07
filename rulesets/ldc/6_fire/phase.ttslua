@@ -1,0 +1,27 @@
+-- ============================================================
+-- WARFORGE LDC — 6_fire/phase.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: fire_phase()
+-- ============================================================
+function fire_phase()
+    return {
+        [PHASE.FIRE] = {
+            title  = "FASE DI FUOCO",
+            desc   = "Tiri di artiglieria e di moschetteria",
+            before = "before_fire",
+            after  = "after_fire",
+            allowedActions = { ACTION.CONFIRM },
+            render = "1BtnClick",
+            enforceOwnership = true,
+            inputMode = INPUT_MODE.ACTIVE,
+            buttons = {
+                BTN_SINGLE = { action = ACTION.CONFIRM, label = "Fuoco completato", callback = "fire_btn" },
+            },
+            transitions = {
+                { to = PHASE.MANEUVER, conditions = { COND.CONFIRM_IMMEDIATE } },
+            },
+        },
+    }
+end

@@ -1,0 +1,15 @@
+-- ============================================================
+-- WARFORGE LDC — 5_command/hooks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: before_command(phaseName, phase)
+-- ============================================================
+function before_command(phaseName, phase)
+    callHandler("updateCenterPanel")
+end
+-- ============================================================
+-- FUNZIONE: after_command(phaseName, phase)
+-- ============================================================
+function after_command(phaseName, phase)
+end

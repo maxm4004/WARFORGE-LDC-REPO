@@ -1,0 +1,12 @@
+-- ============================================================
+-- WARFORGE LDC — 8_melee/callbacks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: melee_btn(player, value, id, buttonConfig)
+-- Lo schieramento attivo chiude la fase (solo lui arriva qui:
+-- main_canUseButton, modalità ACTIVE).
+-- ============================================================
+function melee_btn(player, value, id, buttonConfig)
+    return true
+end

@@ -1,0 +1,18 @@
+-- ============================================================
+-- WARFORGE LDC — 1_sitting/hooks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: before_sitting(phaseName, phase)
+-- ============================================================
+function before_sitting(phaseName, phase)
+    TURN.activeSide = nil
+    main_resetCompleted()
+    callHandler("updateCenterPanel")
+end
+-- ============================================================
+-- FUNZIONE: after_sitting(phaseName, phase)
+-- ============================================================
+function after_sitting(phaseName, phase)
+    callHandler("engine_cameraResetAll")
+end

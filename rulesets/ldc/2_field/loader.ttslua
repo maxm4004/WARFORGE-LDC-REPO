@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 2_field/loader.ttslua
+-- ============================================================
+
+require("rulesets.ldc.2_field.constants")
+require("rulesets.ldc.2_field.state")
+require("rulesets.ldc.2_field.callbacks")
+require("rulesets.ldc.2_field.hooks")
+require("rulesets.ldc.2_field.lib")
+require("rulesets.ldc.2_field.phase")
+require("rulesets.ldc.2_field.register")

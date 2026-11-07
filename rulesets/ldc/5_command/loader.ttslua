@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 5_command/loader.ttslua
+-- ============================================================
+
+require("rulesets.ldc.5_command.constants")
+require("rulesets.ldc.5_command.state")
+require("rulesets.ldc.5_command.callbacks")
+require("rulesets.ldc.5_command.hooks")
+require("rulesets.ldc.5_command.lib")
+require("rulesets.ldc.5_command.phase")
+require("rulesets.ldc.5_command.register")

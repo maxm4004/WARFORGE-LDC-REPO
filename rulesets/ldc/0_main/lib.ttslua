@@ -1,0 +1,377 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/lib.ttslua
+-- Schieramenti e giocatori, flusso del turno, pannello centrale.
+--
+-- Schieramento (slot 1/2) e giocatore (colore) sono concetti
+-- separati: regole, fasi e stato ragionano per schieramento;
+-- solo le funzioni "main_side*" traducono fra i due. Nel resto
+-- del codice i colori non si confrontano mai a mano.
+-- ============================================================
+
+-- ============================================================
+--                  SCHIERAMENTI E GIOCATORI
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_sideColors(slot)
+-- Colori dei giocatori dello schieramento nella modalità in uso.
+-- ============================================================
+function main_sideColors(slot)
+    local mode = SIDE_COLORS[GAME_MODE_CURRENT] or {}
+    return mode[slot] or {}
+end
+-- ============================================================
+-- FUNZIONE: main_sideMainColor(slot)
+-- Colore principale dello schieramento (bottoni, pannelli).
+-- ============================================================
+function main_sideMainColor(slot)
+    return main_sideColors(slot)[1] or COLOR.NOARMY
+end
+-- ============================================================
+-- FUNZIONE: main_sideOfColor(color)
+-- Schieramento di un colore giocatore: 1, 2 o nil.
+-- ============================================================
+function main_sideOfColor(color)
+    for slot = 1, 2 do
+        for _, c in ipairs(main_sideColors(slot)) do
+            if c == color then return slot end
+        end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_colorInSide(color, slot)
+-- ============================================================
+function main_colorInSide(color, slot)
+    return slot ~= nil and main_sideOfColor(color) == slot
+end
+-- ============================================================
+-- FUNZIONE: main_sidePlayers(slot)
+-- Giocatori seduti dello schieramento (oggetti Player).
+-- ============================================================
+function main_sidePlayers(slot)
+    local result = {}
+    for _, color in ipairs(main_sideColors(slot)) do
+        local p = Player[color]
+        if p and p.seated then
+            table.insert(result, p)
+        end
+    end
+    return result
+end
+-- ============================================================
+-- FUNZIONE: main_sideHasPlayer(slot)
+-- ============================================================
+function main_sideHasPlayer(slot)
+    return #main_sidePlayers(slot) > 0
+end
+-- ============================================================
+-- FUNZIONE: main_sideVisibility(slot)
+-- Valore dell'attributo XML visibility per i pannelli privati
+-- dello schieramento (es. "Red|Yellow").
+-- ============================================================
+function main_sideVisibility(slot)
+    return table.concat(main_sideColors(slot), "|")
+end
+-- ============================================================
+-- FUNZIONE: main_sideName(slot)
+-- ============================================================
+function main_sideName(slot)
+    return SIDE_NAMES[slot] or ("Army" .. tostring(slot))
+end
+-- ============================================================
+-- FUNZIONE: main_otherSide(slot)
+-- ============================================================
+function main_otherSide(slot)
+    if slot == 1 then return 2 end
+    if slot == 2 then return 1 end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_sideOfButton(buttonId)
+-- Schieramento del bottone di fase (BTN_ARMY1/2), nil per
+-- BTN_SINGLE.
+-- ============================================================
+function main_sideOfButton(buttonId)
+    if buttonId == BUTTONS.BTN_ARMY1 then return 1 end
+    if buttonId == BUTTONS.BTN_ARMY2 then return 2 end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_warningToSide(slot, msg, textColor, seconds)
+-- Messaggio a tutti i giocatori dello schieramento.
+-- ============================================================
+function main_warningToSide(slot, msg, textColor, seconds)
+    for _, p in ipairs(main_sidePlayers(slot)) do
+        warningToColor(msg, p, textColor or "Yellow", seconds or 5, false)
+    end
+end
+-- ============================================================
+-- FUNZIONE: main_resetPlayers()
+-- Tutti i giocatori tornano senza esercito.
+-- ============================================================
+function main_resetPlayers()
+    for _, p in ipairs(Player.getPlayers()) do
+        if p then p.changeColor(COLOR.NOARMY) end
+    end
+end
+
+-- ============================================================
+--                       FLUSSO DEL TURNO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_resetCompleted()
+-- Azzera i completamenti delle fasi a due bottoni.
+-- ============================================================
+function main_resetCompleted()
+    TURN.completed = { [1] = false, [2] = false }
+end
+-- ============================================================
+-- FUNZIONE: main_markSideDone(slot)
+-- Lo schieramento ha completato la fase (fasi OWNER).
+-- ============================================================
+function main_markSideDone(slot)
+    if slot then TURN.completed[slot] = true end
+end
+-- ============================================================
+-- FUNZIONE: main_ownerPhaseClick(buttonId)
+-- Click sul bottone di una fase OWNER: lo schieramento del
+-- bottone ha completato. false se aveva già completato.
+-- ============================================================
+function main_ownerPhaseClick(buttonId)
+    local slot = main_sideOfButton(buttonId)
+    if not slot or TURN.completed[slot] then return false end
+    main_markSideDone(slot)
+    return true
+end
+-- ============================================================
+-- FUNZIONE: main_startGameTurns(firstSide)
+-- Dopo il tiro per chi inizia: primo turno, prima metà.
+-- ============================================================
+function main_startGameTurns(firstSide)
+    ENGINE.turn     = 1
+    TURN.firstSide  = firstSide
+    TURN.activeSide = firstSide
+    TURN.half       = 1
+    main_resetCompleted()
+end
+-- ============================================================
+-- FUNZIONE: main_endHalfTurn()
+-- Fine delle Mischie dello schieramento attivo: tocca
+-- all'altro; se ha finito anche il secondo, turno successivo.
+-- ============================================================
+function main_endHalfTurn()
+    if TURN.half == 1 then
+        TURN.half       = 2
+        TURN.activeSide = main_otherSide(TURN.firstSide)
+    else
+        ENGINE.turn     = (ENGINE.turn or 1) + 1
+        TURN.half       = 1
+        TURN.activeSide = TURN.firstSide
+        printToAll("Turno " .. tostring(ENGINE.turn) .. " inizia", {r = 0.4, g = 0.9, b = 0.4})
+    end
+    main_resetCompleted()
+end
+-- ============================================================
+-- FUNZIONE: main_goToPhase(phaseName)
+-- Passaggio manuale a una fase (senza condizioni).
+-- ============================================================
+function main_goToPhase(phaseName)
+    if not ENGINE or not ENGINE.phases then return end
+    if not ENGINE.phases[phaseName] then
+        print("[GOTO] Fase non trovata: " .. tostring(phaseName))
+        return
+    end
+    local oldPhase = ENGINE.phase
+    engine_exitPhase(oldPhase)
+    ENGINE.phase = phaseName
+    engine_resetState()
+    engine_enterPhase(phaseName, oldPhase)
+    main_updateCenterPanel()
+end
+-- ============================================================
+-- FUNZIONE: main_restart()
+-- Partita da capo (comando chat !restart).
+-- ============================================================
+function main_restart()
+
+    initPhases()
+
+    ENGINE.phase = PHASE.SITTING
+    ENGINE.turn  = 1
+
+    engine_subInitState()
+    engine_dicePanelClose(1)
+    engine_dicePanelClose(2)
+    engine_diceClearLastRoll(1)
+    engine_diceClearLastRoll(2)
+
+    main_resetPlayers()
+    main_initUI()
+    Wait.time(function()
+        engine_enterPhase(ENGINE.phase, nil)
+        main_updateCenterPanel()
+    end, 1)
+
+    engine_cameraResetAll()
+    warning("RESTART...", "Yellow")
+end
+-- ============================================================
+-- FUNZIONE: main_onPhaseEntered(phaseName, phase)
+-- Dopo il before di ogni fase (vedi engine_enterPhase).
+-- ============================================================
+function main_onPhaseEntered(phaseName, phase)
+    TURN.phase = phaseName
+end
+
+-- ============================================================
+--                       BOTTONI DI FASE
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_canUseButton(slot, player, value, id, button, phase)
+-- Chi può usare un bottone di fase (enforceOwnership).
+-- ============================================================
+function main_canUseButton(slot, player, value, id, button, phase)
+
+    local mode = phase and phase.inputMode or INPUT_MODE.FREE
+    if not player then return false end
+
+    if mode == INPUT_MODE.FREE then
+        return true
+    end
+
+    if mode == INPUT_MODE.OWNER then
+        local side = main_sideOfButton(slot)
+        if not main_colorInSide(player.color, side) then
+            warningToColor("Non è possibile usare questo pulsante", player, "Yellow", 5, false)
+            return false
+        end
+        return true
+    end
+
+    -- ACTIVE: solo lo schieramento attivo; per l'altro il
+    -- bottone non fa nulla
+    if mode == INPUT_MODE.ACTIVE then
+        return main_colorInSide(player.color, TURN.activeSide)
+    end
+
+    return true
+end
+
+-- ============================================================
+--                      PANNELLO CENTRALE
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_initUI()
+-- ============================================================
+function main_initUI()
+    callHandler("buildUI")
+end
+-- ============================================================
+-- FUNZIONE: main_setCenterTextColor(id, color)
+-- textColor di un bottone centrale un frame dopo (il cambio
+-- di text lo resetta); se la UI sta caricando aspetta.
+-- ============================================================
+function main_setCenterTextColor(id, color)
+    local function apply()
+        UI.setAttribute(id, "textColor", color)
+    end
+    Wait.frames(function()
+        if UI.loading then
+            Wait.condition(function() Wait.frames(apply, 1) end, function() return not UI.loading end, 10)
+        else
+            apply()
+        end
+    end, 1)
+end
+-- ============================================================
+-- FUNZIONE: main_setActiveIcon(slot)
+-- Freccia sullo schieramento attivo (nil = nessuna).
+-- ============================================================
+function main_setActiveIcon(slot)
+    for s = 1, 2 do
+        UI.setAttribute("iconActiveArmy" .. s, "iconColor", (s == slot) and "White" or "rgba(1,1,1,0)")
+    end
+end
+-- ============================================================
+-- FUNZIONE: main_turnText()
+-- Riga del turno: numero e schieramento attivo.
+-- ============================================================
+function main_turnText()
+    local testo = "Turno: " .. tostring(ENGINE.turn or 1)
+    if TURN.activeSide then
+        testo = testo .. " - " .. main_sideName(TURN.activeSide)
+    end
+    return testo
+end
+-- ============================================================
+-- FUNZIONE: main_updateCenterPanel()
+-- Testi, colori e stato dei bottoni del pannello centrale.
+-- ============================================================
+function main_updateCenterPanel()
+
+    if not ENGINE or not ENGINE.phases then return end
+    local phase = ENGINE.phases[ENGINE.phase]
+    if not phase then return end
+
+    -- Renderer prima: attiva i pannelli giusti
+    local renderer = RENDERERS and RENDERERS[phase.render]
+    if renderer then
+        renderer(phase)
+    else
+        printToAll("[LDC] Renderer non trovato: " .. tostring(phase.render), "Red")
+    end
+
+    -- Turno, fase, descrizione
+    UI.setAttribute("versione",  "text", VERSION)
+    UI.setAttribute("textTurno", "text", main_turnText())
+    UI.setAttribute("textFase",  "text", phase.title or ENGINE.phase)
+    UI.setAttribute("textDesc",  "text", phase.desc or "")
+
+    -- Nomi degli schieramenti: colorati se hanno un giocatore
+    for slot = 1, 2 do
+        UI.setAttribute("army" .. slot, "text",  main_sideName(slot))
+        UI.setAttribute("army" .. slot, "color", main_sideHasPlayer(slot) and main_sideMainColor(slot) or COLOR.NOARMY)
+    end
+    main_setActiveIcon(TURN.activeSide)
+
+    -- Bottoni
+    for _, id in ipairs({ BUTTONS.BTN_ARMY1, BUTTONS.BTN_ARMY2, BUTTONS.BTN_SINGLE }) do
+        UI.setAttribute(id, "interactable", "true")
+    end
+
+    if phase.inputMode == INPUT_MODE.ACTIVE then
+        -- Un solo bottone, col colore dello schieramento attivo
+        local button = (phase.buttons or {})[BUTTONS.BTN_SINGLE] or {}
+        UI.setAttribute(BUTTONS.BTN_SINGLE, "text",  button.label or "")
+        UI.setAttribute(BUTTONS.BTN_SINGLE, "color", main_sideMainColor(TURN.activeSide))
+        main_setCenterTextColor(BUTTONS.BTN_SINGLE, CENTERPANEL.activeText)
+    else
+        -- Due bottoni, uno per schieramento
+        for slot = 1, 2 do
+            local id     = (slot == 1) and BUTTONS.BTN_ARMY1 or BUTTONS.BTN_ARMY2
+            local button = (phase.buttons or {})[id] or {}
+            local fatto  = main_buttonDone(phase, slot)
+            UI.setAttribute(id, "text",  button.label or "")
+            UI.setAttribute(id, "color", fatto and CENTERPANEL.doneColor or main_sideMainColor(slot))
+            main_setCenterTextColor(id, fatto and CENTERPANEL.doneText or CENTERPANEL.activeText)
+        end
+    end
+
+    -- Sottofasi: pannelli e blocco dei bottoni di fase
+    engine_subRedraw()
+end
+-- ============================================================
+-- FUNZIONE: main_buttonDone(phase, slot)
+-- Il bottone dello schieramento va mostrato come completato?
+-- In SITTING: lo schieramento ha già il suo giocatore.
+-- ============================================================
+function main_buttonDone(phase, slot)
+    if ENGINE.phase == PHASE.SITTING then
+        return main_sideHasPlayer(slot)
+    end
+    return TURN.completed[slot] == true
+end

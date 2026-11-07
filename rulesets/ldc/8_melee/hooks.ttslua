@@ -1,0 +1,18 @@
+-- ============================================================
+-- WARFORGE LDC — 8_melee/hooks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: before_melee(phaseName, phase)
+-- ============================================================
+function before_melee(phaseName, phase)
+    callHandler("updateCenterPanel")
+end
+-- ============================================================
+-- FUNZIONE: after_melee(phaseName, phase)
+-- ============================================================
+function after_melee(phaseName, phase)
+    -- Fine della metà turno: tocca all'altro schieramento o
+    -- inizia il turno successivo
+    main_endHalfTurn()
+end

@@ -1,0 +1,28 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/state.ttslua
+-- Stato della partita (salvato in persistence.ttslua).
+-- Gli schieramenti sono sempre indicati dallo slot numerico:
+-- 1 = Army1, 2 = Army2.
+-- ============================================================
+
+-- Turno di gioco:
+--   firstSide  schieramento che gioca per primo in ogni turno
+--   activeSide schieramento che sta giocando la sua metà turno
+--   half       1 = metà turno del primo, 2 = metà del secondo
+--   completed  fasi a due bottoni: chi ha già completato
+TURN = TURN or {
+    phase      = PHASE.SITTING,
+    firstSide  = nil,
+    activeSide = nil,
+    half       = 1,
+    completed  = { [1] = false, [2] = false },
+}
+
+-- Tiro per stabilire chi inizia (fase FIRST_PLAYER)
+FIRST_ROLL = FIRST_ROLL or {
+    rolled = { [1] = nil, [2] = nil },
+    winner = nil,
+}
+
+-- Giocatori salvati (ripristino dei colori dopo un caricamento)
+players_saved = players_saved or {}

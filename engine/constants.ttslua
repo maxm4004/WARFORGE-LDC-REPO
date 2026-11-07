@@ -1,0 +1,80 @@
+-- ============================================================
+-- WARFORGE — engine/constants.ttslua
+-- Costanti del motore (valori fissi). Le costanti di gioco
+-- stanno nel ruleset (rulesets/<nome>/0_main/constants).
+-- ============================================================
+
+-- Attesa fra il click che chiude una fase e il passaggio alla
+-- successiva (secondi): i bottoni si vedono grigi prima del cambio
+ENGINE_TRANSITION_DELAY = 1.5
+
+-- ------------------------------------------------------------
+-- Dadi fisici (engine/dice.ttslua)
+-- GUID e posizioni dipendono dal tavolo del mod.
+-- ------------------------------------------------------------
+ENGINE_DICE_TRAY_GUID = ENGINE_DICE_TRAY_GUID or {
+    [1] = "5418fe",
+    [2] = "efb29f",
+}
+
+ENGINE_DICE_BAG_GUID = ENGINE_DICE_BAG_GUID or {
+    [1] = "eb4ed3",
+    [2] = "1338a3",
+}
+
+ENGINE_DICE_ZONE = ENGINE_DICE_ZONE or {
+    [1] = { x = -77.72, y = 1.44, z = -35.97 },
+    [2] = { x =  77.72, y = 1.44, z =  35.97 },
+}
+
+-- Colori dei bottoni 3D Roll / Cestino sui vassoi dei dadi
+ENGINE_DICE_BTN_COLORS = {
+    [1] = "#BA1307|#F55E51|#3f3f3f|#1f1f1f",
+    [2] = "#05754D|#07BA7A|#3f3f3f|#1f1f1f",
+}
+
+-- ------------------------------------------------------------
+-- Pannello dadi condiviso (engine/dicepanel.ttslua)
+-- ------------------------------------------------------------
+DICEPANEL = DICEPANEL or {
+    rectAlignment = "MiddleCenter",
+    offsetXY      = "0 -345",
+    colWidth      = 330,      -- larghezza di una colonna
+    colGap        = 16,       -- spazio fra le due colonne
+    bg            = "rgba(0,0,0,0.70)",
+    padding       = 12,
+    spacing       = 2,
+    font          = "warforge_font",
+    titleColor    = "#FFD833",   -- titolo, intestazioni di sezione, "serve"
+    textColor     = "White",
+    subColor      = "#BBBBBB",   -- sottotitolo (nota sotto il titolo)
+    titleHeight   = 24,
+    subHeight     = 16,
+    rowHeight     = 17,
+    needHeight    = 22,
+    outcomeHeight = 26,
+    noteHeight    = 30,       -- nota sotto l'esito (2 righe)
+    valueWidth    = 90,       -- colonna dei valori delle righe
+    maxRows       = 14,
+    maxFaces      = 24,
+    faceSize      = 28,
+    faceSpacing   = 4,
+    faceKoColor   = "rgba(1,1,1,0.3)",   -- dado non riuscito (con soglia)
+    okColor       = "#5BD35B",            -- esito positivo, dado a segno, bonus
+    koColor       = "#FF6B6B",            -- esito negativo, malus
+}
+
+-- ------------------------------------------------------------
+-- Pannelli sottofase (engine/subphase.ttslua)
+-- ------------------------------------------------------------
+SUBPANEL = {
+    offsetXY   = "0 -280",
+    width      = 450,
+    height     = 55,
+    bg         = "rgba(0,0,0,0.70)",
+    btnColor   = "#B8902E",
+    btnWidth   = 200,
+    btnHeight  = 40,
+    btnMax     = 4,      -- bottoni disponibili per pannello
+    btnSpacing = 8,      -- spazio fra i bottoni
+}

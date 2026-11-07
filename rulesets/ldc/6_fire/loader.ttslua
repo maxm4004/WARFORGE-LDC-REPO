@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 6_fire/loader.ttslua
+-- ============================================================
+
+require("rulesets.ldc.6_fire.constants")
+require("rulesets.ldc.6_fire.state")
+require("rulesets.ldc.6_fire.callbacks")
+require("rulesets.ldc.6_fire.hooks")
+require("rulesets.ldc.6_fire.lib")
+require("rulesets.ldc.6_fire.phase")
+require("rulesets.ldc.6_fire.register")

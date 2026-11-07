@@ -1,0 +1,28 @@
+-- ============================================================
+-- WARFORGE LDC — 2_field/phase.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: field_phase()
+-- ============================================================
+function field_phase()
+    return {
+        [PHASE.FIELD] = {
+            title  = "CAMPO DI BATTAGLIA",
+            desc   = "Piazzamento del terreno (da sviluppare)",
+            before = "before_field",
+            after  = "after_field",
+            allowedActions = { ACTION.ARMY1_CLICK, ACTION.ARMY2_CLICK },
+            render = "2BtnClick",
+            enforceOwnership = true,
+            inputMode = INPUT_MODE.OWNER,
+            buttons = {
+                BTN_ARMY1 = { action = ACTION.ARMY1_CLICK, label = "Campo pronto", callback = "field_btn_all" },
+                BTN_ARMY2 = { action = ACTION.ARMY2_CLICK, label = "Campo pronto", callback = "field_btn_all" },
+            },
+            transitions = {
+                { to = PHASE.DEPLOY, conditions = { COND.BOTH_PLAYERS_SELECTED } },
+            },
+        },
+    }
+end

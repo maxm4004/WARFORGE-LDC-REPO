@@ -1,0 +1,16 @@
+-- ============================================================
+-- WARFORGE LDC — 2_field/hooks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: before_field(phaseName, phase)
+-- ============================================================
+function before_field(phaseName, phase)
+    main_resetCompleted()
+    callHandler("updateCenterPanel")
+end
+-- ============================================================
+-- FUNZIONE: after_field(phaseName, phase)
+-- ============================================================
+function after_field(phaseName, phase)
+end

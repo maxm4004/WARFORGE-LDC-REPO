@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 3_deploy/loader.ttslua
+-- ============================================================
+
+require("rulesets.ldc.3_deploy.constants")
+require("rulesets.ldc.3_deploy.state")
+require("rulesets.ldc.3_deploy.callbacks")
+require("rulesets.ldc.3_deploy.hooks")
+require("rulesets.ldc.3_deploy.lib")
+require("rulesets.ldc.3_deploy.phase")
+require("rulesets.ldc.3_deploy.register")

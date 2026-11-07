@@ -1,0 +1,49 @@
+-- ============================================================
+-- WARFORGE — engine/lib.ttslua
+-- Camere dei giocatori.
+-- Le zone (CAMERA_ZONES) sono definite dal ruleset; lo
+-- schieramento del giocatore viene da main_sideOfColor.
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: engine_camera(player, position, pitch, yaw, distance)
+-- ============================================================
+function engine_camera(player, position, pitch, yaw, distance)
+    if not player then print("[CAMERA] Player non presente") return end
+    player.lookAt({ position = position, pitch = pitch, yaw = yaw, distance = distance })
+end
+-- ============================================================
+-- FUNZIONE: engine_cameraByName(player, subSlot, cameraName)
+-- Camera sulla zona cameraName dello schieramento del player.
+-- ============================================================
+function engine_cameraByName(player, subSlot, cameraName)
+    if not player then return end
+
+    local slot = main_sideOfColor(player.color)
+    if not slot then return end
+
+    local camera = CAMERA_ZONES and CAMERA_ZONES[cameraName]
+    if not camera then
+        print("[CAMERA] Zona non trovata: " .. tostring(cameraName))
+        return
+    end
+
+    local posSlot  = camera.position[slot]
+    local position = (subSlot and posSlot[subSlot]) or posSlot
+
+    engine_camera(player, position, camera.pitch, camera.yaw[slot], camera.distance)
+end
+-- ============================================================
+-- FUNZIONE: engine_cameraResetAll()
+-- Riporta la camera di tutti i giocatori seduti alla vista
+-- home del proprio schieramento.
+-- ============================================================
+function engine_cameraResetAll()
+    Wait.time(function()
+        for slot = 1, 2 do
+            for _, p in ipairs(main_sidePlayers(slot)) do
+                engine_cameraByName(p, nil, CAMERA_ZONE.ARMY_HOME)
+            end
+        end
+    end, 2)
+end

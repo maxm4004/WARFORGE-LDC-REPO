@@ -1,0 +1,7 @@
+-- ============================================================
+-- WARFORGE — rulesets/loader.ttslua
+-- Punto d'ingresso del ruleset di questo mod, richiesto dal
+-- Global comune: require("rulesets.loader").
+-- ============================================================
+
+require("rulesets.ldc.loader")

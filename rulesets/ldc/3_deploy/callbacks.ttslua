@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 3_deploy/callbacks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: deploy_btn_all(player, value, id, buttonConfig)
+-- Lo schieramento del bottone ha completato la fase.
+-- ============================================================
+function deploy_btn_all(player, value, id, buttonConfig)
+    return main_ownerPhaseClick(id)
+end

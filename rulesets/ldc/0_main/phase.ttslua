@@ -1,0 +1,46 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/phase.ttslua
+-- Raccolta delle fasi di tutte le cartelle e stato iniziale.
+--
+-- Flusso:
+--   SITTING → FIELD → DEPLOY → FIRST_PLAYER
+--   → COMMAND → FIRE → MANEUVER → MELEE   (schieramento attivo)
+--   → MELEE torna a COMMAND per l'altro schieramento; dopo
+--     entrambi, turno successivo (main_endHalfTurn)
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: initPhases()
+-- ============================================================
+function initPhases()
+
+    if DEBUG then print("initPhases") end
+
+    ENGINE        = ENGINE or {}
+    ENGINE.phases = {}
+
+    for k, v in pairs(sitting_phase())     do ENGINE.phases[k] = v end
+    for k, v in pairs(field_phase())       do ENGINE.phases[k] = v end
+    for k, v in pairs(deploy_phase())      do ENGINE.phases[k] = v end
+    for k, v in pairs(firstplayer_phase()) do ENGINE.phases[k] = v end
+    for k, v in pairs(command_phase())     do ENGINE.phases[k] = v end
+    for k, v in pairs(fire_phase())        do ENGINE.phases[k] = v end
+    for k, v in pairs(maneuver_phase())    do ENGINE.phases[k] = v end
+    for k, v in pairs(melee_phase())       do ENGINE.phases[k] = v end
+
+    ENGINE.phase = PHASE.SITTING
+    ENGINE.turn  = 1
+
+    TURN = {
+        phase      = PHASE.SITTING,
+        firstSide  = nil,
+        activeSide = nil,
+        half       = 1,
+        completed  = { [1] = false, [2] = false },
+    }
+
+    FIRST_ROLL = {
+        rolled = { [1] = nil, [2] = nil },
+        winner = nil,
+    }
+end
