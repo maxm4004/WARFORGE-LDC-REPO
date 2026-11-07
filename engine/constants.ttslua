@@ -9,6 +9,19 @@
 ENGINE_TRANSITION_DELAY = 1.5
 
 -- ------------------------------------------------------------
+-- Annuncio di fase (engine/ui.ttslua): scritta grande al centro
+-- ------------------------------------------------------------
+BANNER = {
+    seconds   = 2.5,
+    offsetXY  = "0 220",
+    width     = 900,
+    height    = 80,
+    bg        = "rgba(0,0,0,0.55)",
+    fontSize  = 36,
+    textColor = "#FFD833",
+}
+
+-- ------------------------------------------------------------
 -- Dadi fisici (engine/dice.ttslua)
 -- GUID e posizioni dipendono dal tavolo del mod.
 -- ------------------------------------------------------------

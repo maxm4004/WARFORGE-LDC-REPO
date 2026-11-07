@@ -1,0 +1,11 @@
+-- ============================================================
+-- WARFORGE LDC — 9_turnchange/loader.ttslua
+-- ============================================================
+
+require("rulesets.ldc.9_turnchange.constants")
+require("rulesets.ldc.9_turnchange.state")
+require("rulesets.ldc.9_turnchange.callbacks")
+require("rulesets.ldc.9_turnchange.hooks")
+require("rulesets.ldc.9_turnchange.lib")
+require("rulesets.ldc.9_turnchange.phase")
+require("rulesets.ldc.9_turnchange.register")

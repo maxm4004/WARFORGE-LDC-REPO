@@ -1,0 +1,30 @@
+-- ============================================================
+-- WARFORGE LDC — 9_turnchange/phase.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: turnchange_phase()
+-- Passaggio di mano dopo le Mischie: lo schieramento che
+-- tocca (già attivo, vedi main_endHalfTurn in after_melee)
+-- inizia la sua metà turno quando clicca.
+-- ============================================================
+function turnchange_phase()
+    return {
+        [PHASE.TURN_CHANGE] = {
+            title  = "CAMBIO TURNO",
+            desc   = "Lo schieramento di turno inizia quando è pronto",
+            before = "before_turnchange",
+            after  = "after_turnchange",
+            allowedActions = { ACTION.CONFIRM },
+            render = "1BtnClick",
+            enforceOwnership = true,
+            inputMode = INPUT_MODE.ACTIVE,
+            buttons = {
+                BTN_SINGLE = { action = ACTION.CONFIRM, label = "Inizia il turno", callback = "turnchange_btn" },
+            },
+            transitions = {
+                { to = PHASE.COMMAND, conditions = { COND.CONFIRM_IMMEDIATE } },
+            },
+        },
+    }
+end

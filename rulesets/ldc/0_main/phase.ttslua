@@ -5,8 +5,9 @@
 -- Flusso:
 --   SITTING → FIELD → DEPLOY → FIRST_PLAYER
 --   → COMMAND → FIRE → MANEUVER → MELEE   (schieramento attivo)
---   → MELEE torna a COMMAND per l'altro schieramento; dopo
---     entrambi, turno successivo (main_endHalfTurn)
+--   → TURN_CHANGE: passaggio di mano all'altro schieramento
+--     (main_endHalfTurn); dopo entrambi, turno successivo
+--   → COMMAND
 -- ============================================================
 
 -- ============================================================
@@ -27,6 +28,7 @@ function initPhases()
     for k, v in pairs(fire_phase())        do ENGINE.phases[k] = v end
     for k, v in pairs(maneuver_phase())    do ENGINE.phases[k] = v end
     for k, v in pairs(melee_phase())       do ENGINE.phases[k] = v end
+    for k, v in pairs(turnchange_phase())  do ENGINE.phases[k] = v end
 
     ENGINE.phase = PHASE.SITTING
     ENGINE.turn  = 1
