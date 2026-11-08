@@ -414,11 +414,13 @@ function debug_lineeSpawn(visibili)
 end
 -- ============================================================
 -- FUNZIONE: debug_offsetFigure(nomeModello)
--- Per la base selezionata stampa le figure attaccate già nel
--- formato di "figure" del file esercito: posizione in cm dal
--- centro della base (unità locali × scala della base / scala).
--- nomeModello: nome da usare per il campo "modello" quando la
--- figura non ha un nome in TTS (default "FIGURA").
+-- Per la base selezionata stampa TUTTE le figure nel formato
+-- di "figure" del file esercito (cm dal centro della base):
+--   - attaccate alla base, anche a più livelli (figura
+--     attaccata a una figura);
+--   - appoggiate sopra la base ma non attaccate.
+-- nomeModello: nome per il campo "modello" quando la figura non
+-- ha un nome in TTS (default "FIGURA").
 -- ============================================================
 function debug_offsetFigure(nomeModello)
     local sel = debug_selectedObjects()
@@ -427,26 +429,65 @@ function debug_offsetFigure(nomeModello)
         return
     end
 
+    local function nomeDi(n)
+        if n and n ~= "" then return n end
+        return nomeModello or "FIGURA"
+    end
+
     for _, s in ipairs(sel) do
-        local o = s.obj
-        local d = o.getData()
-        local scalaBase = o.getScale().x
-        local figli = d.ChildObjects or {}
+        local base = s.obj
+        local scala = base.getScale().x
+        local righe = {}
+        local attaccate, appoggiate = 0, 0
 
-        print(string.format("[FIGURE] ===== %s \"%s\": %d figure, scala base %s",
-            o.getGUID(), o.getName() or "", #figli, debug_fmt(scalaBase)))
+        -- 1. Attaccate: posizioni locali alla base (in unità della
+        --    base non scalata), sommate livello per livello
+        local function visita(figli, ox, oy, oz, sc)
+            for _, c in ipairs(figli or {}) do
+                local t = c.Transform or {}
+                local x = ox + (t.posX or 0) * sc
+                local y = oy + (t.posY or 0) * sc
+                local z = oz + (t.posZ or 0) * sc
+                if c.CustomMesh or c.CustomAssetbundle then
+                    attaccate = attaccate + 1
+                    table.insert(righe, { nome = nomeDi(c.Nickname), x = x, y = y, z = z })
+                end
+                visita(c.ChildObjects, x, y, z, sc * (t.scaleX or 1))
+            end
+        end
+        visita(base.getData().ChildObjects, 0, 0, 0, 1)
 
-        local function cm(v)
-            return string.format("%.2f", main_ttsToCm((v or 0) * scalaBase))
+        -- 2. Appoggiate: oggetti non attaccati il cui centro cade
+        --    dentro l'impronta della base, sopra di essa
+        local b = base.getBounds()
+        local giaAttaccati = {}
+        for _, a in ipairs(base.getAttachments and base.getAttachments() or {}) do
+            if a.guid then giaAttaccati[a.guid] = true end
+        end
+        for _, o in ipairs(getAllObjects()) do
+            if o ~= base and not giaAttaccati[o.getGUID()]
+                and not o.hasTag(DEPLOY_TAG_BASE) and not o.hasTag(PIANO_VERDE_TAG) and not o.hasTag(TAVOLO_TAG) then
+                local p = o.getPosition()
+                local l = base.positionToLocal(p)
+                local dentro = math.abs(p.x - b.center.x) <= b.size.x / 2
+                    and math.abs(p.z - b.center.z) <= b.size.z / 2
+                    and p.y >= b.center.y - b.size.y / 2
+                if dentro then
+                    appoggiate = appoggiate + 1
+                    table.insert(righe, { nome = nomeDi(o.getName()), x = l.x, y = l.y, z = l.z })
+                end
+            end
         end
 
-        for i, c in ipairs(figli) do
-            local t = c.Transform or {}
-            local nome = c.Nickname
-            if not nome or nome == "" then nome = nomeModello or "FIGURA" end
-            local riga = string.format('{ "modello": "%s", "x": %s, "y": %s, "z": %s }%s',
-                nome, cm(t.posX), cm(t.posY), cm(t.posZ), (i < #figli) and "," or "")
-            print("[FIGURE] " .. riga)
+        print(string.format("[FIGURE] ===== %s \"%s\": %d attaccate, %d appoggiate, scala base %s",
+            base.getGUID(), base.getName() or "", attaccate, appoggiate, debug_fmt(scala)))
+
+        local function cm(v)
+            return string.format("%.2f", main_ttsToCm(v * scala))
+        end
+        for i, r in ipairs(righe) do
+            print(string.format('[FIGURE] { "modello": "%s", "x": %s, "y": %s, "z": %s }%s',
+                r.nome, cm(r.x), cm(r.y), cm(r.z), (i < #righe) and "," or ""))
         end
     end
 end
