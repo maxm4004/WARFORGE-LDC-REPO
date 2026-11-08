@@ -235,3 +235,38 @@ end
 function debug_centraPiano()
     main_centerPianoVerde()
 end
+-- ============================================================
+-- FUNZIONE: debug_raggio(x, z)
+-- Tutto ciò che un raggio verticale colpisce in (x, z), e
+-- l'oggetto tavolo di TTS, per capire come riconoscerlo.
+-- ============================================================
+function debug_raggio(x, z)
+    x, z = x or 0, z or 0
+
+    local function info(o)
+        if not o then return "nil" end
+        local ok1, guid = pcall(function() return o.getGUID() end)
+        local ok2, nome = pcall(function() return o.getName() end)
+        local ok3, tipo = pcall(function() return o.type end)
+        local ok4, nick = pcall(function() return o.name end)
+        return string.format("guid=%s nome=%s name=%s type=%s",
+            tostring(ok1 and guid), tostring(ok2 and nome), tostring(ok4 and nick), tostring(ok3 and tipo))
+    end
+
+    local tavolo = Tables and Tables.getTableObject and Tables.getTableObject()
+    print("[RAGGIO] Tables.getTableObject(): " .. info(tavolo))
+    print("[RAGGIO] Tables.getTable(): " .. tostring(Tables and Tables.getTable and Tables.getTable()))
+
+    local hits = Physics.cast({
+        origin       = { x = x, y = 50, z = z },
+        direction    = { x = 0, y = -1, z = 0 },
+        type         = 1,
+        max_distance = 100,
+    }) or {}
+
+    print(string.format("[RAGGIO] in x=%s z=%s: %d oggetti colpiti", tostring(x), tostring(z), #hits))
+    for i, h in ipairs(hits) do
+        print(string.format("[RAGGIO] %d) y=%s %s %s", i, debug_fmt(h.point and h.point.y),
+            info(h.hit_object), (h.hit_object == tavolo) and "(= tavolo)" or ""))
+    end
+end
