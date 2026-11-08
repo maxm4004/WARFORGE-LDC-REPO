@@ -144,16 +144,13 @@ SPAWN = {
     margineTavolo    = 0.5,   -- spazio fra la fascia e il bordo del tavolo
 }
 
--- Vassoi e sacchetti dei dadi (oggetti del mod). La zona di
--- arrivo dei dadi è il vassoio stesso (engine/dice.ttslua).
-ENGINE_DICE_TRAY_GUID = {
-    [1] = "5418fe",
-    [2] = "efb29f",
-}
-
-ENGINE_DICE_BAG_GUID = {
-    [1] = "eb4ed3",
-    [2] = "1338a3",
+-- Postazioni dadi: una per colore giocatore (oggetti del mod).
+-- I dadi arrivano sul vassoio (engine/dice.ttslua).
+DICE_STATIONS = {
+    [COLOR.RED]    = { tray = "5418fe", bag = "eb4ed3" },
+    [COLOR.YELLOW] = { tray = "ec46dc", bag = "f524de" },
+    [COLOR.GREEN]  = { tray = "efb29f", bag = "1338a3" },
+    [COLOR.BLUE]   = { tray = "b1c1e4", bag = "672518" },
 }
 
 -- ------------------------------------------------------------

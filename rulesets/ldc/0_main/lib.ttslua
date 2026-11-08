@@ -88,6 +88,13 @@ function main_otherSide(slot)
     return nil
 end
 -- ============================================================
+-- FUNZIONE: main_diceStation(color)
+-- Postazione dadi del colore: { tray = guid, bag = guid }.
+-- ============================================================
+function main_diceStation(color)
+    return DICE_STATIONS[color]
+end
+-- ============================================================
 -- FUNZIONE: main_sideOfButton(buttonId)
 -- Schieramento del bottone di fase (BTN_ARMY1/2), nil per
 -- BTN_SINGLE.

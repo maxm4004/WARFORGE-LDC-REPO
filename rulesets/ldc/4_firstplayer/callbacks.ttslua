@@ -43,5 +43,5 @@ function firstplayer_onRoll(player, slot)
 
         firstplayer_check()
         callHandler("updateCenterPanel")
-    end)
+    end, player.color)
 end

@@ -23,10 +23,9 @@ BANNER = {
 
 -- ------------------------------------------------------------
 -- Dadi fisici (engine/dice.ttslua)
--- Vassoi e sacchetti dipendono dal tavolo del mod: il ruleset
--- definisce ENGINE_DICE_TRAY_GUID e ENGINE_DICE_BAG_GUID
--- ({[1]=guid, [2]=guid}). ENGINE_DICE_ZONE è facoltativa: senza,
--- i dadi arrivano sul vassoio.
+-- Vassoi e sacchetti dipendono dal tavolo del mod: una
+-- postazione per colore giocatore, fornita dal ruleset con
+-- main_diceStation(color). I dadi arrivano sul vassoio.
 -- ------------------------------------------------------------
 
 -- Colori dei bottoni 3D Roll / Cestino sui vassoi dei dadi

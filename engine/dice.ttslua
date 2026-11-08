@@ -1,7 +1,10 @@
 -- ============================================================
 -- WARFORGE — engine/dice.ttslua
--- Dadi fisici: lancio dal sacchetto dello schieramento verso
--- il suo vassoio, lettura dei risultati a dadi fermi.
+-- Dadi fisici: lancio dal sacchetto della postazione del
+-- giocatore verso il suo vassoio, lettura dei risultati a dadi
+-- fermi. Ogni colore giocatore ha la sua postazione
+-- (main_diceStation(color) -> { tray = guid, bag = guid });
+-- risultati, pannello e prossimo tiro restano per schieramento.
 --
 -- Il tiro parte SEMPRE dal bottone 3D Roll sul vassoio
 -- (engine_diceRoll_start), mai in automatico. Destinazione del
@@ -89,21 +92,36 @@ end
 -- ============================================================
 function engine_diceButtons3DShow()
 
-    Wait.condition(function()
-        for slot = 1, 2 do
-            local tray = getObjectFromGUID(ENGINE_DICE_TRAY_GUID[slot])
-            if not tray then
-                print("[DICE] Vassoio non trovato: Army" .. slot)
+    -- Postazioni dei colori in gioco: { color, slot, guid }
+    local postazioni = {}
+    for slot = 1, 2 do
+        engine_diceClearLastRoll(slot)
+        for _, color in ipairs(main_sideColors(slot)) do
+            local st = main_diceStation(color)
+            if st then
+                table.insert(postazioni, { color = color, slot = slot, guid = st.tray })
             else
-                engine_diceClearLastRoll(slot)
+                print("[DICE] Nessuna postazione dadi per " .. tostring(color))
+            end
+        end
+    end
+
+    Wait.condition(function()
+        for _, p in ipairs(postazioni) do
+            local tray = getObjectFromGUID(p.guid)
+            if not tray then
+                print("[DICE] Vassoio non trovato: " .. p.color .. " (" .. p.guid .. ")")
+            else
                 Wait.time(function()
-                    tray.UI.setXml(engine_diceRollPanelXml(slot))
+                    tray.UI.setXml(engine_diceRollPanelXml(p.slot))
                 end, 1)
             end
         end
     end, function()
-        return getObjectFromGUID(ENGINE_DICE_TRAY_GUID[1]) ~= nil
-           and getObjectFromGUID(ENGINE_DICE_TRAY_GUID[2]) ~= nil
+        for _, p in ipairs(postazioni) do
+            if getObjectFromGUID(p.guid) == nil then return false end
+        end
+        return true
     end, 10)
 end
 -- ============================================================
@@ -167,15 +185,19 @@ function engine_diceGetTemplate(bagGuid)
     return ENGINE_DICE_TEMPLATE
 end
 -- ============================================================
--- FUNZIONE: engine_diceThrowFromBag(slot, opts, callback)
--- Lancia ENGINE_DICE_ROLL_TRY[slot].dadi dadi dal sacchetto
--- dello schieramento verso il suo vassoio.
+-- FUNZIONE: engine_diceThrowFromBag(slot, opts, callback, color)
+-- Lancia ENGINE_DICE_ROLL_TRY[slot].dadi dadi dalla postazione
+-- di color (default: colore principale dello schieramento).
 -- callback(risultati, successi)
 -- ============================================================
-function engine_diceThrowFromBag(slot, opts, callback)
+function engine_diceThrowFromBag(slot, opts, callback, color)
 
-    local bagGuid        = ENGINE_DICE_BAG_GUID[slot]
-    local zonaTarget     = engine_diceTargetZone(slot)
+    color = color or main_sideMainColor(slot)
+    local st = main_diceStation(color)
+    if not st then print("[DICE] Nessuna postazione dadi per " .. tostring(color)) return end
+
+    local bagGuid        = st.bag
+    local zonaTarget     = engine_diceTargetZone(color)
     local numDadi        = ENGINE_DICE_ROLL_TRY[slot].dadi
     local sogliaSuccesso = ENGINE_DICE_ROLL_TRY[slot].soglia
 
@@ -243,15 +265,14 @@ function engine_diceThrowFromBag(slot, opts, callback)
     end, numDadi * stagger + 0.5)
 end
 -- ============================================================
--- FUNZIONE: engine_diceTargetZone(slot)
--- Punto d'arrivo dei dadi: ENGINE_DICE_ZONE se definita,
--- altrimenti il centro del vassoio dello schieramento.
+-- FUNZIONE: engine_diceTargetZone(color)
+-- Punto d'arrivo dei dadi: il centro del vassoio della
+-- postazione del colore.
 -- ============================================================
-function engine_diceTargetZone(slot)
-    if ENGINE_DICE_ZONE and ENGINE_DICE_ZONE[slot] then
-        return ENGINE_DICE_ZONE[slot]
-    end
-    local tray = getObjectFromGUID(ENGINE_DICE_TRAY_GUID[slot])
+function engine_diceTargetZone(color)
+    local st = main_diceStation(color)
+    if not st then return nil end
+    local tray = getObjectFromGUID(st.tray)
     if not tray then return nil end
     local p = tray.getPosition()
     return { x = p.x, y = p.y + 0.5, z = p.z }
@@ -294,7 +315,7 @@ function engine_diceRoll_start(player)
     engine_diceClearLastRoll(slot)
     engine_diceThrowFromBag(slot, nil, function(risultati, successi)
         engine_diceCameraReturn(player)
-    end)
+    end, player.color)
 end
 -- ============================================================
 -- FUNZIONE: engine_diceRoll_clear(player)
@@ -310,10 +331,20 @@ function engine_diceRoll_clear(player)
 end
 -- ============================================================
 -- FUNZIONE: engine_diceCameraZoom(player)
--- Camera del giocatore sul vassoio dei dadi.
+-- Camera del giocatore sul vassoio della sua postazione.
 -- ============================================================
 function engine_diceCameraZoom(player)
-    engine_cameraByName(player, nil, CAMERA_ZONE.ARMY_ROLL_DICES)
+    if not player then return end
+    local slot = main_sideOfColor(player.color)
+    local st   = main_diceStation(player.color)
+    local tray = st and getObjectFromGUID(st.tray)
+    local zona = CAMERA_ZONES and CAMERA_ZONES[CAMERA_ZONE.ARMY_ROLL_DICES]
+    if not slot or not tray or not zona then
+        engine_cameraByName(player, nil, CAMERA_ZONE.ARMY_ROLL_DICES)
+        return
+    end
+    local p = tray.getPosition()
+    engine_camera(player, { x = p.x, y = p.y, z = p.z }, zona.pitch, zona.yaw[slot], zona.distance)
 end
 -- ============================================================
 -- FUNZIONE: engine_diceCameraReturn(player, secondi)

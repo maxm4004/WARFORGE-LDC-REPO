@@ -396,11 +396,13 @@ function main_buildCameraZones()
         distance = lato * home.distanzaFattore,
     }
 
-    -- Vista dadi: sul vassoio dello schieramento
+    -- Vista dadi: sul vassoio del colore principale dello
+    -- schieramento (engine_diceCameraZoom usa quello del giocatore)
     local dadi = CAMERA_PARAMS[CAMERA_ZONE.ARMY_ROLL_DICES]
     local posDadi = {}
     for slot = 1, 2 do
-        local tray = getObjectFromGUID(ENGINE_DICE_TRAY_GUID[slot])
+        local st   = main_diceStation(main_sideMainColor(slot))
+        local tray = st and getObjectFromGUID(st.tray)
         if tray then
             local p = tray.getPosition()
             posDadi[slot] = { x = p.x, y = p.y, z = p.z }
