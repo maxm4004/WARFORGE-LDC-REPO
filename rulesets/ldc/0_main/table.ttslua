@@ -129,6 +129,36 @@ function main_gameSize(larghezzaTts, profonditaTts)
 end
 
 -- ============================================================
+-- FUNZIONE: main_centerPianoVerde()
+-- Sposta il piano verde al centro del tavolo (solo X e Z,
+-- altezza e rotazione invariate), poi rilegge le misure.
+-- Usa il centro dei bounds, non la posizione: il punto di
+-- origine del Tile può non coincidere col suo centro.
+-- ============================================================
+function main_centerPianoVerde()
+    local piano  = main_findPianoVerde()
+    local tavolo = main_tableArea()
+    if not piano or not tavolo then
+        print("[TAVOLO] Impossibile centrare: manca il piano verde o il tavolo")
+        return false
+    end
+
+    local pos = piano.getPosition()
+    local b   = piano.getBounds()
+    local dx  = tavolo.cx - b.center.x
+    local dz  = tavolo.cz - b.center.z
+
+    piano.setPosition({ x = pos.x + dx, y = pos.y, z = pos.z + dz })
+
+    print(string.format("[TAVOLO] Piano verde centrato (spostato di x=%.3f z=%.3f)", dx, dz))
+
+    -- Le misure si rileggono a oggetto fermo
+    Wait.frames(function()
+        main_measureTable()
+    end, 5)
+    return true
+end
+-- ============================================================
 --                           SCALA
 -- ============================================================
 

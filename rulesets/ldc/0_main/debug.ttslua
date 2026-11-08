@@ -227,3 +227,11 @@ function debug_calibrate(tipo)
             cm, cmP, cm / CM_PER_POLLICE / POLLICI_PER_D, cmP / CM_PER_POLLICE / POLLICI_PER_D))
     end
 end
+-- ============================================================
+-- FUNZIONE: debug_centraPiano()
+-- /execute debug_centraPiano(): piano verde al centro del
+-- tavolo.
+-- ============================================================
+function debug_centraPiano()
+    main_centerPianoVerde()
+end
