@@ -111,6 +111,12 @@ PIANO_VERDE_TAG = "piano_verde"
 -- Tag dell'oggetto tavolo (se manca: tavolo di TTS)
 TAVOLO_TAG = "tavolo"
 
+-- Misura del tavolo di TTS coi raggi (unità TTS)
+TAVOLO_RAGGI = {
+    distanzaMax = 500,    -- oltre questa distanza dal centro si smette
+    precisione  = 0.01,
+}
+
 -- Scala: unità TTS per centimetro di gioco. nil finché non si
 -- calibra con /execute debug_calibrate(...): poi si incolla qui
 -- il valore stampato.

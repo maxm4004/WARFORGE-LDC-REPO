@@ -107,7 +107,7 @@ function debug_measure()
             debug_fmt(a.minX), debug_fmt(a.maxX), debug_fmt(a.minZ), debug_fmt(a.maxZ), debug_fmt(a.y)))
     end
 
-    rect("Tavolo", TABLE_AREA)
+    rect("Tavolo" .. ((TABLE_AREA and TABLE_AREA.conRaggi) and " (misurato coi raggi)" or ""), TABLE_AREA)
     rect("Piano verde", PLAY_AREA)
 
     if PLAY_AREA then

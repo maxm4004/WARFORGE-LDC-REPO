@@ -61,8 +61,7 @@ end
 -- ============================================================
 -- FUNZIONE: main_findTavolo()
 -- L'oggetto tavolo: quello con tag TAVOLO_TAG, altrimenti il
--- tavolo di TTS (Tables.getTableObject()). nil se nessuno dei
--- due ha misure valide.
+-- tavolo di TTS (Tables.getTableObject()).
 -- ============================================================
 function main_findTavolo()
     local trovati = getObjectsWithTag(TAVOLO_TAG) or {}
@@ -75,16 +74,64 @@ function main_findTavolo()
     end
 
     local tavolo = Tables and Tables.getTableObject and Tables.getTableObject()
-    if tavolo then
-        local b = tavolo.getBounds()
-        -- il tavolo di TTS può restituire misure nulle
-        if b and b.size.x > 0 and b.size.z > 0 then
-            return tavolo
+    if tavolo then return tavolo end
+
+    print("[TAVOLO] Tavolo non trovato")
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_hitsObject(obj, x, z)
+-- Un raggio verticale in (x, z) colpisce obj?
+-- ============================================================
+function main_hitsObject(obj, x, z)
+    return main_surfaceY(obj, x, z) ~= nil
+end
+-- ============================================================
+-- FUNZIONE: main_findEdge(obj, cx, cz, dx, dz)
+-- Distanza dal punto (cx, cz) al bordo di obj lungo la
+-- direzione (dx, dz): ricerca binaria con raggi verticali,
+-- precisione TAVOLO_RAGGI.precisione.
+-- ============================================================
+function main_findEdge(obj, cx, cz, dx, dz)
+    local dentro, fuori = 0, TAVOLO_RAGGI.distanzaMax
+    if main_hitsObject(obj, cx + dx * fuori, cz + dz * fuori) then
+        return fuori
+    end
+    while fuori - dentro > TAVOLO_RAGGI.precisione do
+        local m = (dentro + fuori) / 2
+        if main_hitsObject(obj, cx + dx * m, cz + dz * m) then
+            dentro = m
+        else
+            fuori = m
         end
     end
+    return dentro
+end
+-- ============================================================
+-- FUNZIONE: main_tableAreaByRays(tavolo)
+-- Misure del tavolo di TTS, che non dà getBounds(): bordi
+-- trovati con i raggi a partire dal centro del mondo.
+-- ============================================================
+function main_tableAreaByRays(tavolo)
+    local cx, cz = 0, 0
+    if not main_hitsObject(tavolo, cx, cz) then
+        print("[TAVOLO] Il centro del mondo non è sul tavolo")
+        return nil
+    end
 
-    print("[TAVOLO] Tavolo non trovato: metti il tag " .. TAVOLO_TAG .. " sull'oggetto del tavolo")
-    return nil
+    local maxX = cx + main_findEdge(tavolo, cx, cz,  1, 0)
+    local minX = cx - main_findEdge(tavolo, cx, cz, -1, 0)
+    local maxZ = cz + main_findEdge(tavolo, cx, cz, 0,  1)
+    local minZ = cz - main_findEdge(tavolo, cx, cz, 0, -1)
+
+    return {
+        cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2,
+        minX = minX, maxX = maxX, minZ = minZ, maxZ = maxZ,
+        larghezza  = maxX - minX,
+        profondita = maxZ - minZ,
+        y = main_surfaceY(tavolo, cx, cz),
+        conRaggi = true,
+    }
 end
 -- ============================================================
 -- FUNZIONE: main_tableArea()
@@ -101,8 +148,15 @@ function main_tableArea()
     end
 
     local b = tavolo.getBounds()
-    local area = main_rectFromBounds(b)
-    area.y    = main_surfaceY(tavolo, b.center.x, b.center.z) or area.y
+    local area
+    if b and b.size.x > 0 and b.size.z > 0 then
+        area = main_rectFromBounds(b)
+        area.y = main_surfaceY(tavolo, b.center.x, b.center.z) or area.y
+    else
+        -- tavolo di TTS: misure nulle, si misura coi raggi
+        area = main_tableAreaByRays(tavolo)
+        if not area then return nil end
+    end
     area.guid = tavolo.getGUID()
     return area
 end
