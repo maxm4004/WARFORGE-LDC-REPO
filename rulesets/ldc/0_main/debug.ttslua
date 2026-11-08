@@ -129,13 +129,13 @@ function debug_measure()
     end
 end
 -- ============================================================
--- FUNZIONE: debug_cam(zona, slot, pitch, distance)
+-- FUNZIONE: debug_cam(zona, slot, pitch, distance, yaw)
 -- Porta la camera dei giocatori dello schieramento sulla zona
--- (es. "ArmyHome"). pitch e distance, se dati, sostituiscono
--- quelli calcolati: servono a provare i valori da mettere in
--- CAMERA_PARAMS.
+-- (es. "ArmyHome"). pitch, distance e yaw, se dati,
+-- sostituiscono quelli calcolati: servono a provare i valori da
+-- mettere in CAMERA_PARAMS.
 -- ============================================================
-function debug_cam(zona, slot, pitch, distance)
+function debug_cam(zona, slot, pitch, distance, yaw)
     zona = zona or CAMERA_ZONE.ARMY_HOME
     slot = slot or 1
     local z = CAMERA_ZONES[zona]
@@ -143,10 +143,11 @@ function debug_cam(zona, slot, pitch, distance)
 
     local p = pitch or z.pitch
     local d = distance or z.distance
+    local y = yaw or z.yaw[slot]
     for _, player in ipairs(main_sidePlayers(slot)) do
-        engine_camera(player, z.position[slot], p, z.yaw[slot], d)
+        engine_camera(player, z.position[slot], p, y, d)
     end
-    print(string.format("[CAM] %s %s: pitch=%s distance=%s", zona, main_sideName(slot), tostring(p), debug_fmt(d)))
+    print(string.format("[CAM] %s %s: pitch=%s distance=%s yaw=%s", zona, main_sideName(slot), tostring(p), debug_fmt(d), tostring(y)))
 end
 -- ============================================================
 -- FUNZIONE: debug_calibrate(tipo)
@@ -306,12 +307,12 @@ function debug_tiro(color, dadi, rollHeight, forza, spread, spawnY)
     end, color)
 end
 -- ============================================================
--- FUNZIONE: debug_camDadi(color, pitch, distance)
--- Camera sul vassoio del colore con inclinazione e distanza di
--- prova (nil = valori in CAMERA_PARAMS).
--- Es.: /execute debug_camDadi("Red", 45, 20)
+-- FUNZIONE: debug_camDadi(color, pitch, distance, yaw)
+-- Camera sul vassoio del colore con inclinazione, distanza e
+-- yaw di prova (nil = valori in CAMERA_PARAMS).
+-- Es.: /execute debug_camDadi("Red", 45, 20, 0)
 -- ============================================================
-function debug_camDadi(color, pitch, distance)
+function debug_camDadi(color, pitch, distance, yaw)
     color = color or COLOR.RED
     local slot = main_sideOfColor(color) or 1
     local st = main_diceStation(color)
@@ -321,9 +322,10 @@ function debug_camDadi(color, pitch, distance)
     local par = CAMERA_PARAMS[CAMERA_ZONE.ARMY_ROLL_DICES]
     local p = pitch or par.pitch
     local d = distance or par.distance
+    local y = yaw or par.yaw[slot]
     local pos = tray.getPosition()
     for _, player in ipairs(main_sidePlayers(slot)) do
-        engine_camera(player, { x = pos.x, y = pos.y, z = pos.z }, p, par.yaw[slot], d)
+        engine_camera(player, { x = pos.x, y = pos.y, z = pos.z }, p, y, d)
     end
-    print(string.format("[CAM] dadi %s: pitch=%s distance=%s", color, tostring(p), tostring(d)))
+    print(string.format("[CAM] dadi %s: pitch=%s distance=%s yaw=%s", color, tostring(p), tostring(d), tostring(y)))
 end
