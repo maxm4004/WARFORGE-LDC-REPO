@@ -1,0 +1,15 @@
+-- ============================================================
+-- WARFORGE LDC — 9_turnchange/hooks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: before_turnchange(phaseName, phase)
+-- ============================================================
+function before_turnchange(phaseName, phase)
+    callHandler("updateCenterPanel")
+end
+-- ============================================================
+-- FUNZIONE: after_turnchange(phaseName, phase)
+-- ============================================================
+function after_turnchange(phaseName, phase)
+end

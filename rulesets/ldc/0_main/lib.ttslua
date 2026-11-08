@@ -223,6 +223,28 @@ end
 -- ============================================================
 function main_onPhaseEntered(phaseName, phase)
     TURN.phase = phaseName
+    engine_bannerShow(main_phaseBannerText(phaseName, phase))
+end
+-- ============================================================
+-- FUNZIONE: main_phaseBannerText(phaseName, phase)
+-- Testo dell'annuncio all'ingresso in fase.
+-- ============================================================
+function main_phaseBannerText(phaseName, phase)
+    local attivo = TURN.activeSide and string.upper(main_sideName(TURN.activeSide))
+
+    if phaseName == PHASE.TURN_CHANGE then
+        local testo = "TOCCA A " .. tostring(attivo)
+        if TURN.half == 1 then
+            testo = "TURNO " .. tostring(ENGINE.turn) .. " - " .. testo
+        end
+        return testo
+    end
+
+    if phase.inputMode == INPUT_MODE.ACTIVE and attivo then
+        return attivo .. " - " .. (phase.title or phaseName)
+    end
+
+    return phase.title or phaseName
 end
 
 -- ============================================================
@@ -345,10 +367,12 @@ function main_updateCenterPanel()
 
     if phase.inputMode == INPUT_MODE.ACTIVE then
         -- Un solo bottone, col colore dello schieramento attivo
+        -- Dopo il click, fino al cambio di fase: grigio (completato)
         local button = (phase.buttons or {})[BUTTONS.BTN_SINGLE] or {}
+        local fatto  = ENGINE.transitionPending == true
         UI.setAttribute(BUTTONS.BTN_SINGLE, "text",  button.label or "")
-        UI.setAttribute(BUTTONS.BTN_SINGLE, "color", main_sideMainColor(TURN.activeSide))
-        main_setCenterTextColor(BUTTONS.BTN_SINGLE, CENTERPANEL.activeText)
+        UI.setAttribute(BUTTONS.BTN_SINGLE, "color", fatto and CENTERPANEL.doneColor or main_sideMainColor(TURN.activeSide))
+        main_setCenterTextColor(BUTTONS.BTN_SINGLE, fatto and CENTERPANEL.doneText or CENTERPANEL.activeText)
     else
         -- Due bottoni, uno per schieramento
         for slot = 1, 2 do

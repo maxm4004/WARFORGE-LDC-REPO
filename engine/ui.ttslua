@@ -16,6 +16,11 @@ function getEngineUiXml()
             <Text id="playerGameMessage" text="" fontStyle="Bold" font="warforge_font" fontSize="18" color="rgba(212,175,55,0.9)" outline="#000000"
             outlineSize="1" alignment="LeftCenter"/>
         </Panel>
+        <Panel id="phaseBanner" rectAlignment="MiddleCenter" width="]] .. BANNER.width .. [[" height="]] .. BANNER.height .. [["
+            offsetXY="]] .. BANNER.offsetXY .. [[" color="]] .. BANNER.bg .. [[" active="false">
+            <Text id="phaseBannerText" text="" font="warforge_font" fontSize="]] .. BANNER.fontSize .. [[" fontStyle="Bold"
+                color="]] .. BANNER.textColor .. [[" outline="#000000" outlineSize="2" alignment="MiddleCenter"/>
+        </Panel>
         <Panel id="panelVersion" active="true"
             rectAlignment="UpperCenter"
             width="420"
@@ -39,4 +44,43 @@ function buildUI()
         xsi:schemaLocation="XmlLayout ../../../Configuration/XmlLayout.xsd">]]
     local bottom = "</XmlLayout>"
     UI.setXml(header .. rulesetXml .. getEngineUiXml() .. engine_subPanelsXml() .. engine_dicePanelsXml() .. bottom)
+end
+-- ============================================================
+-- FUNZIONE: engine_bannerShow(testo, secondi)
+-- Annuncio grande al centro, visibile a tutti, che sparisce
+-- da solo. Un annuncio nuovo sostituisce quello in corso.
+-- ============================================================
+ENGINE_BANNER_GEN = ENGINE_BANNER_GEN or 0
+
+function engine_bannerShow(testo, secondi)
+    ENGINE_BANNER_GEN = ENGINE_BANNER_GEN + 1
+    local gen = ENGINE_BANNER_GEN
+
+    engine_uiWhenReady(function()
+        if gen ~= ENGINE_BANNER_GEN then return end
+        UI.setAttribute("phaseBannerText", "text", testo or "")
+        UI.setAttribute("phaseBanner", "active", "true")
+    end)
+
+    Wait.time(function()
+        if gen ~= ENGINE_BANNER_GEN then return end
+        engine_uiWhenReady(function()
+            if gen ~= ENGINE_BANNER_GEN then return end
+            UI.setAttribute("phaseBanner", "active", "false")
+        end)
+    end, secondi or BANNER.seconds)
+end
+-- ============================================================
+-- FUNZIONE: engine_uiWhenReady(fn)
+-- Esegue fn quando la UI non sta caricando (un setAttribute
+-- durante UI.setXml andrebbe perso).
+-- ============================================================
+function engine_uiWhenReady(fn)
+    if UI.loading then
+        Wait.condition(function()
+            Wait.frames(fn, 1)
+        end, function() return not UI.loading end, 10)
+    else
+        fn()
+    end
 end

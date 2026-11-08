@@ -1,0 +1,12 @@
+-- ============================================================
+-- WARFORGE LDC — 9_turnchange/callbacks.ttslua
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: turnchange_btn(player, value, id, buttonConfig)
+-- Lo schieramento di turno inizia (solo lui arriva qui:
+-- main_canUseButton, modalità ACTIVE).
+-- ============================================================
+function turnchange_btn(player, value, id, buttonConfig)
+    return true
+end

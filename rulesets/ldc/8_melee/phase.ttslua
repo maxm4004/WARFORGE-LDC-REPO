@@ -20,7 +20,7 @@ function melee_phase()
                 BTN_SINGLE = { action = ACTION.CONFIRM, label = "Mischie completate", callback = "melee_btn" },
             },
             transitions = {
-                { to = PHASE.COMMAND, conditions = { COND.CONFIRM_IMMEDIATE } },
+                { to = PHASE.TURN_CHANGE, conditions = { COND.CONFIRM_IMMEDIATE } },
             },
         },
     }
