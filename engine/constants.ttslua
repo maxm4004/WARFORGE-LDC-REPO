@@ -16,7 +16,7 @@ BANNER = {
     offsetXY  = "0 220",
     width     = 900,
     height    = 80,
-    bg        = "rgba(0,0,0,0.55)",
+    bg        = "rgba(0,0,0,0.00)",
     fontSize  = 36,
     textColor = "#FFD833",
 }
