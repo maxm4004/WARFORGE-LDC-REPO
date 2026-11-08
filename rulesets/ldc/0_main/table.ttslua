@@ -59,18 +59,51 @@ function main_surfaceY(obj, x, z)
     return nil
 end
 -- ============================================================
--- FUNZIONE: main_tableArea()
--- Il tavolo intero (Tables.getTableObject()).
+-- FUNZIONE: main_findTavolo()
+-- L'oggetto tavolo: quello con tag TAVOLO_TAG, altrimenti il
+-- tavolo di TTS (Tables.getTableObject()). nil se nessuno dei
+-- due ha misure valide.
 -- ============================================================
-function main_tableArea()
-    local tavolo = Tables and Tables.getTableObject and Tables.getTableObject()
-    if not tavolo then
-        print("[TAVOLO] Tavolo non trovato")
+function main_findTavolo()
+    local trovati = getObjectsWithTag(TAVOLO_TAG) or {}
+    if #trovati > 1 then
+        print("[TAVOLO] Più oggetti con tag " .. TAVOLO_TAG .. ": ne serve uno solo")
         return nil
     end
+    if #trovati == 1 then
+        return trovati[1]
+    end
+
+    local tavolo = Tables and Tables.getTableObject and Tables.getTableObject()
+    if tavolo then
+        local b = tavolo.getBounds()
+        -- il tavolo di TTS può restituire misure nulle
+        if b and b.size.x > 0 and b.size.z > 0 then
+            return tavolo
+        end
+    end
+
+    print("[TAVOLO] Tavolo non trovato: metti il tag " .. TAVOLO_TAG .. " sull'oggetto del tavolo")
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_tableArea()
+-- Il tavolo intero (vedi main_findTavolo).
+-- ============================================================
+function main_tableArea()
+    local tavolo = main_findTavolo()
+    if not tavolo then return nil end
+
+    if not main_isCardinal(tavolo) then
+        print("[TAVOLO] Tavolo ruotato di " .. string.format("%.1f", tavolo.getRotation().y)
+            .. "°: va messo a 0, 90, 180 o 270")
+        return nil
+    end
+
     local b = tavolo.getBounds()
     local area = main_rectFromBounds(b)
-    area.y = main_surfaceY(tavolo, b.center.x, b.center.z) or area.y
+    area.y    = main_surfaceY(tavolo, b.center.x, b.center.z) or area.y
+    area.guid = tavolo.getGUID()
     return area
 end
 -- ============================================================
