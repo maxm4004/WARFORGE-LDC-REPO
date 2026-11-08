@@ -129,13 +129,15 @@ function debug_measure()
     end
 end
 -- ============================================================
--- FUNZIONE: debug_cam(zona, slot, pitch, distance, yaw)
+-- FUNZIONE: debug_cam(zona, slot, pitch, distance, yaw, versoBordo)
 -- Porta la camera dei giocatori dello schieramento sulla zona
--- (es. "ArmyHome"). pitch, distance e yaw, se dati,
--- sostituiscono quelli calcolati: servono a provare i valori da
--- mettere in CAMERA_PARAMS.
+-- (es. "ArmyHome"). pitch, distance, yaw e (solo ArmyHome)
+-- versoBordo, se dati, sostituiscono quelli calcolati: servono
+-- a provare i valori da mettere in CAMERA_PARAMS.
+-- versoBordo: punto guardato, 0 = centro del piano verde,
+-- 1 = proprio bordo.
 -- ============================================================
-function debug_cam(zona, slot, pitch, distance, yaw)
+function debug_cam(zona, slot, pitch, distance, yaw, versoBordo)
     zona = zona or CAMERA_ZONE.ARMY_HOME
     slot = slot or 1
     local z = CAMERA_ZONES[zona]
@@ -144,10 +146,23 @@ function debug_cam(zona, slot, pitch, distance, yaw)
     local p = pitch or z.pitch
     local d = distance or z.distance
     local y = yaw or z.yaw[slot]
-    for _, player in ipairs(main_sidePlayers(slot)) do
-        engine_camera(player, z.position[slot], p, y, d)
+
+    local pos = z.position[slot]
+    local vb  = nil
+    if zona == CAMERA_ZONE.ARMY_HOME then
+        vb = versoBordo or CAMERA_PARAMS[CAMERA_ZONE.ARMY_HOME].versoBordo
+        local area = main_gameArea()
+        if area then
+            local edge = main_sideEdgeZ(slot)
+            pos = { x = area.cx, y = area.y, z = area.cz + (edge - area.cz) * vb }
+        end
     end
-    print(string.format("[CAM] %s %s: pitch=%s distance=%s yaw=%s", zona, main_sideName(slot), tostring(p), debug_fmt(d), tostring(y)))
+
+    for _, player in ipairs(main_sidePlayers(slot)) do
+        engine_camera(player, pos, p, y, d)
+    end
+    print(string.format("[CAM] %s %s: pitch=%s distance=%s yaw=%s%s", zona, main_sideName(slot),
+        tostring(p), debug_fmt(d), tostring(y), vb and (" versoBordo=" .. tostring(vb)) or ""))
 end
 -- ============================================================
 -- FUNZIONE: debug_calibrate(tipo)
