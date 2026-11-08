@@ -1,0 +1,302 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/table.ttslua
+-- Tavolo e piano verde: misure lette dal mod, scala, zone
+-- derivate (spawn, camere).
+--
+-- Misure in unità TTS, lette con getBounds() solo su oggetti a
+-- rotazione cardinale (0/90/180/270): a qualunque altro angolo
+-- getBounds() è allineato al mondo e deforma le misure.
+--
+-- Rettangolo restituito dalle funzioni di misura:
+--   { cx, cz, minX, maxX, minZ, maxZ, larghezza (X),
+--     profondita (Z), y (quota della superficie) }
+-- ============================================================
+
+-- Misure calcolate all'avvio (main_measureTable), non salvate
+TABLE_AREA = nil
+PLAY_AREA  = nil
+
+-- ============================================================
+-- FUNZIONE: main_rectFromBounds(b, y)
+-- Rettangolo XZ da un getBounds().
+-- ============================================================
+function main_rectFromBounds(b, y)
+    local hx, hz = b.size.x / 2, b.size.z / 2
+    return {
+        cx = b.center.x, cz = b.center.z,
+        minX = b.center.x - hx, maxX = b.center.x + hx,
+        minZ = b.center.z - hz, maxZ = b.center.z + hz,
+        larghezza  = b.size.x,
+        profondita = b.size.z,
+        y = y or (b.center.y + b.size.y / 2),
+    }
+end
+-- ============================================================
+-- FUNZIONE: main_isCardinal(obj)
+-- Rotazione Y multipla di 90° (tolleranza 0,5°).
+-- ============================================================
+function main_isCardinal(obj)
+    local r = obj.getRotation().y % 90
+    return r < 0.5 or r > 89.5
+end
+-- ============================================================
+-- FUNZIONE: main_surfaceY(obj, x, z)
+-- Quota della superficie di obj nel punto (x, z): raggio verso
+-- il basso. nil se il raggio non lo colpisce.
+-- ============================================================
+function main_surfaceY(obj, x, z)
+    local hits = Physics.cast({
+        origin       = { x = x, y = 50, z = z },
+        direction    = { x = 0, y = -1, z = 0 },
+        type         = 1,
+        max_distance = 100,
+    })
+    for _, h in ipairs(hits or {}) do
+        if h.hit_object == obj then
+            return h.point.y
+        end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_tableArea()
+-- Il tavolo intero (Tables.getTableObject()).
+-- ============================================================
+function main_tableArea()
+    local tavolo = Tables and Tables.getTableObject and Tables.getTableObject()
+    if not tavolo then
+        print("[TAVOLO] Tavolo non trovato")
+        return nil
+    end
+    local b = tavolo.getBounds()
+    local area = main_rectFromBounds(b)
+    area.y = main_surfaceY(tavolo, b.center.x, b.center.z) or area.y
+    return area
+end
+-- ============================================================
+-- FUNZIONE: main_findPianoVerde()
+-- Il Tile del piano verde (tag PIANO_VERDE_TAG). nil se non c'è
+-- o se ce n'è più d'uno.
+-- ============================================================
+function main_findPianoVerde()
+    local trovati = getObjectsWithTag(PIANO_VERDE_TAG) or {}
+    if #trovati == 0 then
+        print("[TAVOLO] Nessun oggetto con tag " .. PIANO_VERDE_TAG)
+        return nil
+    end
+    if #trovati > 1 then
+        print("[TAVOLO] Più oggetti con tag " .. PIANO_VERDE_TAG .. ": ne serve uno solo")
+        return nil
+    end
+    return trovati[1]
+end
+-- ============================================================
+-- FUNZIONE: main_playArea()
+-- Il piano verde: rettangolo in unità TTS più le misure di
+-- gioco (cm, pollici, D) con la scala corrente.
+-- ============================================================
+function main_playArea()
+    local piano = main_findPianoVerde()
+    if not piano then return nil end
+
+    if not main_isCardinal(piano) then
+        print("[TAVOLO] Piano verde ruotato di " .. string.format("%.1f", piano.getRotation().y)
+            .. "°: va messo a 0, 90, 180 o 270")
+        return nil
+    end
+
+    local b = piano.getBounds()
+    local area = main_rectFromBounds(b)
+    area.y    = main_surfaceY(piano, b.center.x, b.center.z) or area.y
+    area.guid = piano.getGUID()
+    area.gioco = main_gameSize(area.larghezza, area.profondita)
+    return area
+end
+-- ============================================================
+-- FUNZIONE: main_gameSize(larghezzaTts, profonditaTts)
+-- Misure di gioco di un rettangolo con la scala corrente.
+-- ============================================================
+function main_gameSize(larghezzaTts, profonditaTts)
+    local lCm = main_ttsToCm(larghezzaTts)
+    local pCm = main_ttsToCm(profonditaTts)
+    local lIn = lCm / CM_PER_POLLICE
+    local pIn = pCm / CM_PER_POLLICE
+    return {
+        cm     = { larghezza = lCm, profondita = pCm },
+        pollici = { larghezza = lIn, profondita = pIn },
+        D      = { larghezza = lIn / POLLICI_PER_D, profondita = pIn / POLLICI_PER_D },
+    }
+end
+
+-- ============================================================
+--                           SCALA
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_scale()
+-- Unità TTS per cm di gioco (provvisoria se non calibrata).
+-- ============================================================
+function main_scale()
+    return SCALA_TTS_PER_CM or SCALA_TTS_PER_CM_DEFAULT
+end
+-- ============================================================
+-- FUNZIONE: main_isScaleCalibrated()
+-- ============================================================
+function main_isScaleCalibrated()
+    return SCALA_TTS_PER_CM ~= nil
+end
+-- ============================================================
+-- FUNZIONE: main_cmToTts(cm)
+-- ============================================================
+function main_cmToTts(cm)
+    return cm * main_scale()
+end
+-- ============================================================
+-- FUNZIONE: main_ttsToCm(tts)
+-- ============================================================
+function main_ttsToCm(tts)
+    return tts / main_scale()
+end
+-- ============================================================
+-- FUNZIONE: main_inchToTts(pollici)
+-- ============================================================
+function main_inchToTts(pollici)
+    return main_cmToTts(pollici * CM_PER_POLLICE)
+end
+-- ============================================================
+-- FUNZIONE: main_dToTts(d)
+-- Distanze del regolamento in D (1D = 6").
+-- ============================================================
+function main_dToTts(d)
+    return main_inchToTts(d * POLLICI_PER_D)
+end
+
+-- ============================================================
+--                       ZONE DERIVATE
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_measureTable()
+-- Legge tavolo e piano verde e ricalcola le zone. Chiamata
+-- all'avvio e da debug_measure().
+-- ============================================================
+function main_measureTable()
+    TABLE_AREA = main_tableArea()
+    PLAY_AREA  = main_playArea()
+
+    if not PLAY_AREA then
+        printToAll("[LDC] Piano verde non trovato (tag " .. PIANO_VERDE_TAG .. "): uso il tavolo intero", "Red")
+    end
+    if not main_isScaleCalibrated() then
+        print("[TAVOLO] Scala non calibrata: uso quella del righello di TTS")
+    end
+
+    main_buildCameraZones()
+end
+-- ============================================================
+-- FUNZIONE: main_gameArea()
+-- Area di gioco: piano verde, o il tavolo se manca.
+-- ============================================================
+function main_gameArea()
+    return PLAY_AREA or TABLE_AREA
+end
+-- ============================================================
+-- FUNZIONE: main_sideEdgeZ(slot)
+-- Z del bordo del piano verde dal lato dello schieramento.
+-- ============================================================
+function main_sideEdgeZ(slot)
+    local area = main_gameArea()
+    if not area then return 0 end
+    return (slot == 1) and area.minZ or area.maxZ
+end
+-- ============================================================
+-- FUNZIONE: main_spawnStrip(slot)
+-- Fascia di spawn fuori dal piano verde, fra il suo bordo e il
+-- bordo del tavolo, larga quanto il piano verde. nil se fra i
+-- due non c'è spazio.
+-- ============================================================
+function main_spawnStrip(slot)
+    local verde  = main_gameArea()
+    local tavolo = TABLE_AREA
+    if not verde or not tavolo then return nil end
+
+    local zVerde, zTavolo
+    if slot == 1 then
+        zVerde  = verde.minZ - SPAWN.distanzaDalVerde
+        zTavolo = tavolo.minZ + SPAWN.margineTavolo
+    else
+        zVerde  = verde.maxZ + SPAWN.distanzaDalVerde
+        zTavolo = tavolo.maxZ - SPAWN.margineTavolo
+    end
+
+    local minZ, maxZ = math.min(zVerde, zTavolo), math.max(zVerde, zTavolo)
+    local profondita = maxZ - minZ
+    if (slot == 1 and zTavolo >= zVerde) or (slot == 2 and zTavolo <= zVerde) or profondita <= 0 then
+        return nil
+    end
+
+    return {
+        cx = verde.cx, cz = (minZ + maxZ) / 2,
+        minX = verde.minX, maxX = verde.maxX,
+        minZ = minZ, maxZ = maxZ,
+        larghezza = verde.larghezza,
+        profondita = profondita,
+        y = tavolo.y,
+        -- riga di partenza: il lato della fascia vicino al verde
+        zPartenza = zVerde,
+    }
+end
+-- ============================================================
+-- FUNZIONE: main_buildCameraZones()
+-- Posizioni delle camere da piano verde e vassoi dei dadi
+-- (formato letto da engine_cameraByName).
+-- ============================================================
+function main_buildCameraZones()
+    local area = main_gameArea()
+    local zones = {}
+
+    -- Vista home: dietro il proprio bordo, guarda verso il centro
+    local home = CAMERA_PARAMS[CAMERA_ZONE.ARMY_HOME]
+    local pos, lato = {}, 0
+    if area then
+        lato = math.max(area.larghezza, area.profondita)
+        for slot = 1, 2 do
+            local edge = main_sideEdgeZ(slot)
+            pos[slot] = {
+                x = area.cx,
+                y = area.y,
+                z = area.cz + (edge - area.cz) * home.versoBordo,
+            }
+        end
+    else
+        pos = { [1] = { x = 0, y = 1, z = 0 }, [2] = { x = 0, y = 1, z = 0 } }
+        lato = 60
+    end
+    zones[CAMERA_ZONE.ARMY_HOME] = {
+        position = pos,
+        yaw      = home.yaw,
+        pitch    = home.pitch,
+        distance = lato * home.distanzaFattore,
+    }
+
+    -- Vista dadi: sul vassoio dello schieramento
+    local dadi = CAMERA_PARAMS[CAMERA_ZONE.ARMY_ROLL_DICES]
+    local posDadi = {}
+    for slot = 1, 2 do
+        local tray = getObjectFromGUID(ENGINE_DICE_TRAY_GUID[slot])
+        if tray then
+            local p = tray.getPosition()
+            posDadi[slot] = { x = p.x, y = p.y, z = p.z }
+        else
+            posDadi[slot] = pos[slot]
+        end
+    end
+    zones[CAMERA_ZONE.ARMY_ROLL_DICES] = {
+        position = posDadi,
+        yaw      = dadi.yaw,
+        pitch    = dadi.pitch,
+        distance = dadi.distance,
+    }
+
+    CAMERA_ZONES = zones
+end

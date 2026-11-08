@@ -23,22 +23,11 @@ BANNER = {
 
 -- ------------------------------------------------------------
 -- Dadi fisici (engine/dice.ttslua)
--- GUID e posizioni dipendono dal tavolo del mod.
+-- Vassoi e sacchetti dipendono dal tavolo del mod: il ruleset
+-- definisce ENGINE_DICE_TRAY_GUID e ENGINE_DICE_BAG_GUID
+-- ({[1]=guid, [2]=guid}). ENGINE_DICE_ZONE è facoltativa: senza,
+-- i dadi arrivano sul vassoio.
 -- ------------------------------------------------------------
-ENGINE_DICE_TRAY_GUID = ENGINE_DICE_TRAY_GUID or {
-    [1] = "5418fe",
-    [2] = "efb29f",
-}
-
-ENGINE_DICE_BAG_GUID = ENGINE_DICE_BAG_GUID or {
-    [1] = "eb4ed3",
-    [2] = "1338a3",
-}
-
-ENGINE_DICE_ZONE = ENGINE_DICE_ZONE or {
-    [1] = { x = -77.72, y = 1.44, z = -35.97 },
-    [2] = { x =  77.72, y = 1.44, z =  35.97 },
-}
 
 -- Colori dei bottoni 3D Roll / Cestino sui vassoi dei dadi
 ENGINE_DICE_BTN_COLORS = {

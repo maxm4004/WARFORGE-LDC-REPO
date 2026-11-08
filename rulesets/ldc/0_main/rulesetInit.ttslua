@@ -13,7 +13,7 @@ function main_rulesetInit(save_state)
 end
 -- ============================================================
 -- FUNZIONE: main_boot(save_state)
--- Fasi → handler → condizioni → stato salvato → motore.
+-- Fasi → handler → condizioni → stato salvato → tavolo → motore.
 -- ============================================================
 function main_boot(save_state)
 
@@ -25,6 +25,10 @@ function main_boot(save_state)
     if save_state and save_state ~= "" then
         restored = callHandler("restoreState", save_state)
     end
+
+    -- Tavolo e piano verde prima del motore: le camere servono
+    -- già all'ingresso della prima fase
+    callHandler("measureTable")
 
     engine_init()
     engine_diceButtons3DShow()

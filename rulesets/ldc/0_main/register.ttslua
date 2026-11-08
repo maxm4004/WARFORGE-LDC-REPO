@@ -16,6 +16,9 @@ registerHandler("initPhases",                function()             return initP
 registerHandler("autoRegisterFromPhases",    function()             return engine_autoRegisterFromPhases()      end)
 registerHandler("registerDefaultConditions", function()             return registerDefaultConditions()          end)
 
+-- Tavolo e piano verde
+registerHandler("measureTable",              function()             return main_measureTable()                  end)
+
 -- UI
 registerHandler("initUI",                    function()             return main_initUI()                        end)
 registerHandler("buildUI",                   function()             return buildUI()                            end)

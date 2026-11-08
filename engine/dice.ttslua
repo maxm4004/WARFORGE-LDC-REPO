@@ -175,7 +175,7 @@ end
 function engine_diceThrowFromBag(slot, opts, callback)
 
     local bagGuid        = ENGINE_DICE_BAG_GUID[slot]
-    local zonaTarget     = ENGINE_DICE_ZONE[slot]
+    local zonaTarget     = engine_diceTargetZone(slot)
     local numDadi        = ENGINE_DICE_ROLL_TRY[slot].dadi
     local sogliaSuccesso = ENGINE_DICE_ROLL_TRY[slot].soglia
 
@@ -241,6 +241,20 @@ function engine_diceThrowFromBag(slot, opts, callback)
     Wait.time(function()
         engine_diceReadResults(slot, rolledDice, sogliaSuccesso, callback)
     end, numDadi * stagger + 0.5)
+end
+-- ============================================================
+-- FUNZIONE: engine_diceTargetZone(slot)
+-- Punto d'arrivo dei dadi: ENGINE_DICE_ZONE se definita,
+-- altrimenti il centro del vassoio dello schieramento.
+-- ============================================================
+function engine_diceTargetZone(slot)
+    if ENGINE_DICE_ZONE and ENGINE_DICE_ZONE[slot] then
+        return ENGINE_DICE_ZONE[slot]
+    end
+    local tray = getObjectFromGUID(ENGINE_DICE_TRAY_GUID[slot])
+    if not tray then return nil end
+    local p = tray.getPosition()
+    return { x = p.x, y = p.y + 0.5, z = p.z }
 end
 -- ============================================================
 -- FUNZIONE: engine_diceClearLastRoll(slot)
