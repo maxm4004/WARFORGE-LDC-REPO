@@ -21,6 +21,9 @@
         "players_saved",
         "main_restorePlayersColors",
         "Player",
-        "JSON"
+        "JSON",
+        "before_sitting",
+        "after_sitting",
+        "engine_bannerShow"
     ]
 }
