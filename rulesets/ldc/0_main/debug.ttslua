@@ -412,3 +412,41 @@ function debug_lineeSpawn(visibili)
     SPAWN.linee = visibili ~= false
     main_drawSpawnLines()
 end
+-- ============================================================
+-- FUNZIONE: debug_offsetFigure(nomeModello)
+-- Per la base selezionata stampa le figure attaccate già nel
+-- formato di "figure" del file esercito: posizione in cm dal
+-- centro della base (unità locali × scala della base / scala).
+-- nomeModello: nome da usare per il campo "modello" quando la
+-- figura non ha un nome in TTS (default "FIGURA").
+-- ============================================================
+function debug_offsetFigure(nomeModello)
+    local sel = debug_selectedObjects()
+    if #sel == 0 then
+        print("[FIGURE] Seleziona prima una base")
+        return
+    end
+
+    for _, s in ipairs(sel) do
+        local o = s.obj
+        local d = o.getData()
+        local scalaBase = o.getScale().x
+        local figli = d.ChildObjects or {}
+
+        print(string.format("[FIGURE] ===== %s \"%s\": %d figure, scala base %s",
+            o.getGUID(), o.getName() or "", #figli, debug_fmt(scalaBase)))
+
+        local function cm(v)
+            return string.format("%.2f", main_ttsToCm((v or 0) * scalaBase))
+        end
+
+        for i, c in ipairs(figli) do
+            local t = c.Transform or {}
+            local nome = c.Nickname
+            if not nome or nome == "" then nome = nomeModello or "FIGURA" end
+            local riga = string.format('{ "modello": "%s", "x": %s, "y": %s, "z": %s }%s',
+                nome, cm(t.posX), cm(t.posY), cm(t.posZ), (i < #figli) and "," or "")
+            print("[FIGURE] " .. riga)
+        end
+    end
+end
