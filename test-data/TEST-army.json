@@ -1,0 +1,136 @@
+{
+  "versione": "1.0-LDC",
+  "tag": "FRA",
+  "nome": "Francesi (test)",
+
+  "comandante_corpo": {
+    "unit_name": "FRA_CORPO_GEN",
+    "nome_display": "Comandante di Corpo",
+    "valore": 4,
+    "elemento": "FRA_GEN"
+  },
+
+  "divisioni": [
+    {
+      "id": "D1",
+      "nome": "1a Divisione",
+      "generale": {
+        "unit_name": "FRA_D1_GEN",
+        "nome_display": "Generale della 1a Divisione",
+        "valore": 3,
+        "elemento": "FRA_GEN"
+      },
+      "unita": [
+        {
+          "unit_name": "FRA_LIGNE45_FAN",
+          "nome_display": "45e Ligne",
+          "tipo": "FAN_LINEA",
+          "morale": 3,
+          "taglia": "standard",
+          "num_basi": 4,
+          "arma": "moschetto",
+          "formazione": "linea",
+          "elemento": "FRA_LIGNE"
+        },
+        {
+          "unit_name": "FRA_LIGNE46_FAN",
+          "nome_display": "46e Ligne",
+          "tipo": "FAN_LINEA",
+          "morale": 4,
+          "taglia": "grande",
+          "num_basi": 6,
+          "arma": "moschetto",
+          "formazione": "linea",
+          "elemento": "FRA_LIGNE"
+        }
+      ]
+    }
+  ],
+
+  "elementi": {
+    "FRA_LIGNE": {
+      "descrizione": "Fanteria di linea francese, 6 figure per base",
+      "base": {
+        "base_cm": { "fronte": 4, "profondita": 3 },
+        "scala": 1.0,
+        "modello": {
+          "tipo_modello": "model",
+          "mesh": "",
+          "texture": "",
+          "normal": "",
+          "collider": "",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 0,
+          "tipo_tts": 0,
+          "rot_y": 0
+        }
+      },
+      "figure": {
+        "scala": 0.95,
+        "modello": {
+          "tipo_modello": "model",
+          "mesh": "",
+          "texture": "",
+          "normal": "",
+          "collider": "",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 0,
+          "tipo_tts": 0,
+          "rot_y": 0
+        },
+        "posizioni_cm": [
+          { "x": -1.33, "z":  0.75 },
+          { "x":  0.00, "z":  0.75 },
+          { "x":  1.33, "z":  0.75 },
+          { "x": -1.33, "z": -0.75 },
+          { "x":  0.00, "z": -0.75 },
+          { "x":  1.33, "z": -0.75 }
+        ]
+      }
+    },
+
+    "FRA_GEN": {
+      "descrizione": "Generale con staff, 1 figura",
+      "base": {
+        "base_cm": { "fronte": 4, "profondita": 3 },
+        "scala": 1.0,
+        "modello": {
+          "tipo_modello": "model",
+          "mesh": "",
+          "texture": "",
+          "normal": "",
+          "collider": "",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 0,
+          "tipo_tts": 0,
+          "rot_y": 0
+        }
+      },
+      "figure": {
+        "scala": 0.95,
+        "modello": {
+          "tipo_modello": "model",
+          "mesh": "",
+          "texture": "",
+          "normal": "",
+          "collider": "",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 0,
+          "tipo_tts": 0,
+          "rot_y": 0
+        },
+        "posizioni_cm": [
+          { "x": 0.00, "z": 0.00 }
+        ]
+      }
+    }
+  }
+}
