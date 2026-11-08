@@ -403,3 +403,12 @@ function debug_modello()
         end
     end
 end
+-- ============================================================
+-- FUNZIONE: debug_lineeSpawn(visibili)
+-- Mostra (true) o nasconde (false) le linee delle fasce di
+-- spawn. /execute debug_lineeSpawn(false)
+-- ============================================================
+function debug_lineeSpawn(visibili)
+    SPAWN.linee = visibili ~= false
+    main_drawSpawnLines()
+end

@@ -309,6 +309,39 @@ function main_measureTable()
     end
 
     main_buildCameraZones()
+    main_drawSpawnLines()
+end
+-- ============================================================
+-- FUNZIONE: main_drawSpawnLines()
+-- Rettangolo attorno alla fascia di spawn di ogni
+-- schieramento, nel suo colore. Sostituisce tutte le linee
+-- disegnate sul tavolo (anche quelle vecchie rimaste nel
+-- salvataggio).
+-- ============================================================
+function main_drawSpawnLines()
+    local linee = {}
+
+    if SPAWN.linee then
+        for slot = 1, 2 do
+            local f = main_spawnStrip(slot)
+            if f then
+                local y = f.y + SPAWN.lineeAltezza
+                table.insert(linee, {
+                    points = {
+                        { f.minX, y, f.minZ },
+                        { f.maxX, y, f.minZ },
+                        { f.maxX, y, f.maxZ },
+                        { f.minX, y, f.maxZ },
+                    },
+                    color     = Color.fromString(main_sideMainColor(slot)),
+                    thickness = SPAWN.lineeSpessore,
+                    loop      = true,
+                })
+            end
+        end
+    end
+
+    Global.setVectorLines(linee)
 end
 -- ============================================================
 -- FUNZIONE: main_gameArea()

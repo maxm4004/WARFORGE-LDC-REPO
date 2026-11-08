@@ -144,6 +144,10 @@ CM_PER_POLLICE = 2.54
 SPAWN = {
     distanzaDalVerde = 1.0,   -- spazio fra il piano verde e la fascia
     margineTavolo    = 0.5,   -- spazio fra la fascia e il bordo del tavolo
+    -- linee disegnate sul tavolo attorno alle fasce
+    linee        = true,
+    lineeSpessore = 0.3,
+    lineeAltezza  = 0.05,     -- sopra il tavolo, per non sparire nel piano
 }
 
 -- Postazioni dadi: una per colore giocatore (oggetti del mod).
