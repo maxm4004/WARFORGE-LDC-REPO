@@ -98,34 +98,84 @@ SIDE_NAMES = {
 }
 
 -- ------------------------------------------------------------
--- Camere (engine/lib.ttslua). Posizioni del tavolo IEF, da
--- verificare sul tavolo LDC.
+-- Tavolo e piano verde (0_main/table.ttslua)
+-- Nessuna coordinata scritta a mano: tavolo e piano verde si
+-- leggono dal mod all'avvio, zone e camere si calcolano da lì.
+-- Army1 gioca dal bordo a Z negativa, Army2 da quello a Z
+-- positiva.
+-- ------------------------------------------------------------
+
+-- Tag del Tile del piano verde (area di gioco)
+PIANO_VERDE_TAG = "piano_verde"
+
+-- Scala: unità TTS per centimetro di gioco. nil finché non si
+-- calibra con /execute debug_calibrate(...): poi si incolla qui
+-- il valore stampato.
+SCALA_TTS_PER_CM = nil
+
+-- Scala provvisoria finché SCALA_TTS_PER_CM è nil: quella del
+-- righello di TTS (1 unità = 1 pollice = 2,54 cm)
+SCALA_TTS_PER_CM_DEFAULT = 1 / 2.54
+
+-- Misure di riferimento per la calibrazione
+CALIBRAZIONE = {
+    baseFronteCm      = 4,     -- fronte di ogni base
+    baseProfonditaCm  = 3,     -- profondità della base di fanteria
+    miniaturaAltezzaMm = 20,   -- scala delle miniature
+}
+
+-- Distanze di gioco (regolamento: 1D = 6")
+POLLICI_PER_D = 6
+CM_PER_POLLICE = 2.54
+
+-- Fascia di spawn: fra il bordo del piano verde e il bordo del
+-- tavolo, sul lato di ogni schieramento (in unità TTS)
+SPAWN = {
+    distanzaDalVerde = 1.0,   -- spazio fra il piano verde e la fascia
+    margineTavolo    = 0.5,   -- spazio fra la fascia e il bordo del tavolo
+}
+
+-- Vassoi e sacchetti dei dadi (oggetti del mod). La zona di
+-- arrivo dei dadi è il vassoio stesso (engine/dice.ttslua).
+ENGINE_DICE_TRAY_GUID = {
+    [1] = "5418fe",
+    [2] = "efb29f",
+}
+
+ENGINE_DICE_BAG_GUID = {
+    [1] = "eb4ed3",
+    [2] = "1338a3",
+}
+
+-- ------------------------------------------------------------
+-- Camere (engine/lib.ttslua). Le posizioni le calcola
+-- main_buildCameraZones() dal piano verde e dai vassoi; qui
+-- solo inclinazione, angolo e distanza.
 -- ------------------------------------------------------------
 CAMERA_ZONE = {
     ARMY_ROLL_DICES = "ArmyRollDices",
     ARMY_HOME       = "ArmyHome",
 }
 
-CAMERA_ZONES = {
+CAMERA_PARAMS = {
+    [CAMERA_ZONE.ARMY_HOME] = {
+        pitch = 40,
+        yaw   = { [1] = 0, [2] = 180 },
+        -- distanza = lato maggiore del piano verde × fattore
+        distanzaFattore = 0.9,
+        -- punto guardato: dal centro verso il proprio bordo
+        -- (0 = centro, 1 = bordo)
+        versoBordo = 0.5,
+    },
     [CAMERA_ZONE.ARMY_ROLL_DICES] = {
-        position = {
-            [1] = { x = -77.26, y = 1.31, z = -40.57 },
-            [2] = { x =  77.26, y = 1.31, z =  40.57 },
-        },
-        yaw = { [1] = 0, [2] = 180 },
-        pitch = 30,
+        pitch    = 30,
+        yaw      = { [1] = 0, [2] = 180 },
         distance = 12,
     },
-    [CAMERA_ZONE.ARMY_HOME] = {
-        position = {
-            [1] = { x = 0, y = 1.31, z = -51.79 },
-            [2] = { x = 0, y = 1.31, z =  51.79 },
-        },
-        yaw = { [1] = 0, [2] = 180 },
-        pitch = 40,
-        distance = 80,
-    },
 }
+
+-- Riempita all'avvio da main_buildCameraZones()
+CAMERA_ZONES = {}
 
 -- ------------------------------------------------------------
 -- Pannello centrale

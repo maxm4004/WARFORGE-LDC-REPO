@@ -33,3 +33,197 @@ function debug_turn()
     print("[DEBUG] fase " .. tostring(ENGINE.phase) .. ", turno " .. tostring(ENGINE.turn))
     printTable(TURN)
 end
+
+-- ============================================================
+--              MISURE DEL TAVOLO E CALIBRAZIONE
+-- Da console: /execute debug_...  (risultati in chat)
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: debug_fmt(v)
+-- Numero con 3 decimali.
+-- ============================================================
+function debug_fmt(v)
+    return string.format("%.3f", v or 0)
+end
+-- ============================================================
+-- FUNZIONE: debug_selectedObjects()
+-- Oggetti selezionati da tutti i giocatori seduti, con il
+-- giocatore che li ha selezionati.
+-- ============================================================
+function debug_selectedObjects()
+    local result = {}
+    for _, p in ipairs(Player.getPlayers()) do
+        if p.seated then
+            for _, obj in ipairs(p.getSelectedObjects() or {}) do
+                table.insert(result, { obj = obj, player = p })
+            end
+        end
+    end
+    return result
+end
+-- ============================================================
+-- FUNZIONE: debug_pos()
+-- Per ogni oggetto selezionato: GUID, nome, posizione,
+-- rotazione, dimensioni. Senza selezione: posizione del
+-- puntatore di ogni giocatore seduto.
+-- ============================================================
+function debug_pos()
+    local sel = debug_selectedObjects()
+
+    if #sel == 0 then
+        for _, p in ipairs(Player.getPlayers()) do
+            if p.seated then
+                local q = p.getPointerPosition()
+                print(string.format("[POS] puntatore %s: x=%s y=%s z=%s",
+                    p.color, debug_fmt(q.x), debug_fmt(q.y), debug_fmt(q.z)))
+            end
+        end
+        return
+    end
+
+    for _, s in ipairs(sel) do
+        local o = s.obj
+        local p, r, b = o.getPosition(), o.getRotation(), o.getBounds()
+        print(string.format("[POS] %s \"%s\": pos x=%s y=%s z=%s | rot y=%s | dim x=%s y=%s z=%s%s",
+            o.getGUID(), o.getName() or "",
+            debug_fmt(p.x), debug_fmt(p.y), debug_fmt(p.z),
+            debug_fmt(r.y),
+            debug_fmt(b.size.x), debug_fmt(b.size.y), debug_fmt(b.size.z),
+            main_isCardinal(o) and "" or "  (ruotato: dimensioni non affidabili)"))
+    end
+end
+-- ============================================================
+-- FUNZIONE: debug_measure()
+-- Rilegge tavolo e piano verde, ricalcola le zone e le stampa.
+-- ============================================================
+function debug_measure()
+    main_measureTable()
+
+    local function rect(nome, a)
+        if not a then print("[MISURE] " .. nome .. ": non trovato") return end
+        print(string.format("[MISURE] %s: %s x %s unità | X %s..%s  Z %s..%s | superficie y=%s",
+            nome, debug_fmt(a.larghezza), debug_fmt(a.profondita),
+            debug_fmt(a.minX), debug_fmt(a.maxX), debug_fmt(a.minZ), debug_fmt(a.maxZ), debug_fmt(a.y)))
+    end
+
+    rect("Tavolo", TABLE_AREA)
+    rect("Piano verde", PLAY_AREA)
+
+    if PLAY_AREA then
+        local g = PLAY_AREA.gioco
+        print(string.format("[MISURE] Piano verde in gioco: %.1f x %.1f cm = %.1f x %.1f\" = %.1f x %.1f D%s",
+            g.cm.larghezza, g.cm.profondita, g.pollici.larghezza, g.pollici.profondita,
+            g.D.larghezza, g.D.profondita,
+            main_isScaleCalibrated() and "" or "  (scala NON calibrata)"))
+    end
+
+    for slot = 1, 2 do
+        local f = main_spawnStrip(slot)
+        if f then
+            print(string.format("[MISURE] Spawn %s: %s x %s unità, Z %s..%s",
+                main_sideName(slot), debug_fmt(f.larghezza), debug_fmt(f.profondita), debug_fmt(f.minZ), debug_fmt(f.maxZ)))
+        else
+            print("[MISURE] Spawn " .. main_sideName(slot) .. ": nessuno spazio fra piano verde e bordo del tavolo")
+        end
+    end
+end
+-- ============================================================
+-- FUNZIONE: debug_cam(zona, slot, pitch, distance)
+-- Porta la camera dei giocatori dello schieramento sulla zona
+-- (es. "ArmyHome"). pitch e distance, se dati, sostituiscono
+-- quelli calcolati: servono a provare i valori da mettere in
+-- CAMERA_PARAMS.
+-- ============================================================
+function debug_cam(zona, slot, pitch, distance)
+    zona = zona or CAMERA_ZONE.ARMY_HOME
+    slot = slot or 1
+    local z = CAMERA_ZONES[zona]
+    if not z then print("[CAM] Zona non trovata: " .. tostring(zona)) return end
+
+    local p = pitch or z.pitch
+    local d = distance or z.distance
+    for _, player in ipairs(main_sidePlayers(slot)) do
+        engine_camera(player, z.position[slot], p, z.yaw[slot], d)
+    end
+    print(string.format("[CAM] %s %s: pitch=%s distance=%s", zona, main_sideName(slot), tostring(p), debug_fmt(d)))
+end
+-- ============================================================
+-- FUNZIONE: debug_calibrate(tipo)
+-- Scala dalle misure reali degli oggetti selezionati, a
+-- rotazione 0/90/180/270:
+--   "base"  base di fanteria (fronte 4 cm, profondità 3 cm)
+--   "mini"  miniatura (altezza CALIBRAZIONE.miniaturaAltezzaMm)
+--   "piano" piano verde: misure di gioco con la scala corrente
+-- Stampa la scala da incollare in SCALA_TTS_PER_CM.
+-- ============================================================
+function debug_calibrate(tipo)
+    tipo = tipo or "base"
+    local sel = debug_selectedObjects()
+
+    if tipo == "piano" then
+        debug_measure()
+        return
+    end
+
+    if #sel == 0 then
+        print("[CALIBRA] Seleziona prima " .. (tipo == "mini" and "una miniatura" or "una base"))
+        return
+    end
+
+    local scale = {}
+    for _, s in ipairs(sel) do
+        local o = s.obj
+        if not main_isCardinal(o) then
+            print("[CALIBRA] " .. o.getGUID() .. " ruotato di " .. debug_fmt(o.getRotation().y)
+                .. "°: va messo a 0, 90, 180 o 270")
+        else
+            local b = o.getBounds()
+            -- a 90/270 i lati X e Z sono scambiati
+            local ry = math.floor((o.getRotation().y + 45) / 90) % 2
+            local fronte     = (ry == 0) and b.size.x or b.size.z
+            local profondita = (ry == 0) and b.size.z or b.size.x
+
+            if tipo == "mini" then
+                local k = b.size.y / (CALIBRAZIONE.miniaturaAltezzaMm / 10)
+                table.insert(scale, k)
+                print(string.format("[CALIBRA] mini %s: altezza %s unità -> %s unità/cm",
+                    o.getGUID(), debug_fmt(b.size.y), debug_fmt(k)))
+            else
+                local kF = fronte / CALIBRAZIONE.baseFronteCm
+                local kP = profondita / CALIBRAZIONE.baseProfonditaCm
+                table.insert(scale, kF)
+                print(string.format("[CALIBRA] base %s: fronte %s, profondità %s unità -> %s unità/cm (dal fronte), %s (dalla profondità), rapporto %s (atteso %s)",
+                    o.getGUID(), debug_fmt(fronte), debug_fmt(profondita), debug_fmt(kF), debug_fmt(kP),
+                    debug_fmt(fronte / profondita), debug_fmt(CALIBRAZIONE.baseFronteCm / CALIBRAZIONE.baseProfonditaCm)))
+            end
+        end
+    end
+
+    if #scale == 0 then return end
+    local somma = 0
+    for _, k in ipairs(scale) do somma = somma + k end
+    local media = somma / #scale
+
+    print(string.format("[CALIBRA] Scala %s (%d oggetti): SCALA_TTS_PER_CM = %s",
+        tipo, #scale, string.format("%.4f", media)))
+
+    if main_isScaleCalibrated() then
+        print(string.format("[CALIBRA] Scarto dalla scala in uso (%s): %+.1f%%",
+            string.format("%.4f", SCALA_TTS_PER_CM), (media / SCALA_TTS_PER_CM - 1) * 100))
+    end
+
+    -- Con questa scala: piano verde e tavolo in misure di gioco
+    if PLAY_AREA then
+        local cm = PLAY_AREA.larghezza / media
+        local cmP = PLAY_AREA.profondita / media
+        print(string.format("[CALIBRA] Con questa scala il piano verde è %.1f x %.1f cm (%.1f x %.1f D)",
+            cm, cmP, cm / CM_PER_POLLICE / POLLICI_PER_D, cmP / CM_PER_POLLICE / POLLICI_PER_D))
+    end
+    if TABLE_AREA then
+        local cm = TABLE_AREA.larghezza / media
+        local cmP = TABLE_AREA.profondita / media
+        print(string.format("[CALIBRA] e il tavolo intero %.1f x %.1f cm (%.1f x %.1f D)",
+            cm, cmP, cm / CM_PER_POLLICE / POLLICI_PER_D, cmP / CM_PER_POLLICE / POLLICI_PER_D))
+    end
+end
