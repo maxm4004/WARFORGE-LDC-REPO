@@ -344,3 +344,62 @@ function debug_camDadi(color, pitch, distance, yaw)
     end
     print(string.format("[CAM] dadi %s: pitch=%s distance=%s yaw=%s", color, tostring(p), tostring(d), tostring(y)))
 end
+-- ============================================================
+-- FUNZIONE: debug_modello()
+-- Per ogni oggetto selezionato stampa in chat i dati del
+-- modello (mesh, texture, AssetBundle, scala, figli), da
+-- copiare negli elementi del file esercito.
+-- ============================================================
+function debug_modello()
+    local sel = debug_selectedObjects()
+    if #sel == 0 then
+        print("[MODELLO] Seleziona prima uno o più oggetti")
+        return
+    end
+
+    for _, s in ipairs(sel) do
+        local o = s.obj
+        local d = o.getData()
+        local sc = o.getScale()
+        local b = o.getBounds()
+
+        print(string.format("[MODELLO] ===== %s \"%s\" tipo=%s scala=%s/%s/%s dim=%s x %s x %s",
+            o.getGUID(), o.getName() or "", tostring(d.Name),
+            debug_fmt(sc.x), debug_fmt(sc.y), debug_fmt(sc.z),
+            debug_fmt(b.size.x), debug_fmt(b.size.y), debug_fmt(b.size.z)))
+
+        local function stampa(prefisso, dati)
+            if dati.CustomMesh then
+                local m = dati.CustomMesh
+                print(prefisso .. "mesh=" .. tostring(m.MeshURL))
+                print(prefisso .. "texture=" .. tostring(m.DiffuseURL))
+                print(prefisso .. "normal=" .. tostring(m.NormalURL))
+                print(prefisso .. "collider=" .. tostring(m.ColliderURL))
+                print(prefisso .. string.format("convex=%s materiale=%s tipo_tts=%s",
+                    tostring(m.Convex), tostring(m.MaterialIndex), tostring(m.TypeIndex)))
+            end
+            if dati.CustomAssetbundle then
+                local a = dati.CustomAssetbundle
+                print(prefisso .. "bundle=" .. tostring(a.AssetbundleURL))
+                print(prefisso .. "bundle_secondario=" .. tostring(a.AssetbundleSecondaryURL))
+                print(prefisso .. string.format("materiale=%s tipo_tts=%s",
+                    tostring(a.MaterialIndex), tostring(a.TypeIndex)))
+            end
+            if not dati.CustomMesh and not dati.CustomAssetbundle then
+                print(prefisso .. "(nessun modello personalizzato: " .. tostring(dati.Name) .. ")")
+            end
+        end
+
+        stampa("[MODELLO]   ", d)
+
+        -- figli (oggetti attaccati, es. figure sulla base)
+        for i, c in ipairs(d.ChildObjects or {}) do
+            local t = c.Transform or {}
+            print(string.format("[MODELLO]   -- figlio %d: %s pos=%s/%s/%s scala=%s/%s/%s rotY=%s",
+                i, tostring(c.Nickname or c.Name),
+                debug_fmt(t.posX), debug_fmt(t.posY), debug_fmt(t.posZ),
+                debug_fmt(t.scaleX), debug_fmt(t.scaleY), debug_fmt(t.scaleZ), debug_fmt(t.rotY)))
+            stampa("[MODELLO]      ", c)
+        end
+    end
+end
