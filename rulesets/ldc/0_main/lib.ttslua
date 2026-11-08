@@ -214,6 +214,9 @@ function main_restart()
     engine_diceClearLastRoll(1)
     engine_diceClearLastRoll(2)
 
+    -- Eserciti spawnati tolti dal tavolo
+    deploy_clearAll()
+
     main_resetPlayers()
     main_initUI()
     Wait.time(function()

@@ -2,3 +2,37 @@
 -- WARFORGE LDC — 3_deploy/constants.ttslua
 -- Costanti della fase (valori fissi).
 -- ============================================================
+
+-- Dove si scaricano i file esercito (per ora i file di prova
+-- nel repo del codice; poi il repo dati di LDC)
+DEPLOY_DATA_URL = "https://raw.githubusercontent.com/maxm4004/WARFORGE-LDC-REPO/main/test-data/"
+
+-- File esercito per schieramento (provvisorio: poi lo sceglie
+-- il giocatore)
+DEPLOY_TEST_ARMIES = {
+    [1] = "TEST-army-1.json",
+    [2] = "TEST-army-2.json",
+}
+
+-- Disposizione nella fascia di spawn (cm di gioco)
+DEPLOY_LAYOUT = {
+    gapUnitaCm      = 4,     -- fra due unità della stessa Divisione
+    gapDivisioneCm  = 12,    -- fra due Divisioni
+    gapGeneraliCm   = 3,     -- fra le unità e i loro generali, dietro
+    distanzaVerdeCm = 1,     -- fra il fronte delle unità e il bordo della fascia lato verde
+    cadutaY         = 0.3,   -- altezza di comparsa sopra il tavolo (unità TTS)
+    -- rotazione Y delle basi: Army1 guarda verso Z positiva,
+    -- Army2 verso Z negativa (fronte del modello = Z locale positiva)
+    rotY = { [1] = 0, [2] = 180 },
+}
+
+-- Tag sulle basi spawnate: comune e per schieramento
+DEPLOY_TAG_BASE = "ldc_base"
+DEPLOY_TAG_SIDE = { [1] = "ldc_army1", [2] = "ldc_army2" }
+
+-- Ruoli delle basi nelle GMNotes
+DEPLOY_RUOLO = {
+    UNITA     = "unita",
+    GENERALE  = "generale_divisione",
+    CORPO     = "comandante_corpo",
+}

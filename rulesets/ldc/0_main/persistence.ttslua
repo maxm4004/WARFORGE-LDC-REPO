@@ -30,6 +30,7 @@ function main_onSave()
         players_saved = saved,
         turn          = TURN,
         first_roll    = FIRST_ROLL,
+        deploy        = DEPLOY_STATE,
         side_chosen   = SIDE_CHOSEN,
         sub           = ENGINE and ENGINE.sub or nil,
     }
@@ -117,6 +118,15 @@ function main_restoreState(save_state)
     end
 
     SIDE_CHOSEN = main_slotPair(data.side_chosen)
+
+    if data.deploy then
+        DEPLOY_STATE = {
+            spawned = main_slotPair(data.deploy.spawned),
+            tag     = main_slotPair(data.deploy.tag),
+        }
+        DEPLOY_STATE.spawned[1] = DEPLOY_STATE.spawned[1] == true
+        DEPLOY_STATE.spawned[2] = DEPLOY_STATE.spawned[2] == true
+    end
 
     if data.sub then
         ENGINE.sub = data.sub

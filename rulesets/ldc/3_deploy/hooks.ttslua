@@ -4,9 +4,15 @@
 
 -- ============================================================
 -- FUNZIONE: before_deploy(phaseName, phase)
+-- Spawn degli eserciti non ancora sul tavolo.
 -- ============================================================
 function before_deploy(phaseName, phase)
     main_resetCompleted()
+    for slot = 1, 2 do
+        if not DEPLOY_STATE.spawned[slot] then
+            deploy_loadAndSpawn(slot)
+        end
+    end
     callHandler("updateCenterPanel")
 end
 -- ============================================================

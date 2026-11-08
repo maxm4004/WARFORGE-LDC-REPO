@@ -1,4 +1,13 @@
 -- ============================================================
 -- WARFORGE LDC — 3_deploy/state.ttslua
--- Stato della fase (da salvare in 0_main/persistence).
+-- Stato della fase (salvato in 0_main/persistence).
 -- ============================================================
+
+-- Per schieramento: esercito già spawnato, tag dell'esercito
+DEPLOY_STATE = DEPLOY_STATE or {
+    spawned = { [1] = false, [2] = false },
+    tag     = { [1] = nil,   [2] = nil },
+}
+
+-- Download in corso (non salvato)
+DEPLOY_LOADING = { [1] = false, [2] = false }

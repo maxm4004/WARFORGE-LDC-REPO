@@ -1,0 +1,369 @@
+{
+  "versione": "1.0-LDC",
+  "tag": "AUS",
+  "nome": "Austriaci (test)",
+  "comandante_corpo": {
+    "unit_name": "AUS_CORPO_GEN",
+    "nome_display": "Comandante di Corpo",
+    "valore": 4,
+    "elemento": "AUS_GEN"
+  },
+  "divisioni": [
+    {
+      "id": "D1",
+      "nome": "1a Divisione",
+      "generale": {
+        "unit_name": "AUS_D1_GEN",
+        "nome_display": "Generale della 1a Divisione",
+        "valore": 3,
+        "elemento": "AUS_GEN"
+      },
+      "unita": [
+        {
+          "unit_name": "AUS_IR4_FAN",
+          "nome_display": "IR 4 Hoch- und Deutschmeister",
+          "tipo": "FAN_LINEA",
+          "morale": 3,
+          "taglia": "standard",
+          "num_basi": 4,
+          "arma": "moschetto",
+          "formazione": "linea",
+          "elemento": "AUS_LINIE",
+          "elemento_comando": "AUS_LINIE_KOMMANDO"
+        },
+        {
+          "unit_name": "AUS_IR49_FAN",
+          "nome_display": "IR 49 Kerpen",
+          "tipo": "FAN_LINEA",
+          "morale": 4,
+          "taglia": "grande",
+          "num_basi": 6,
+          "arma": "moschetto",
+          "formazione": "linea",
+          "elemento": "AUS_LINIE",
+          "elemento_comando": "AUS_LINIE_KOMMANDO"
+        }
+      ]
+    }
+  ],
+  "elementi": {
+    "AUS_LINIE_KOMMANDO": {
+      "descrizione": "Base di comando: portabandiera, tamburino, ufficiale e 3 fucilieri (modelli francesi provvisori)",
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 3
+        },
+        "scala": 1.0,
+        "modello": {
+          "tipo_modello": "model",
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/16996776827405542465/8784944F929F953F79775122B2FF8807F4EEBDEC/",
+          "texture": "http://i.imgur.com/nnGP6AK.png",
+          "normal": "http://i.imgur.com/RG2RKHX.png",
+          "collider": "",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 0,
+          "rot_y": 0
+        }
+      },
+      "scala_figure": 0.95,
+      "modelli_figure": {
+        "FUCILIERE": {
+          "tipo_modello": "model",
+          "mesh": "https://www.dropbox.com/s/05y65zpd8xoogba/NTW_unit_french_fusilier.obj?dl=1",
+          "texture": "https://www.dropbox.com/s/6c3no7kd5j9s1s5/NTW_unit_french_fusilier.png?dl=1",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 1,
+          "rot_y": 0
+        },
+        "TAMBURINO": {
+          "tipo_modello": "model",
+          "mesh": "https://www.dropbox.com/s/0peydd740799k51/NTW_officer_french_drum_shako.obj?dl=1",
+          "texture": "https://www.dropbox.com/s/31hew2yqn6vbtdp/NTW_officer_french_drum_shako.png?dl=1",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 1,
+          "rot_y": 0
+        },
+        "UFFICIALE": {
+          "tipo_modello": "model",
+          "mesh": "https://www.dropbox.com/s/46p3lvokm12nxhv/NTW_officer_french_officer.obj?dl=1",
+          "texture": "https://www.dropbox.com/s/c6vr5rljws7fbmv/NTW_officer_french_officer.png?dl=1",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 1,
+          "rot_y": 0
+        },
+        "PORTABANDIERA": {
+          "tipo_modello": "model",
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11975117852020121304/A47B8E69E059A90FAEA28061702541CEC1FC3424/",
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/10598462285544388169/B69611D2EACAA6952AC421F845139E987E609664/",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 0,
+          "rot_y": 0
+        }
+      },
+      "figure": [
+        {
+          "modello": "PORTABANDIERA",
+          "x": 1.21,
+          "y": 0.03,
+          "z": 0.7
+        },
+        {
+          "modello": "FUCILIERE",
+          "x": 1.21,
+          "y": 0.03,
+          "z": -0.81
+        },
+        {
+          "modello": "FUCILIERE",
+          "x": 0.05,
+          "y": 0.03,
+          "z": -0.75
+        },
+        {
+          "modello": "FUCILIERE",
+          "x": -1.33,
+          "y": 0.03,
+          "z": -0.7
+        },
+        {
+          "modello": "TAMBURINO",
+          "x": -1.34,
+          "y": 0.03,
+          "z": 0.81
+        },
+        {
+          "modello": "UFFICIALE",
+          "x": 0.05,
+          "y": 0.03,
+          "z": 0.8
+        }
+      ]
+    },
+    "AUS_LINIE": {
+      "descrizione": "Base di linea: 6 fucilieri (dati letti da TTS, base 7d99dc) (modelli francesi provvisori)",
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 3
+        },
+        "scala": 1.0,
+        "modello": {
+          "tipo_modello": "model",
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/16996776827405542465/8784944F929F953F79775122B2FF8807F4EEBDEC/",
+          "texture": "http://i.imgur.com/nnGP6AK.png",
+          "normal": "http://i.imgur.com/RG2RKHX.png",
+          "collider": "",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 0,
+          "rot_y": 0
+        }
+      },
+      "scala_figure": 0.95,
+      "modelli_figure": {
+        "FUCILIERE": {
+          "tipo_modello": "model",
+          "mesh": "https://www.dropbox.com/s/05y65zpd8xoogba/NTW_unit_french_fusilier.obj?dl=1",
+          "texture": "https://www.dropbox.com/s/6c3no7kd5j9s1s5/NTW_unit_french_fusilier.png?dl=1",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 1,
+          "rot_y": 0
+        },
+        "TAMBURINO": {
+          "tipo_modello": "model",
+          "mesh": "https://www.dropbox.com/s/0peydd740799k51/NTW_officer_french_drum_shako.obj?dl=1",
+          "texture": "https://www.dropbox.com/s/31hew2yqn6vbtdp/NTW_officer_french_drum_shako.png?dl=1",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 1,
+          "rot_y": 0
+        },
+        "UFFICIALE": {
+          "tipo_modello": "model",
+          "mesh": "https://www.dropbox.com/s/46p3lvokm12nxhv/NTW_officer_french_officer.obj?dl=1",
+          "texture": "https://www.dropbox.com/s/c6vr5rljws7fbmv/NTW_officer_french_officer.png?dl=1",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 1,
+          "rot_y": 0
+        },
+        "PORTABANDIERA": {
+          "tipo_modello": "model",
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11975117852020121304/A47B8E69E059A90FAEA28061702541CEC1FC3424/",
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/10598462285544388169/B69611D2EACAA6952AC421F845139E987E609664/",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 0,
+          "rot_y": 0
+        }
+      },
+      "figure": [
+        {
+          "modello": "FUCILIERE",
+          "x": -1.33,
+          "y": 0.03,
+          "z": 0.74
+        },
+        {
+          "modello": "FUCILIERE",
+          "x": -1.33,
+          "y": 0.03,
+          "z": -0.71
+        },
+        {
+          "modello": "FUCILIERE",
+          "x": 0.11,
+          "y": 0.03,
+          "z": -0.71
+        },
+        {
+          "modello": "FUCILIERE",
+          "x": 0.11,
+          "y": 0.03,
+          "z": 0.74
+        },
+        {
+          "modello": "FUCILIERE",
+          "x": 1.28,
+          "y": 0.03,
+          "z": 0.74
+        },
+        {
+          "modello": "FUCILIERE",
+          "x": 1.27,
+          "y": 0.03,
+          "z": -0.71
+        }
+      ]
+    },
+    "AUS_GEN": {
+      "descrizione": "Generale (provvisorio: ufficiale di fanteria) (modelli francesi provvisori)",
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 3
+        },
+        "scala": 1.0,
+        "modello": {
+          "tipo_modello": "model",
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/16996776827405542465/8784944F929F953F79775122B2FF8807F4EEBDEC/",
+          "texture": "http://i.imgur.com/nnGP6AK.png",
+          "normal": "http://i.imgur.com/RG2RKHX.png",
+          "collider": "",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 0,
+          "rot_y": 0
+        }
+      },
+      "scala_figure": 0.95,
+      "modelli_figure": {
+        "FUCILIERE": {
+          "tipo_modello": "model",
+          "mesh": "https://www.dropbox.com/s/05y65zpd8xoogba/NTW_unit_french_fusilier.obj?dl=1",
+          "texture": "https://www.dropbox.com/s/6c3no7kd5j9s1s5/NTW_unit_french_fusilier.png?dl=1",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 1,
+          "rot_y": 0
+        },
+        "TAMBURINO": {
+          "tipo_modello": "model",
+          "mesh": "https://www.dropbox.com/s/0peydd740799k51/NTW_officer_french_drum_shako.obj?dl=1",
+          "texture": "https://www.dropbox.com/s/31hew2yqn6vbtdp/NTW_officer_french_drum_shako.png?dl=1",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 1,
+          "rot_y": 0
+        },
+        "UFFICIALE": {
+          "tipo_modello": "model",
+          "mesh": "https://www.dropbox.com/s/46p3lvokm12nxhv/NTW_officer_french_officer.obj?dl=1",
+          "texture": "https://www.dropbox.com/s/c6vr5rljws7fbmv/NTW_officer_french_officer.png?dl=1",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 1,
+          "rot_y": 0
+        },
+        "PORTABANDIERA": {
+          "tipo_modello": "model",
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11975117852020121304/A47B8E69E059A90FAEA28061702541CEC1FC3424/",
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/10598462285544388169/B69611D2EACAA6952AC421F845139E987E609664/",
+          "normal": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "bundle": "",
+          "bundle_secondario": "",
+          "materiale": 3,
+          "tipo_tts": 0,
+          "rot_y": 0
+        }
+      },
+      "figure": [
+        {
+          "modello": "UFFICIALE",
+          "x": 0.0,
+          "y": 0.03,
+          "z": 0.0
+        }
+      ]
+    }
+  }
+}

@@ -4,8 +4,14 @@
 
 -- ============================================================
 -- FUNZIONE: deploy_btn_all(player, value, id, buttonConfig)
--- Lo schieramento del bottone ha completato la fase.
+-- Lo schieramento del bottone ha completato la fase; non prima
+-- che il suo esercito sia sul tavolo.
 -- ============================================================
 function deploy_btn_all(player, value, id, buttonConfig)
+    local slot = main_sideOfButton(id)
+    if slot and not DEPLOY_STATE.spawned[slot] then
+        warningToColor("L'esercito non è ancora sul tavolo", player, "Yellow", 4, false)
+        return false
+    end
     return main_ownerPhaseClick(id)
 end

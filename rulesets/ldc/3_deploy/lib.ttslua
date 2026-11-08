@@ -1,4 +1,375 @@
 -- ============================================================
 -- WARFORGE LDC — 3_deploy/lib.ttslua
--- Logica della fase.
+-- Spawn degli eserciti dal file {tag}-army.json (contratto in
+-- claude/LDC_CONTRATTO_JSON.md) nella fascia di spawn dello
+-- schieramento.
+--
+-- Disposizione: Divisioni affiancate, unità della Divisione in
+-- linea una accanto all'altra (da sinistra, dal punto di vista
+-- dello schieramento), generale dietro la sua Divisione,
+-- comandante di corpo dietro il centro dell'esercito.
+-- Basi: la .1 di ogni unità è la base di comando
+-- (elemento_comando), le altre sono standard (elemento).
 -- ============================================================
+
+-- ============================================================
+-- FUNZIONE: deploy_loadAndSpawn(slot)
+-- Scarica il file esercito dello schieramento e lo spawna.
+-- ============================================================
+function deploy_loadAndSpawn(slot)
+    if DEPLOY_LOADING[slot] or DEPLOY_STATE.spawned[slot] then return end
+
+    local file = DEPLOY_TEST_ARMIES[slot]
+    if not file then
+        print("[DEPLOY] Nessun file esercito per " .. main_sideName(slot))
+        return
+    end
+
+    -- Il parametro evita le copie vecchie in cache di GitHub
+    local url = DEPLOY_DATA_URL .. file .. "?t=" .. tostring(os.time())
+    DEPLOY_LOADING[slot] = true
+
+    WebRequest.get(url, function(req)
+        DEPLOY_LOADING[slot] = false
+
+        if req.is_error or not req.text or req.text == "" then
+            printToAll("[DEPLOY] Download fallito per " .. main_sideName(slot) .. ": " .. tostring(req.error), "Red")
+            return
+        end
+
+        local ok, army = pcall(JSON.decode, req.text)
+        if not ok or type(army) ~= "table" then
+            printToAll("[DEPLOY] File esercito non leggibile: " .. file, "Red")
+            return
+        end
+
+        deploy_spawnArmy(slot, army)
+    end)
+end
+-- ============================================================
+-- FUNZIONE: deploy_baseCm(army, elementoKey)
+-- Misure della base dell'elemento in cm (default 4 x 3).
+-- ============================================================
+function deploy_baseCm(army, elementoKey)
+    local el = army.elementi and army.elementi[elementoKey]
+    local b  = el and el.base and el.base.base_cm
+    return (b and b.fronte) or 4, (b and b.profondita) or 3
+end
+-- ============================================================
+-- FUNZIONE: deploy_unitWidthCm(army, unita)
+-- Larghezza di un'unità in formazione di linea (cm).
+-- ============================================================
+function deploy_unitWidthCm(army, unita)
+    local fronte = deploy_baseCm(army, unita.elemento)
+    return (unita.num_basi or 1) * fronte
+end
+-- ============================================================
+-- FUNZIONE: deploy_planLayout(slot, army)
+-- Posizioni di tutte le basi: lista di
+-- { ruolo, unita, divisione, seq, elemento, x, z }
+-- (x, z = centro della base in unità TTS). nil se manca la
+-- fascia di spawn.
+-- ============================================================
+function deploy_planLayout(slot, army)
+    local fascia = main_spawnStrip(slot)
+    if not fascia then
+        printToAll("[DEPLOY] Nessuna fascia di spawn per " .. main_sideName(slot), "Red")
+        return nil
+    end
+
+    local L    = DEPLOY_LAYOUT
+    local cm   = main_cmToTts
+    local divs = army.divisioni or {}
+
+    -- Larghezza totale (cm): unità, spazi fra unità e Divisioni
+    local totale = 0
+    for d, div in ipairs(divs) do
+        if d > 1 then totale = totale + L.gapDivisioneCm end
+        for u, unita in ipairs(div.unita or {}) do
+            if u > 1 then totale = totale + L.gapUnitaCm end
+            totale = totale + deploy_unitWidthCm(army, unita)
+        end
+    end
+
+    if cm(totale) > fascia.larghezza then
+        printToAll(string.format("[DEPLOY] %s: l'esercito (%.0f cm) è più largo della fascia di spawn (%.0f cm)",
+            main_sideName(slot), totale, main_ttsToCm(fascia.larghezza)), "Yellow")
+    end
+
+    -- Direzioni dal punto di vista dello schieramento:
+    -- dirX = verso destra, dirZ = verso il nemico
+    local dirX = (slot == 1) and 1 or -1
+    local dirZ = (slot == 1) and 1 or -1
+
+    -- Fronte delle unità: lato della fascia verso il verde
+    local zFronte = fascia.zPartenza - dirZ * cm(L.distanzaVerdeCm)
+    local xInizio = fascia.cx - dirX * cm(totale) / 2
+
+    local piano = {}
+    local cursore = 0           -- cm dall'inizio, verso destra
+    local profMax = 0           -- profondità massima delle unità (cm)
+    local profGen = 0           -- profondità massima delle basi dei generali (cm)
+
+    for d, div in ipairs(divs) do
+        if d > 1 then cursore = cursore + L.gapDivisioneCm end
+        local divInizio = cursore
+
+        for u, unita in ipairs(div.unita or {}) do
+            if u > 1 then cursore = cursore + L.gapUnitaCm end
+
+            for seq = 1, (unita.num_basi or 1) do
+                local elemento = (seq == 1 and unita.elemento_comando) or unita.elemento
+                local fronte, prof = deploy_baseCm(army, elemento)
+                profMax = math.max(profMax, prof)
+                table.insert(piano, {
+                    ruolo     = DEPLOY_RUOLO.UNITA,
+                    unita     = unita,
+                    divisione = div,
+                    seq       = seq,
+                    elemento  = elemento,
+                    x = xInizio + dirX * cm(cursore + fronte / 2),
+                    z = zFronte - dirZ * cm(prof / 2),
+                })
+                cursore = cursore + fronte
+            end
+        end
+
+        -- Generale dietro il centro della sua Divisione
+        if div.generale then
+            local _, prof = deploy_baseCm(army, div.generale.elemento)
+            local centro = (divInizio + cursore) / 2
+            profGen = math.max(profGen, prof)
+            table.insert(piano, {
+                ruolo     = DEPLOY_RUOLO.GENERALE,
+                unita     = div.generale,
+                divisione = div,
+                seq       = 1,
+                elemento  = div.generale.elemento,
+                x = xInizio + dirX * cm(centro),
+                z = zFronte - dirZ * cm(profMax + L.gapGeneraliCm + prof / 2),
+            })
+        end
+    end
+
+    -- Comandante di corpo dietro il centro dell'esercito, una
+    -- fila dietro i generali
+    if army.comandante_corpo then
+        local _, prof = deploy_baseCm(army, army.comandante_corpo.elemento)
+        table.insert(piano, {
+            ruolo     = DEPLOY_RUOLO.CORPO,
+            unita     = army.comandante_corpo,
+            divisione = nil,
+            seq       = 1,
+            elemento  = army.comandante_corpo.elemento,
+            x = xInizio + dirX * cm(totale / 2),
+            z = zFronte - dirZ * cm(profMax + L.gapGeneraliCm + profGen + L.gapGeneraliCm + prof / 2),
+        })
+    end
+
+    return piano
+end
+-- ============================================================
+-- FUNZIONE: deploy_typeOf(voce)
+-- Tipo per il nickname: ultimo segmento di unit_name (es.
+-- FRA_LIGNE45_FAN -> FAN, FRA_D1_GEN -> GEN).
+-- ============================================================
+function deploy_typeOf(voce)
+    local nome = voce.unita.unit_name or ""
+    return nome:match("_([A-Z]+)$") or "UNI"
+end
+-- ============================================================
+-- FUNZIONE: deploy_assignNicknames(piano)
+-- Nickname {unit_name}_{N}.{seq}: N è un contatore per tipo
+-- su tutto l'esercito, uno per unità.
+-- ============================================================
+function deploy_assignNicknames(piano)
+    local contatori = {}
+    local numeroDi  = {}   -- unità -> N
+    for _, voce in ipairs(piano) do
+        local unita = voce.unita
+        if not numeroDi[unita] then
+            local tipo = deploy_typeOf(voce)
+            contatori[tipo] = (contatori[tipo] or 0) + 1
+            numeroDi[unita] = contatori[tipo]
+        end
+        voce.numero   = numeroDi[unita]
+        voce.unitKey  = (unita.unit_name or "UNI") .. "_" .. voce.numero
+        voce.nickname = voce.unitKey .. "." .. voce.seq
+    end
+end
+-- ============================================================
+-- FUNZIONE: deploy_meshData(modello)
+-- Campi CustomMesh / CustomAssetbundle del modello del JSON.
+-- Ritorna nome oggetto TTS e tabella dei campi.
+-- ============================================================
+function deploy_meshData(modello)
+    if not modello then return nil end
+
+    if modello.tipo_modello == "bundle" then
+        if not modello.bundle or modello.bundle == "" then return nil end
+        return "Custom_Assetbundle", {
+            AssetbundleURL          = modello.bundle,
+            AssetbundleSecondaryURL = modello.bundle_secondario or "",
+            MaterialIndex           = modello.materiale or 3,
+            TypeIndex               = modello.tipo_tts or 0,
+        }
+    end
+
+    if not modello.mesh or modello.mesh == "" then return nil end
+    return "Custom_Model", {
+        MeshURL       = modello.mesh,
+        DiffuseURL    = modello.texture or "",
+        NormalURL     = modello.normal or "",
+        ColliderURL   = modello.collider or "",
+        Convex        = modello.convex ~= false,
+        MaterialIndex = modello.materiale or 3,
+        TypeIndex     = modello.tipo_tts or 0,
+        CastShadows   = true,
+    }
+end
+-- ============================================================
+-- FUNZIONE: deploy_objectData(nome, campi, nickname, transform)
+-- Dati di un oggetto per spawnObjectData.
+-- ============================================================
+function deploy_objectData(nome, campi, nickname, transform)
+    local data = {
+        Name      = nome,
+        Nickname  = nickname or "",
+        Transform = transform,
+    }
+    if nome == "Custom_Assetbundle" then
+        data.CustomAssetbundle = campi
+    else
+        data.CustomMesh = campi
+    end
+    return data
+end
+-- ============================================================
+-- FUNZIONE: deploy_baseData(slot, army, voce)
+-- Dati TTS di una base con le sue figure come oggetti figli
+-- (ChildObjects): un solo spawn per base.
+-- ============================================================
+function deploy_baseData(slot, army, voce)
+    local el = army.elementi and army.elementi[voce.elemento]
+    if not el or not el.base then
+        print("[DEPLOY] Elemento mancante: " .. tostring(voce.elemento))
+        return nil
+    end
+
+    local nome, campi = deploy_meshData(el.base.modello)
+    if not nome then
+        print("[DEPLOY] Base senza modello: " .. tostring(voce.elemento))
+        return nil
+    end
+
+    local scalaBase = el.base.scala or 1
+    local data = deploy_objectData(nome, campi, voce.nickname, {
+        posX = 0, posY = 0, posZ = 0,
+        rotX = 0, rotY = 0, rotZ = 0,
+        scaleX = scalaBase, scaleY = scalaBase, scaleZ = scalaBase,
+    })
+
+    -- Figure: posizioni in cm sulla base, nello spazio locale
+    -- della base (quindi divise per la sua scala)
+    local figli = {}
+    local scalaFig = (el.scala_figure or 1) / scalaBase
+    for _, f in ipairs(el.figure or {}) do
+        local modello = el.modelli_figure and el.modelli_figure[f.modello]
+        local fNome, fCampi = deploy_meshData(modello)
+        if fNome then
+            table.insert(figli, deploy_objectData(fNome, fCampi, f.modello, {
+                posX = main_cmToTts(f.x or 0) / scalaBase,
+                posY = main_cmToTts(f.y or 0) / scalaBase,
+                posZ = main_cmToTts(f.z or 0) / scalaBase,
+                rotX = 0, rotY = (modello.rot_y or 0) + (f.rot_y or 0), rotZ = 0,
+                scaleX = scalaFig, scaleY = scalaFig, scaleZ = scalaFig,
+            }))
+        end
+    end
+    if #figli > 0 then data.ChildObjects = figli end
+
+    data.Tags = { DEPLOY_TAG_BASE, DEPLOY_TAG_SIDE[slot] }
+    data.GMNotes = JSON.encode(deploy_metadata(slot, army, voce))
+    data.Description = voce.unita.nome_display or ""
+    return data
+end
+-- ============================================================
+-- FUNZIONE: deploy_metadata(slot, army, voce)
+-- Dati di gioco della base (GMNotes).
+-- ============================================================
+function deploy_metadata(slot, army, voce)
+    local u = voce.unita
+    return {
+        side        = slot,
+        armyTag     = army.tag,
+        ruolo       = voce.ruolo,
+        divisione   = voce.divisione and voce.divisione.id or nil,
+        unitName    = u.unit_name,
+        unitKey     = voce.unitKey,
+        nomeDisplay = u.nome_display,
+        tipo        = u.tipo or (voce.ruolo ~= DEPLOY_RUOLO.UNITA and "GEN" or nil),
+        morale      = u.morale,
+        valore      = u.valore,
+        taglia      = u.taglia,
+        numBasi     = u.num_basi or 1,
+        arma        = u.arma,
+        formazione  = u.formazione,
+        baseSeq     = voce.seq,
+        comando     = (voce.seq == 1 and u.elemento_comando ~= nil) or nil,
+        elemento    = voce.elemento,
+    }
+end
+-- ============================================================
+-- FUNZIONE: deploy_spawnArmy(slot, army)
+-- Spawna tutte le basi dell'esercito nella fascia.
+-- ============================================================
+function deploy_spawnArmy(slot, army)
+    if DEPLOY_STATE.spawned[slot] then return end
+
+    local piano = deploy_planLayout(slot, army)
+    if not piano then return end
+    deploy_assignNicknames(piano)
+
+    local fascia = main_spawnStrip(slot)
+    local y   = fascia.y + DEPLOY_LAYOUT.cadutaY
+    local rot = DEPLOY_LAYOUT.rotY[slot]
+
+    local fatte = 0
+    for _, voce in ipairs(piano) do
+        local data = deploy_baseData(slot, army, voce)
+        if data then
+            data.Transform.posX = voce.x
+            data.Transform.posY = y
+            data.Transform.posZ = voce.z
+            data.Transform.rotY = rot
+            spawnObjectData({ data = data })
+            fatte = fatte + 1
+        end
+    end
+
+    DEPLOY_STATE.spawned[slot] = true
+    DEPLOY_STATE.tag[slot]     = army.tag
+
+    printToAll(string.format("[DEPLOY] %s: %s, %d basi sul tavolo",
+        main_sideName(slot), tostring(army.nome or army.tag), fatte), "Green")
+    callHandler("updateCenterPanel")
+end
+-- ============================================================
+-- FUNZIONE: deploy_clearAll()
+-- Toglie dal tavolo tutte le basi spawnate (restart).
+-- ============================================================
+function deploy_clearAll()
+    -- Prima si raccolgono, poi si distruggono: mai modificare
+    -- una lista mentre la si scorre
+    local basi = {}
+    for _, obj in ipairs(getObjectsWithTag(DEPLOY_TAG_BASE) or {}) do
+        table.insert(basi, obj)
+    end
+    for _, obj in ipairs(basi) do
+        obj.destruct()
+    end
+    DEPLOY_STATE = {
+        spawned = { [1] = false, [2] = false },
+        tag     = { [1] = nil,   [2] = nil },
+    }
+end
