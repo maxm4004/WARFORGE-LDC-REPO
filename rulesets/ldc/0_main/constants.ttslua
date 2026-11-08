@@ -117,10 +117,12 @@ TAVOLO_RAGGI = {
     precisione  = 0.01,
 }
 
--- Scala: unità TTS per centimetro di gioco. nil finché non si
--- calibra con /execute debug_calibrate(...): poi si incolla qui
--- il valore stampato.
-SCALA_TTS_PER_CM = nil
+-- Scala: unità TTS per centimetro di gioco, calibrata l'8/11/2026
+-- con /execute debug_calibrate(...):
+--   base di fanteria 4x3 cm  -> 0.790 (rapporto 1.333, esatto)
+--   miniatura da 20 mm       -> 0.787 (modello a scala 0.944)
+-- Stesso valore di IEF (CM_TO_TTS = 0.7902).
+SCALA_TTS_PER_CM = 0.79
 
 -- Scala provvisoria finché SCALA_TTS_PER_CM è nil: quella del
 -- righello di TTS (1 unità = 1 pollice = 2,54 cm)
