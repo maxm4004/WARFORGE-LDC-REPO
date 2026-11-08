@@ -153,6 +153,16 @@ DICE_STATIONS = {
     [COLOR.BLUE]   = { tray = "b1c1e4", bag = "672518" },
 }
 
+-- Parabola del lancio sul tavolo LDC (vedi engine/constants;
+-- da tarare con /execute debug_tiro)
+DICE_THROW = {
+    rollHeight = 4,
+    forza      = 0.68,
+    spread     = 3,
+    stagger    = 0.15,
+    spawnY     = 4,
+}
+
 -- ------------------------------------------------------------
 -- Camere (engine/lib.ttslua). Le posizioni le calcola
 -- main_buildCameraZones() dal piano verde e dai vassoi; qui

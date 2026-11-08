@@ -28,6 +28,16 @@ BANNER = {
 -- main_diceStation(color). I dadi arrivano sul vassoio.
 -- ------------------------------------------------------------
 
+-- Parabola del lancio (valori di partenza, tarati su IEF; il
+-- ruleset può sostituirli ridefinendo DICE_THROW)
+DICE_THROW = {
+    rollHeight = 4,      -- altezza della parabola: più alta = più lenta
+    forza      = 0.68,   -- moltiplicatore della velocità: < 1 corto, > 1 lungo
+    spread     = 3,      -- dispersione casuale della velocità
+    stagger    = 0.15,   -- secondi fra un dado e il successivo
+    spawnY     = 4,      -- altezza di comparsa sopra il sacchetto
+}
+
 -- Colori dei bottoni 3D Roll / Cestino sui vassoi dei dadi
 ENGINE_DICE_BTN_COLORS = {
     [1] = "#BA1307|#F55E51|#3f3f3f|#1f1f1f",

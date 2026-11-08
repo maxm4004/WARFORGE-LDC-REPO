@@ -207,10 +207,13 @@ function engine_diceThrowFromBag(slot, opts, callback, color)
     local template = engine_diceGetTemplate(bagGuid)
     if not template then return end
 
+    -- Parametri della parabola: DICE_THROW, sostituibili da opts
     opts = opts or {}
-    local rollHeight = opts.rollHeight or 4
-    local spread     = opts.spread or 3
-    local stagger    = opts.stagger or 0.15   -- ritardo tra un dado e il successivo
+    local rollHeight = opts.rollHeight or DICE_THROW.rollHeight
+    local spread     = opts.spread     or DICE_THROW.spread
+    local stagger    = opts.stagger    or DICE_THROW.stagger
+    local forza      = opts.forza      or DICE_THROW.forza
+    local spawnY     = opts.spawnY     or DICE_THROW.spawnY
 
     local bag = getObjectFromGUID(bagGuid)
     local originPos = bag.getPosition()
@@ -221,9 +224,9 @@ function engine_diceThrowFromBag(slot, opts, callback, color)
     local offsetY = zonaTarget.y - originPos.y
     local offsetZ = zonaTarget.z - originPos.z
 
-    local velX = (offsetX / h - g.x * h) * 0.68
-    local velY = (offsetY / h - g.y * h) * 0.68
-    local velZ = (offsetZ / h - g.z * h) * 0.68
+    local velX = (offsetX / h - g.x * h) * forza
+    local velY = (offsetY / h - g.y * h) * forza
+    local velZ = (offsetZ / h - g.z * h) * forza
 
     local rolledDice = {}
 
@@ -237,7 +240,7 @@ function engine_diceThrowFromBag(slot, opts, callback, color)
 
             local obj = spawnObjectData({
                 data     = template,
-                position = { x = originPos.x, y = originPos.y + 4, z = originPos.z },
+                position = { x = originPos.x, y = originPos.y + spawnY, z = originPos.z },
                 rotation = { x = 0, y = 180, z = 0 }
             })
 

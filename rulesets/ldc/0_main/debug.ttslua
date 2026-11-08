@@ -270,3 +270,60 @@ function debug_raggio(x, z)
             info(h.hit_object), (h.hit_object == tavolo) and "(= tavolo)" or ""))
     end
 end
+-- ============================================================
+-- FUNZIONE: debug_tiro(color, dadi, rollHeight, forza, spread, spawnY)
+-- Lancio di prova dalla postazione del colore, con parametri
+-- della parabola al posto di quelli in DICE_THROW (nil = valore
+-- in uso). Es.: /execute debug_tiro("Red", 6, 4, 0.6)
+-- ============================================================
+function debug_tiro(color, dadi, rollHeight, forza, spread, spawnY)
+    color = color or COLOR.RED
+    local slot = main_sideOfColor(color) or 1
+    local opts = { rollHeight = rollHeight, forza = forza, spread = spread, spawnY = spawnY }
+
+    engine_diceClearLastRoll(slot)
+    engine_diceSetNext(slot, dadi or 6, nil)
+    engine_diceThrowFromBag(slot, opts, function(risultati)
+        local fuori = 0
+        local st = main_diceStation(color)
+        local tray = st and getObjectFromGUID(st.tray)
+        if tray then
+            local b = tray.getBounds()
+            for _, d in ipairs(ENGINE_DICE_LAST_ROLL[slot] or {}) do
+                if not d.isDestroyed() then
+                    local p = d.getPosition()
+                    if math.abs(p.x - b.center.x) > b.size.x / 2 or math.abs(p.z - b.center.z) > b.size.z / 2 then
+                        fuori = fuori + 1
+                    end
+                end
+            end
+        end
+        print(string.format("[TIRO] %s: rollHeight=%s forza=%s spread=%s spawnY=%s -> %d dadi, %d fuori dal vassoio",
+            color,
+            tostring(rollHeight or DICE_THROW.rollHeight), tostring(forza or DICE_THROW.forza),
+            tostring(spread or DICE_THROW.spread), tostring(spawnY or DICE_THROW.spawnY),
+            #risultati, fuori))
+    end, color)
+end
+-- ============================================================
+-- FUNZIONE: debug_camDadi(color, pitch, distance)
+-- Camera sul vassoio del colore con inclinazione e distanza di
+-- prova (nil = valori in CAMERA_PARAMS).
+-- Es.: /execute debug_camDadi("Red", 45, 20)
+-- ============================================================
+function debug_camDadi(color, pitch, distance)
+    color = color or COLOR.RED
+    local slot = main_sideOfColor(color) or 1
+    local st = main_diceStation(color)
+    local tray = st and getObjectFromGUID(st.tray)
+    if not tray then print("[CAM] Vassoio non trovato per " .. tostring(color)) return end
+
+    local par = CAMERA_PARAMS[CAMERA_ZONE.ARMY_ROLL_DICES]
+    local p = pitch or par.pitch
+    local d = distance or par.distance
+    local pos = tray.getPosition()
+    for _, player in ipairs(main_sidePlayers(slot)) do
+        engine_camera(player, { x = pos.x, y = pos.y, z = pos.z }, p, par.yaw[slot], d)
+    end
+    print(string.format("[CAM] dadi %s: pitch=%s distance=%s", color, tostring(p), tostring(d)))
+end
