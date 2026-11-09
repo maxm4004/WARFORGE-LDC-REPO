@@ -440,6 +440,8 @@ function deploy_spawnArmy(slot, army)
     printToAll(string.format("[DEPLOY] %s: %s, %d basi sul tavolo",
         main_sideName(slot), tostring(army.nome or army.tag), fatte), "Green")
     callHandler("updateCenterPanel")
+    -- bottoni sulle basi appena gli oggetti esistono
+    Wait.time(main_refreshBaseButtons, 1)
 end
 -- ============================================================
 -- FUNZIONE: deploy_clearAll()

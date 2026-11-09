@@ -213,3 +213,22 @@ CENTERPANEL = {
     doneText      = "Black",
     activeText    = "White",
 }
+
+-- ------------------------------------------------------------
+-- Bottoni 3D sulle basi (0_main/buttons.ttslua), misure nello
+-- spazio della base (come IEF; da tarare in TTS)
+-- ------------------------------------------------------------
+BASE_BUTTONS = {
+    y        = 0.1,      -- sopra la base
+    dietro   = 0.45,     -- dal bordo posteriore della base
+    passoX   = 0.85,     -- fra due bottoni affiancati
+    passoZ   = 0.55,     -- seconda fila (cartellino disordini)
+    width    = 400,
+    height   = 220,
+    fontSize = 70,
+    textColor = "White",
+    disColor  = { r = 0.55, g = 0.1, b = 0.1 },
+    -- colori dei bottoni speciali
+    bersaglioColor = { r = 0.85, g = 0.45, b = 0.0 },
+    annullaColor   = { r = 0.35, g = 0.35, b = 0.35 },
+}

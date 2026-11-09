@@ -1,4 +1,11 @@
 -- ============================================================
 -- WARFORGE LDC — 6_fire/constants.ttslua
--- Costanti della fase (valori fissi).
+-- Costanti della fase (valori fissi). I dati del regolamento
+-- (gittate, soglie, dadi) sono in 0_main/rules.ttslua.
 -- ============================================================
+
+-- Tolleranza per "bersaglio più vicino" della fanteria (D)
+FIRE_TOLLERANZA_VICINO_D = 0.05
+
+-- Secondi prima di chiudere il pannello dadi a fine fase
+FIRE_DICEPANEL_CLOSE = 3

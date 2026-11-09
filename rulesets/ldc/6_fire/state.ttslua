@@ -1,4 +1,22 @@
 -- ============================================================
 -- WARFORGE LDC — 6_fire/state.ttslua
--- Stato della fase (da salvare in 0_main/persistence).
+-- Stato della fase.
 -- ============================================================
+
+-- Chi ha sparato in questa metà turno (salvato): non potrà
+-- muovere nella Manovra (regolamento 8), salvo schermagliatori
+-- e artiglieria a cavallo.
+-- FIRE_STATE = { side, turno, sparato = { [unitKey] = true } }
+FIRE_STATE = FIRE_STATE or { side = nil, turno = nil, sparato = {} }
+
+-- Tiratore scelto e bersagli possibili (non salvato):
+-- { slot, tiratore = unitKey, bersagli = { [unitKey] = { dist } } }
+FIRE_SEL = nil
+
+-- Tiro in attesa del Roll (non salvato):
+-- { slot, tiratore, bersaglio, fase = "tiro"|"rottura", dadi,
+--   soglia (tiro: >= soglia; rottura: > morale), morale, nome }
+FIRE_PENDING = nil
+
+-- Dadi in volo (non salvato)
+FIRE_ROLLING = false

@@ -216,6 +216,7 @@ function main_restart()
 
     -- Marker e stato del Comando, eserciti spawnati tolti dal tavolo
     command_reset()
+    main_unitsReset()
     deploy_clearAll()
 
     main_resetPlayers()
@@ -235,6 +236,8 @@ end
 function main_onPhaseEntered(phaseName, phase)
     TURN.phase = phaseName
     engine_bannerShow(main_phaseBannerText(phaseName, phase))
+    -- Bottoni sulle basi della nuova fase
+    main_refreshBaseButtons()
 end
 -- ============================================================
 -- FUNZIONE: main_phaseBannerText(phaseName, phase)

@@ -33,6 +33,7 @@ registerHandler("restorePlayersColors",      function()             return main_
 registerHandler("afterRestoreState",         function(ss)
     callHandler("restorePlayersColors")
     callHandler("updateCenterPanel")
+    main_refreshBaseButtons()
 end)
 
 -- Giocatori e flusso

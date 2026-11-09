@@ -1,0 +1,93 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/buttons.ttslua
+-- Bottoni 3D sulle basi (come IEF): su ogni unità la base di
+-- comando (.1) porta i bottoni della fase in corso e un
+-- cartellino con i disordini.
+--
+-- La fase dice quali bottoni con il campo baseButtons della sua
+-- definizione: nome di una funzione (obj, unita, slot) che
+-- ritorna una lista di { label, click, tooltip, color, width }.
+-- click = nome di una funzione globale (obj, player_color,
+-- alt_click).
+-- Si ridisegnano all'ingresso in fase e quando cambia qualcosa
+-- (main_refreshBaseButtons).
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_baseButtonNoop()
+-- Click dei cartellini (non fanno nulla).
+-- ============================================================
+function main_baseButtonNoop() end
+-- ============================================================
+-- FUNZIONE: main_refreshBaseButtons()
+-- Ridisegna i bottoni di tutte le unità.
+-- ============================================================
+function main_refreshBaseButtons()
+    local phase = ENGINE and ENGINE.phases and ENGINE.phases[ENGINE.phase]
+    local provider = phase and phase.baseButtons and _G[phase.baseButtons]
+
+    for slot = 1, 2 do
+        -- prima si puliscono tutte le basi, poi i bottoni sulle .1
+        for _, b in ipairs(main_basesOfSide(slot)) do
+            if b.obj.clearButtons then b.obj.clearButtons() end
+        end
+        for _, u in pairs(main_unitsOfSide(slot)) do
+            local lista = provider and provider(u.comando, u, slot) or {}
+            main_drawBaseButtons(u.comando, u, slot, lista)
+        end
+    end
+end
+-- ============================================================
+-- FUNZIONE: main_drawBaseButtons(obj, u, slot, lista)
+-- Bottoni in fila dietro la base, leggibili dal proprio lato;
+-- il cartellino dei disordini davanti a sinistra.
+-- ============================================================
+function main_drawBaseButtons(obj, u, slot, lista)
+    local B = BASE_BUTTONS
+    local meta = u.meta or {}
+    local metaProf  = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
+    local metaFront = main_cmToTts(meta.fronteCm or CALIBRAZIONE.baseFronteCm)
+
+    -- Cartellino: disordini / limite
+    local dis = main_unitDisorders(u.key)
+    if dis > 0 then
+        obj.createButton({
+            click_function = "main_baseButtonNoop",
+            function_owner = Global,
+            label          = string.format("DIS %d/%d", dis, main_unitDisorderLimit(meta)),
+            position       = { x = 0, y = B.y, z = -(metaProf / 2 + B.dietro + B.passoZ) },
+            rotation       = { x = 0, y = 180, z = 0 },
+            width          = B.width, height = B.height, font_size = B.fontSize,
+            color          = B.disColor, font_color = B.textColor,
+            tooltip        = "Disordini dell'unita'",
+        })
+    end
+
+    -- Bottoni della fase, centrati dietro la base
+    local n = #lista
+    for i, btn in ipairs(lista) do
+        local x = (i - (n + 1) / 2) * B.passoX
+        obj.createButton({
+            click_function = btn.click,
+            function_owner = Global,
+            label          = btn.label,
+            position       = { x = -x, y = B.y, z = -(metaProf / 2 + B.dietro) },
+            rotation       = { x = 0, y = 180, z = 0 },
+            width          = btn.width or B.width, height = B.height, font_size = B.fontSize,
+            color          = btn.color or main_sideMainColor(slot), font_color = B.textColor,
+            tooltip        = btn.tooltip or "",
+        })
+    end
+end
+-- ============================================================
+-- FUNZIONE: main_baseOwnerClick(obj, player_color)
+-- Unità e schieramento della base cliccata e se il giocatore
+-- appartiene a quello schieramento. Ritorna u, slot, mio.
+-- ============================================================
+function main_baseOwnerClick(obj, player_color)
+    local meta = main_baseMeta(obj)
+    if not meta or not meta.unitKey then return nil end
+    local slot = meta.side
+    local u = main_unitsOfSide(slot)[meta.unitKey]
+    return u, slot, main_colorInSide(player_color, slot)
+end

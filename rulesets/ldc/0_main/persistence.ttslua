@@ -32,6 +32,9 @@ function main_onSave()
         first_roll    = FIRST_ROLL,
         deploy        = DEPLOY_STATE,
         command       = COMMAND_STATE,
+        units         = UNIT_STATE,
+        units_broken  = UNIT_BROKEN,
+        fire          = FIRE_STATE,
         command_forced = COMMAND_FORCED_HOLDS,
         side_chosen   = SIDE_CHOSEN,
         sub           = ENGINE and ENGINE.sub or nil,
@@ -128,6 +131,13 @@ function main_restoreState(save_state)
         }
         DEPLOY_STATE.spawned[1] = DEPLOY_STATE.spawned[1] == true
         DEPLOY_STATE.spawned[2] = DEPLOY_STATE.spawned[2] == true
+    end
+
+    if data.units then UNIT_STATE = data.units end
+    if data.units_broken then UNIT_BROKEN = data.units_broken end
+    if data.fire then
+        FIRE_STATE = data.fire
+        FIRE_STATE.sparato = FIRE_STATE.sparato or {}
     end
 
     if data.command then

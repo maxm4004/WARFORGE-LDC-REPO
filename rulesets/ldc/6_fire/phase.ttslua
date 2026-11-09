@@ -12,6 +12,8 @@ function fire_phase()
             desc   = "Tiri di artiglieria e di moschetteria",
             before = "before_fire",
             after  = "after_fire",
+            onRoll = "fire_onRoll",
+            baseButtons = "fire_baseButtons",
             allowedActions = { ACTION.CONFIRM },
             render = "1BtnClick",
             enforceOwnership = true,

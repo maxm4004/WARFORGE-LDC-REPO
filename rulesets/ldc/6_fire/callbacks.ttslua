@@ -4,9 +4,22 @@
 
 -- ============================================================
 -- FUNZIONE: fire_btn(player, value, id, buttonConfig)
--- Lo schieramento attivo chiude la fase (solo lui arriva qui:
--- main_canUseButton, modalità ACTIVE).
+-- "Fuoco completato": lo schieramento attivo chiude la fase
+-- (solo lui arriva qui: main_canUseButton, modalità ACTIVE).
+-- Non con un tiro in sospeso.
 -- ============================================================
 function fire_btn(player, value, id, buttonConfig)
+    if FIRE_ROLLING then
+        warningToColor("Aspetta che i dadi si fermino", player, "Yellow", 3, false)
+        return false
+    end
+    if FIRE_PENDING and FIRE_PENDING.fase == "rottura" then
+        warningToColor("Prima tira i dadi della rottura", player, "Yellow", 4, false)
+        return false
+    end
+    if FIRE_PENDING then
+        warningToColor("C'e' un tiro in sospeso: tira o annullalo", player, "Yellow", 4, false)
+        return false
+    end
     return true
 end

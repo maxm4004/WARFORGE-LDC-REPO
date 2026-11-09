@@ -1,0 +1,204 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/units.ttslua
+-- Unità sul tavolo (basi raggruppate per unitKey) e loro stato
+-- di gioco: disordini e rotta (regolamento 3.4).
+--
+-- UNIT_STATE[unitKey] = { disordini = n } (salvato). Un'unità
+-- che rompe viene tolta dal tavolo e segnata in UNIT_BROKEN
+-- (servirà al Morale di Divisione).
+-- ============================================================
+
+UNIT_STATE  = UNIT_STATE  or {}
+UNIT_BROKEN = UNIT_BROKEN or {}   -- [unitKey] = { side, divisione, brigata, turno }
+
+-- ============================================================
+--                         LETTURA
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_unitsOfSide(slot)
+-- Unità dello schieramento sul tavolo (generali esclusi):
+-- { [unitKey] = { key, meta, basi = { obj... }, comando = obj } }
+-- meta = GMNotes della base .1 (o della prima trovata).
+-- ============================================================
+function main_unitsOfSide(slot)
+    local unita = {}
+    for _, b in ipairs(main_basesOfSide(slot)) do
+        local m = b.meta
+        if m.ruolo == DEPLOY_RUOLO.UNITA and m.unitKey then
+            local u = unita[m.unitKey]
+            if not u then
+                u = { key = m.unitKey, meta = m, basi = {} }
+                unita[m.unitKey] = u
+            end
+            table.insert(u.basi, b.obj)
+            if m.baseSeq == 1 then
+                u.comando = b.obj
+                u.meta = m
+            end
+        end
+    end
+    for _, u in pairs(unita) do
+        u.comando = u.comando or u.basi[1]
+    end
+    return unita
+end
+-- ============================================================
+-- FUNZIONE: main_unit(unitKey)
+-- Unità (come main_unitsOfSide) dalla chiave, nil se non c'è.
+-- ============================================================
+function main_unit(unitKey)
+    for slot = 1, 2 do
+        local u = main_unitsOfSide(slot)[unitKey]
+        if u then u.side = slot; return u end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_unitType(meta)
+-- Dati del tipo (LDC_TIPI) dalle GMNotes.
+-- ============================================================
+function main_unitType(meta)
+    return (meta and meta.tipo and LDC_TIPI[meta.tipo]) or {}
+end
+-- ============================================================
+-- FUNZIONE: main_unitCategory(meta)
+-- ============================================================
+function main_unitCategory(meta)
+    return main_unitType(meta).categoria
+end
+
+-- ============================================================
+--                        GEOMETRIA
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_baseForward(obj)
+-- Direzione del fronte della base sul piano XZ (unitaria).
+-- ============================================================
+function main_baseForward(obj)
+    local a = math.rad(obj.getRotation().y)
+    return { x = math.sin(a), z = math.cos(a) }
+end
+-- ============================================================
+-- FUNZIONE: main_unitCenter(u)
+-- ============================================================
+function main_unitCenter(u)
+    local x, z = 0, 0
+    for _, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        x, z = x + p.x, z + p.z
+    end
+    return { x = x / #u.basi, z = z / #u.basi }
+end
+-- ============================================================
+-- FUNZIONE: main_unitDistanceInches(uA, uB)
+-- Distanza fra due unità: la minima fra le loro basi.
+-- ============================================================
+function main_unitDistanceInches(uA, uB)
+    local best = nil
+    for _, a in ipairs(uA.basi) do
+        for _, b in ipairs(uB.basi) do
+            local d = main_distanceInches(a, b)
+            if d and (not best or d < best) then best = d end
+        end
+    end
+    return best
+end
+-- ============================================================
+-- FUNZIONE: main_unitDistanceD(uA, uB)
+-- ============================================================
+function main_unitDistanceD(uA, uB)
+    local p = main_unitDistanceInches(uA, uB)
+    return p and main_inchToD(p) or nil
+end
+-- ============================================================
+-- FUNZIONE: main_unitFirstRank(u)
+-- Basi del primo rango: quelle più avanti lungo il fronte
+-- della base di comando (entro mezza profondità di base).
+-- ============================================================
+function main_unitFirstRank(u)
+    local f = main_baseForward(u.comando)
+    local meta = u.meta or {}
+    local tolleranza = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm) / 2
+    local avanti, max = {}, -math.huge
+    for i, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        avanti[i] = p.x * f.x + p.z * f.z
+        max = math.max(max, avanti[i])
+    end
+    local primo = {}
+    for i, b in ipairs(u.basi) do
+        if avanti[i] >= max - tolleranza then table.insert(primo, b) end
+    end
+    return primo
+end
+-- ============================================================
+-- FUNZIONE: main_unitInFront(u, bersaglio)
+-- Il bersaglio è davanti all'unità (semipiano del fronte)?
+-- ============================================================
+function main_unitInFront(u, bersaglio)
+    local f = main_baseForward(u.comando)
+    local c = main_unitCenter(u)
+    for _, b in ipairs(bersaglio.basi) do
+        local p = b.getPosition()
+        if (p.x - c.x) * f.x + (p.z - c.z) * f.z > 0 then return true end
+    end
+    return false
+end
+
+-- ============================================================
+--                     DISORDINI E ROTTA
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_unitDisorders(unitKey)
+-- ============================================================
+function main_unitDisorders(unitKey)
+    local s = UNIT_STATE[unitKey]
+    return s and s.disordini or 0
+end
+-- ============================================================
+-- FUNZIONE: main_unitDisorderLimit(meta)
+-- Disordini sopportati: oltre questo numero l'unità rompe.
+-- ============================================================
+function main_unitDisorderLimit(meta)
+    return LDC_LIMITE_DISORDINI[(meta and meta.taglia) or "standard"] or LDC_LIMITE_DISORDINI.standard
+end
+-- ============================================================
+-- FUNZIONE: main_unitAddDisorders(unitKey, n)
+-- Aggiunge disordini (senza superare il limite: la rotta si
+-- decide con il tiro di rottura). Ritorna i disordini aggiunti.
+-- ============================================================
+function main_unitAddDisorders(unitKey, n, limite)
+    local s = UNIT_STATE[unitKey] or { disordini = 0 }
+    UNIT_STATE[unitKey] = s
+    local prima = s.disordini
+    s.disordini = math.min(prima + n, limite or math.huge)
+    return s.disordini - prima
+end
+-- ============================================================
+-- FUNZIONE: main_unitBreak(unitKey, motivo)
+-- L'unità rompe: basi tolte dal tavolo (3.4.3).
+-- ============================================================
+function main_unitBreak(unitKey, motivo)
+    local u = main_unit(unitKey)
+    if not u then return end
+    UNIT_BROKEN[unitKey] = {
+        side = u.side, divisione = u.meta.divisione, brigata = u.meta.brigata,
+        turno = ENGINE.turn, motivo = motivo,
+    }
+    UNIT_STATE[unitKey] = nil
+    printToAll("[Rotta] " .. tostring(u.meta.nomeDisplay or unitKey) .. " rompe e lascia il campo"
+        .. (motivo and (" (" .. motivo .. ")") or ""), main_sideMainColor(u.side))
+    local basi = {}
+    for _, b in ipairs(u.basi) do table.insert(basi, b) end
+    for _, b in ipairs(basi) do b.destruct() end
+end
+-- ============================================================
+-- FUNZIONE: main_unitsReset()
+-- ============================================================
+function main_unitsReset()
+    UNIT_STATE  = {}
+    UNIT_BROKEN = {}
+end

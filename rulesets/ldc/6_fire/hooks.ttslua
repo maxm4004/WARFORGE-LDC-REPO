@@ -4,12 +4,25 @@
 
 -- ============================================================
 -- FUNZIONE: before_fire(phaseName, phase)
+-- Nuovo Fuoco dello schieramento attivo: nessuno ha ancora
+-- sparato.
 -- ============================================================
 function before_fire(phaseName, phase)
+    FIRE_STATE   = { side = TURN.activeSide, turno = ENGINE.turn, sparato = {} }
+    FIRE_SEL     = nil
+    FIRE_PENDING = nil
+    FIRE_ROLLING = false
     callHandler("updateCenterPanel")
 end
 -- ============================================================
 -- FUNZIONE: after_fire(phaseName, phase)
+-- Chi ha sparato resta segnato per la Manovra.
 -- ============================================================
 function after_fire(phaseName, phase)
+    FIRE_SEL     = nil
+    FIRE_PENDING = nil
+    FIRE_ROLLING = false
+    if TURN.activeSide then
+        engine_dicePanelCloseAfter(TURN.activeSide, FIRE_DICEPANEL_CLOSE)
+    end
 end

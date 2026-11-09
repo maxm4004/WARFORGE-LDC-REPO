@@ -1,0 +1,74 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/rules.ttslua
+-- Dati del regolamento (valori in D). Per ora scritti qui per
+-- i codici dei file di prova; quando l'ArmyBuilder-LDC
+-- pubblicherà la tabella dei tipi si leggeranno da lì.
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- Categorie di unità
+-- ------------------------------------------------------------
+CATEGORIA = {
+    FANTERIA    = "FANTERIA",
+    SKIRMISH    = "SKIRMISH",
+    CAVALLERIA  = "CAVALLERIA",
+    ARTIGLIERIA = "ARTIGLIERIA",
+    GENERALE    = "GENERALE",
+}
+
+-- ------------------------------------------------------------
+-- Tipi (codice dell'ArmyBuilder -> dati di gioco)
+-- calibro: solo artiglieria (leggera / media / pesante)
+-- ------------------------------------------------------------
+LDC_TIPI = {
+    FAN_LINEA   = { categoria = CATEGORIA.FANTERIA,   nome = "Fanteria di linea" },
+    FAN_LEGGERA = { categoria = CATEGORIA.FANTERIA,   nome = "Fanteria leggera" },
+    SKIRMISH    = { categoria = CATEGORIA.SKIRMISH,   nome = "Schermagliatori" },
+    CAV_LEGGERA = { categoria = CATEGORIA.CAVALLERIA, nome = "Cavalleria leggera" },
+    CAV_LANCIERI = { categoria = CATEGORIA.CAVALLERIA, nome = "Lancieri" },
+    CAV_DRAGONI = { categoria = CATEGORIA.CAVALLERIA, nome = "Dragoni" },
+    CAV_CORAZZIERI = { categoria = CATEGORIA.CAVALLERIA, nome = "Corazzieri" },
+    ART_PIEDI   = { categoria = CATEGORIA.ARTIGLIERIA, nome = "Artiglieria a piedi", calibro = "media" },
+    ART_CAVALLO = { categoria = CATEGORIA.ARTIGLIERIA, nome = "Artiglieria a cavallo", calibro = "leggera" },
+    GEN         = { categoria = CATEGORIA.GENERALE,   nome = "Generale" },
+}
+
+-- ------------------------------------------------------------
+-- Armi da tiro: gittate in D (regolamento 8, tabella gittate)
+-- corta / effettiva / lunga; la lunga solo per i calibri
+-- elencati.
+-- ------------------------------------------------------------
+LDC_ARMI = {
+    moschetto = { corta = 1 },
+    rigato    = { corta = 1.5 },
+    cannone   = { corta = 1, effettiva = 2, lunga = 3, lungaCalibri = { media = true, pesante = true } },
+}
+
+-- ------------------------------------------------------------
+-- Disordini sopportati prima della rotta (3.4.1: le unità
+-- standard rompono oltre tre disordini). Grandi e piccole: il
+-- regolamento non lo dice (domanda aperta), per ora 3.
+-- ------------------------------------------------------------
+LDC_LIMITE_DISORDINI = {
+    standard = 3,
+    grande   = 3,
+    piccola  = 3,
+}
+
+-- ------------------------------------------------------------
+-- Fuoco: risultato per colpire (regolamento 8)
+-- (la QRS dice 5+ per l'artiglieria a distanza corta o
+-- effettiva: domanda aperta, qui il regolamento)
+-- ------------------------------------------------------------
+LDC_FUOCO = {
+    fanteria          = 5,   -- fanterie e schermagliatori
+    fanteriaVsSkirm   = 6,   -- ... contro schermagliatori
+    artiglieriaVicina = 4,   -- corta o effettiva, non contro skirmish o artiglieria schierata
+    artiglieriaVsMasse = 4,  -- qualsiasi distanza contro quadrati, colonne, battalion en masse
+    altri             = 6,
+    -- formazioni "masse" per l'artiglieria
+    formazioniMasse   = { quadrato = true, colonna = true, colonna_attacco = true, colonna_marcia = true, battalion_masse = true },
+    -- dadi per base del primo rango; artiglieria a distanza corta
+    dadiPerBase       = 1,
+    dadiArtCorta      = 2,
+}
