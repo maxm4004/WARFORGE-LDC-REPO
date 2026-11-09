@@ -106,3 +106,18 @@ LDC_COMANDO_RAGGIO = {
 
 -- Carica: arco frontale (gradi per lato) per vedere il bersaglio
 LDC_CARICA_ARCO = 45
+
+-- ------------------------------------------------------------
+-- Mischia (regolamento 10): colpisce al 6, ogni modificatore +1
+-- abbassa la soglia di 1. Dadi: basi del primo e secondo rango
+-- (quadrato: tutte), -1 con almeno un disordine; artiglieria 4.
+-- Morale più alto di 1: si ritirano gli 1; di 2: gli 1 e i 2.
+-- Rimandati: supporti entro 2", fianco/retro, copertura,
+-- cavalleria contro quadrato o copertura (dadi dimezzati).
+-- ------------------------------------------------------------
+LDC_MISCHIA = {
+    soglia          = 6,
+    sogliaMin       = 2,
+    dadiArtiglieria = 4,
+    ranghi          = 2,
+}

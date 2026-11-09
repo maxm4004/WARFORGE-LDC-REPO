@@ -1,4 +1,395 @@
 -- ============================================================
 -- WARFORGE LDC — 8_melee/lib.ttslua
--- Logica della fase.
+-- Mischie, primo giro (regolamento 10).
+--
+-- Ogni carica arrivata a contatto è una mischia. MISCHIA sulla
+-- base dell'attaccante apre le due colonne del pannello dadi.
+-- Tirano l'attaccante (Roll sul suo vassoio), poi il difensore
+-- (Roll sul suo), ognuno con i suoi ritiri per il morale più
+-- alto. Gli hit si applicano insieme come disordini; quelli che
+-- manderebbero in rotta si ritirano dall'avversario (basta un
+-- risultato superiore al morale). Perde chi ha inflitto meno
+-- hit: artiglieria distrutta, fanteria non in quadrato battuta
+-- dalla cavalleria distrutta, le altre fanno il test di morale
+-- (fallito = un altro hit) e si ritirano. Pareggio: il
+-- difensore resta, l'attaccante si ritira. Ritirate,
+-- inseguimenti e sfondamenti si fanno a mano.
 -- ============================================================
+
+-- ============================================================
+--                         CALCOLO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: melee_ranks(u)
+-- Basi che combattono: primo e secondo rango (quadrato: tutte).
+-- ============================================================
+function melee_ranks(u)
+    if u.meta.formazione == "quadrato" then return #u.basi end
+    local f = main_baseForward(u.comando)
+    local prof = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
+    local max = -math.huge
+    local avanti = {}
+    for i, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        avanti[i] = p.x * f.x + p.z * f.z
+        max = math.max(max, avanti[i])
+    end
+    local n = 0
+    for i = 1, #u.basi do
+        if avanti[i] >= max - prof * (LDC_MISCHIA.ranghi - 0.5) then n = n + 1 end
+    end
+    return n
+end
+-- ============================================================
+-- FUNZIONE: melee_compute(u, t)
+-- Dadi, soglia e ritiri di u contro t, con le righe della
+-- scheda. Ritorna { dadi, soglia, ritira, righe }.
+-- ============================================================
+function melee_compute(u, t)
+    local M = LDC_MISCHIA
+    local catU, catT = main_unitCategory(u.meta), main_unitCategory(t.meta)
+    local tipoU, tipoT = u.meta.tipo or "", t.meta.tipo or ""
+    local righe = {}
+
+    local dadi
+    if catU == CATEGORIA.ARTIGLIERIA then
+        dadi = M.dadiArtiglieria
+        table.insert(righe, { "Artiglieria (mitraglia)", dadi .. "D6" })
+    else
+        local basi = melee_ranks(u)
+        dadi = basi
+        table.insert(righe, { "Basi in primo e secondo rango", tostring(basi) })
+        if main_unitDisorders(u.key) > 0 then
+            dadi = dadi - 1
+            table.insert(righe, { "Disordinata", "-1D6" })
+        end
+    end
+    dadi = math.max(dadi, 0)
+
+    local mods = {}
+    local function mod(cond, testo) if cond then table.insert(mods, testo) end end
+    mod(tipoU == "CAV_CORAZZIERI", "Corazzieri")
+    mod(tipoU == "CAV_LANCIERI" and catT == CATEGORIA.CAVALLERIA, "Lancieri contro cavalleria")
+    mod((tipoU == "CAV_CORAZZIERI" or tipoU == "CAV_DRAGONI") and tipoT == "CAV_LEGGERA", "Contro cavalleria leggera")
+    mod(catU == CATEGORIA.CAVALLERIA and catT == CATEGORIA.FANTERIA and t.meta.formazione ~= "quadrato", "Cavalleria contro fanteria")
+    mod(catT == CATEGORIA.ARTIGLIERIA, "Contro artiglieria sganciata")
+    mod(u.meta.formazione == "colonna_attacco" and t.meta.formazione == "linea", "Colonna d'assalto contro linea")
+    mod(u.meta.formazione == "quadrato" and catT == CATEGORIA.CAVALLERIA, "Quadrato contro cavalleria")
+    for _, testo in ipairs(mods) do table.insert(righe, { testo, "+1" }) end
+    local soglia = math.max(M.soglia - #mods, M.sogliaMin)
+
+    local diff = (u.meta.morale or 3) - (t.meta.morale or 3)
+    local ritira = nil
+    if diff >= 2 then ritira = 2 elseif diff == 1 then ritira = 1 end
+    if ritira then
+        table.insert(righe, { "Morale piu' alto di " .. diff, "ritira " .. (ritira == 1 and "gli 1" or "1 e 2") })
+    end
+    table.insert(righe, { "Disordini", main_unitDisorders(u.key) .. "/" .. main_unitDisorderLimit(u.meta) })
+    return { dadi = dadi, soglia = soglia, ritira = ritira, righe = righe }
+end
+
+-- ============================================================
+--                         MISCHIE
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: melee_start(slot)
+-- Mischie della metà turno: cariche a contatto.
+-- ============================================================
+function melee_start(slot)
+    MELEE_STATE = { side = slot, turno = ENGINE.turn, mischie = {} }
+    MELEE_PENDING, MELEE_ROLLING = nil, false
+    if not slot then return end
+    local mie, loro = main_unitsOfSide(slot), main_unitsOfSide(main_otherSide(slot))
+    for att, dif in pairs(move_charges()) do
+        local u, t = mie[att], loro[dif]
+        if u and t and (main_unitDistanceD(u, t) or 99) <= MELEE.contattoD then
+            table.insert(MELEE_STATE.mischie, { att = att, dif = dif, fatta = false })
+        end
+    end
+    if #MELEE_STATE.mischie == 0 then
+        main_warningToSide(slot, "Nessuna mischia: chiudi la fase", "Yellow", 4)
+    end
+end
+-- ============================================================
+-- FUNZIONE: melee_ofAttacker(unitKey)
+-- ============================================================
+function melee_ofAttacker(unitKey)
+    for i, m in ipairs(MELEE_STATE.mischie) do
+        if m.att == unitKey then return m, i end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: melee_baseButtons(obj, u, slot)
+-- ============================================================
+function melee_baseButtons(obj, u, slot)
+    if slot ~= TURN.activeSide or u.generale then return {} end
+    local m = melee_ofAttacker(u.key)
+    if not m or m.fatta then return {} end
+    if MELEE_PENDING then
+        if MELEE_STATE.mischie[MELEE_PENDING.i] == m then
+            return { { label = "IN MISCHIA", click = "main_baseButtonNoop", color = MELEE.mischiaColor, width = 560 } }
+        end
+        return {}
+    end
+    return { { label = "MISCHIA", click = "melee_clickMischia", color = MELEE.mischiaColor, width = 520,
+               tooltip = "Risolvi la mischia" } }
+end
+-- ============================================================
+-- FUNZIONE: melee_clickMischia(obj, player_color, alt_click)
+-- Apre la mischia: schede per i due schieramenti, tira
+-- l'attaccante.
+-- ============================================================
+function melee_clickMischia(obj, player_color, alt_click)
+    if not ENGINE or ENGINE.phase ~= PHASE.MELEE or ENGINE.transitionPending then return end
+    if MELEE_PENDING or MELEE_ROLLING then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio or slot ~= TURN.activeSide then return end
+    local m, i = melee_ofAttacker(u.key)
+    if not m or m.fatta then return end
+    local t = main_unitsOfSide(main_otherSide(slot))[m.dif]
+    if not t then m.fatta = true; main_refreshBaseButtons(); return end
+
+    local altro = main_otherSide(slot)
+    local cU, cT = melee_compute(u, t), melee_compute(t, u)
+    MELEE_PENDING = {
+        i = i, colpi = { [slot] = 0, [altro] = 0 },
+        calcolo = { [slot] = cU, [altro] = cT },
+        unita = { [slot] = u.key, [altro] = t.key },
+        att = slot, dif = altro,
+    }
+    for s, c in pairs({ [slot] = cU, [altro] = cT }) do
+        local nome = (s == slot) and (u.meta.nomeDisplay or u.key) or (t.meta.nomeDisplay or t.key)
+        engine_diceClearLastRoll(s)
+        engine_dicePanelOpen(s, {
+            titolo      = "MISCHIA",
+            sottotitolo = nome .. ((s == slot) and " (attacca)" or " (difende)"),
+            righe       = c.righe,
+            serve       = "Serve " .. c.soglia .. "+ su " .. c.dadi .. "D6",
+            soglia      = c.soglia,
+        })
+    end
+    printToAll(string.format("[Mischia] %s contro %s", u.meta.nomeDisplay or u.key, t.meta.nomeDisplay or t.key),
+        main_sideMainColor(slot))
+    melee_next(slot, "tiro", cU.dadi, cU.soglia)
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: melee_next(roller, step, dadi, soglia)
+-- Prossimo tiro: chi tira e cosa.
+-- ============================================================
+function melee_next(roller, step, dadi, soglia)
+    local p = MELEE_PENDING
+    p.roller, p.step, p.dadi, p.soglia = roller, step, dadi, soglia
+    local testi = {
+        tiro    = "Tira i dadi della mischia",
+        ritiro  = "Ritira i dadi falliti (morale piu' alto)",
+        rottura = "Tira per mandarlo in rotta",
+        morale  = "Test di morale della mischia persa",
+    }
+    main_warningToSide(roller, (testi[step] or "Tira") .. ": premi Roll (" .. dadi .. "D6)", "Yellow", 5)
+end
+-- ============================================================
+-- FUNZIONE: melee_onRoll(player, slot)
+-- Bottone 3D Roll durante le Mischie (phase.onRoll).
+-- ============================================================
+function melee_onRoll(player, slot)
+    local p = MELEE_PENDING
+    if MELEE_ROLLING then return end
+    if not p then
+        warningToColor("Nessuna mischia in corso", player, "Yellow", 3, false)
+        return
+    end
+    if slot ~= p.roller then
+        warningToColor("Ora tira " .. main_sideName(p.roller), player, "Yellow", 3, false)
+        return
+    end
+    if p.dadi <= 0 then
+        melee_afterRoll(slot, {})
+        return
+    end
+    MELEE_ROLLING = true
+    engine_diceClearLastRoll(slot)
+    engine_diceSetNext(slot, p.dadi, nil)
+    engine_diceThrowFromBag(slot, nil, function(risultati)
+        MELEE_ROLLING = false
+        if ENGINE.phase ~= PHASE.MELEE or MELEE_PENDING ~= p then return end
+        melee_afterRoll(slot, risultati or {})
+        main_refreshBaseButtons()
+        callHandler("updateCenterPanel")
+    end, player.color)
+end
+-- ============================================================
+-- FUNZIONE: melee_afterRoll(slot, risultati)
+-- Avanza la mischia dopo un tiro.
+-- ============================================================
+function melee_afterRoll(slot, risultati)
+    local p = MELEE_PENDING
+    local att, dif = p.att, p.dif
+
+    if p.step == "tiro" or p.step == "ritiro" then
+        local c = p.calcolo[slot]
+        local falliti = 0
+        for _, v in ipairs(risultati) do
+            if v >= p.soglia then
+                p.colpi[slot] = p.colpi[slot] + 1
+            elseif p.step == "tiro" and c.ritira and v <= c.ritira then
+                falliti = falliti + 1
+            end
+        end
+        if p.step == "tiro" and falliti > 0 then
+            melee_next(slot, "ritiro", falliti, p.soglia)
+            return
+        end
+        if slot == att then
+            local cT = p.calcolo[dif]
+            melee_next(dif, "tiro", cT.dadi, cT.soglia)
+            return
+        end
+        melee_applyHits()
+        return
+    end
+
+    if p.step == "rottura" then
+        local bersaglio = p.unita[main_otherSide(slot)]
+        local t = main_unit(bersaglio)
+        local rompe = false
+        for _, v in ipairs(risultati) do
+            if t and v > (t.meta.morale or 3) then rompe = true end
+        end
+        if rompe then main_unitBreak(bersaglio, "mischia") end
+        engine_dicePanelOutcome(slot, rompe and "ROTTA!" or "Tiene", rompe and DICEPANEL.okColor or DICEPANEL.koColor)
+        melee_breakQueue()
+        return
+    end
+
+    if p.step == "morale" then
+        local u = main_unit(p.unita[slot])
+        local ok = u and risultati[1] and risultati[1] <= (u.meta.morale or 3)
+        if u and not ok then
+            local limite = main_unitDisorderLimit(u.meta)
+            if main_unitDisorders(u.key) >= limite then
+                main_unitBreak(u.key, "test di morale fallito")
+                u = nil
+            else
+                main_unitAddDisorders(u.key, 1, limite)
+            end
+        end
+        engine_dicePanelOutcome(slot, ok and "Test superato" or "Test fallito", ok and DICEPANEL.okColor or DICEPANEL.koColor)
+        melee_finish(slot, u ~= nil)
+    end
+end
+-- ============================================================
+-- FUNZIONE: melee_applyHits()
+-- Hit simultanei in disordini; quelli oltre il limite vanno in
+-- coda per il tiro di rottura dell'avversario.
+-- ============================================================
+function melee_applyHits()
+    local p = MELEE_PENDING
+    p.rotture = {}
+    for _, slot in ipairs({ p.att, p.dif }) do
+        local altro = main_otherSide(slot)
+        local t = main_unit(p.unita[altro])
+        if t then
+            local limite = main_unitDisorderLimit(t.meta)
+            local aggiunti = main_unitAddDisorders(t.key, p.colpi[slot], limite)
+            local eccesso = p.colpi[slot] - aggiunti
+            if eccesso > 0 then table.insert(p.rotture, { roller = slot, dadi = eccesso }) end
+        end
+        engine_dicePanelOutcome(slot, p.colpi[slot] .. " hit inflitti", p.colpi[slot] > 0 and DICEPANEL.okColor or DICEPANEL.koColor)
+    end
+    printToAll(string.format("[Mischia] hit: %s %d, %s %d", main_sideName(p.att), p.colpi[p.att],
+        main_sideName(p.dif), p.colpi[p.dif]), main_sideMainColor(p.att))
+    melee_breakQueue()
+end
+-- ============================================================
+-- FUNZIONE: melee_breakQueue()
+-- Prossimo tiro di rottura, o il risultato della mischia.
+-- ============================================================
+function melee_breakQueue()
+    local p = MELEE_PENDING
+    while #p.rotture > 0 do
+        local r = table.remove(p.rotture, 1)
+        local bersaglio = main_unit(p.unita[main_otherSide(r.roller)])
+        if bersaglio then
+            melee_next(r.roller, "rottura", r.dadi, nil)
+            printToAll(string.format("[Mischia] %d hit possono mandare in rotta %s: tira %s (serve piu' di %d)",
+                r.dadi, bersaglio.meta.nomeDisplay or bersaglio.key, main_sideName(r.roller), bersaglio.meta.morale or 3),
+                main_sideMainColor(r.roller))
+            return
+        end
+    end
+    melee_result()
+end
+-- ============================================================
+-- FUNZIONE: melee_result()
+-- Chi ha inflitto meno hit perde (10.1).
+-- ============================================================
+function melee_result()
+    local p = MELEE_PENDING
+    local att, dif = p.att, p.dif
+    local uA, uD = main_unit(p.unita[att]), main_unit(p.unita[dif])
+    if not uA or not uD then
+        melee_finish(nil, true)
+        return
+    end
+    if p.colpi[att] == p.colpi[dif] then
+        melee_message("Pareggio: " .. (uD.meta.nomeDisplay or uD.key) .. " resta, "
+            .. (uA.meta.nomeDisplay or uA.key) .. " si ritira di " .. melee_retreatD(uA) .. "D")
+        melee_finish(nil, true)
+        return
+    end
+    local perde = (p.colpi[att] < p.colpi[dif]) and att or dif
+    local vince = main_otherSide(perde)
+    local uP, uV = main_unit(p.unita[perde]), main_unit(p.unita[vince])
+    local catP, catV = main_unitCategory(uP.meta), main_unitCategory(uV.meta)
+    if catP == CATEGORIA.ARTIGLIERIA then
+        main_unitBreak(uP.key, "artiglieria che perde la mischia")
+        melee_finish(nil, true)
+        return
+    end
+    if catP == CATEGORIA.FANTERIA and catV == CATEGORIA.CAVALLERIA and uP.meta.formazione ~= "quadrato" then
+        main_unitBreak(uP.key, "fanteria battuta dalla cavalleria")
+        melee_finish(nil, true)
+        return
+    end
+    p.perde = perde
+    engine_diceClearLastRoll(perde)
+    engine_dicePanelOpen(perde, {
+        titolo = "MISCHIA PERSA", sottotitolo = uP.meta.nomeDisplay or uP.key,
+        righe = { { "Morale", tostring(uP.meta.morale or 3) } },
+        serve = "Test di morale: serve " .. (uP.meta.morale or 3) .. " o meno su 1D6",
+    })
+    melee_next(perde, "morale", 1, nil)
+end
+-- ============================================================
+-- FUNZIONE: melee_finish(slot, ritirata)
+-- Fine della mischia, con l'indicazione della ritirata.
+-- ============================================================
+function melee_finish(slot, ritirata)
+    local p = MELEE_PENDING
+    if p and p.perde and ritirata then
+        local u = main_unit(p.unita[p.perde])
+        if u then
+            melee_message((u.meta.nomeDisplay or u.key) .. " perde la mischia: si ritira di "
+                .. melee_retreatD(u) .. "D restando fronte al nemico (a mano)")
+        end
+    end
+    if p then MELEE_STATE.mischie[p.i].fatta = true end
+    MELEE_PENDING = nil
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: melee_retreatD(u)
+-- ============================================================
+function melee_retreatD(u)
+    return main_unitCategory(u.meta) == CATEGORIA.CAVALLERIA and MELEE.ritiroCavalleria or MELEE.ritiroFanteria
+end
+-- ============================================================
+-- FUNZIONE: melee_message(testo)
+-- ============================================================
+function melee_message(testo)
+    printToAll("[Mischia] " .. testo, "White")
+end

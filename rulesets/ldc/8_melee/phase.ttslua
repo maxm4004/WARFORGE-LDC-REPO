@@ -12,6 +12,8 @@ function melee_phase()
             desc   = "Risoluzione delle mischie",
             before = "before_melee",
             after  = "after_melee",
+            onRoll = "melee_onRoll",
+            baseButtons = "melee_baseButtons",
             allowedActions = { ACTION.CONFIRM },
             render = "1BtnClick",
             enforceOwnership = true,

@@ -1,4 +1,13 @@
 -- ============================================================
 -- WARFORGE LDC — 8_melee/constants.ttslua
--- Costanti della fase (valori fissi).
+-- Costanti della fase (valori fissi). Dati del regolamento in
+-- 0_main/rules.ttslua.
 -- ============================================================
+
+MELEE = {
+    contattoD    = 0.05,   -- attaccante e bersaglio "a contatto"
+    dicepanelClose = 4,
+    mischiaColor = { r = 0.7, g = 0.1, b = 0.1 },
+    ritiroFanteria   = 1,  -- D di ritirata (10.1.1)
+    ritiroCavalleria = 2,
+}

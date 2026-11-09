@@ -4,9 +4,18 @@
 
 -- ============================================================
 -- FUNZIONE: melee_btn(player, value, id, buttonConfig)
--- Lo schieramento attivo chiude la fase (solo lui arriva qui:
--- main_canUseButton, modalità ACTIVE).
+-- "Mischie completate": solo a mischie risolte.
 -- ============================================================
 function melee_btn(player, value, id, buttonConfig)
+    if MELEE_ROLLING or MELEE_PENDING then
+        warningToColor("C'e' una mischia in corso", player, "Yellow", 4, false)
+        return false
+    end
+    for _, m in ipairs(MELEE_STATE.mischie) do
+        if not m.fatta then
+            warningToColor("Prima risolvi tutte le mischie (MISCHIA sulle unita' in carica)", player, "Yellow", 5, false)
+            return false
+        end
+    end
     return true
 end

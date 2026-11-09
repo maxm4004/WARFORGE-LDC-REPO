@@ -4,15 +4,20 @@
 
 -- ============================================================
 -- FUNZIONE: before_melee(phaseName, phase)
+-- Le cariche arrivate a contatto diventano mischie.
 -- ============================================================
 function before_melee(phaseName, phase)
+    melee_start(TURN.activeSide)
     callHandler("updateCenterPanel")
 end
 -- ============================================================
 -- FUNZIONE: after_melee(phaseName, phase)
+-- Fine della metà turno: tocca all'altro schieramento o inizia
+-- il turno successivo.
 -- ============================================================
 function after_melee(phaseName, phase)
-    -- Fine della metà turno: tocca all'altro schieramento o
-    -- inizia il turno successivo
+    MELEE_PENDING = nil
+    MELEE_ROLLING = false
+    for slot = 1, 2 do engine_dicePanelCloseAfter(slot, MELEE.dicepanelClose) end
     main_endHalfTurn()
 end

@@ -223,6 +223,7 @@ function fire_chooseTarget(player, sel, t)
         sottotitolo = FIRE_PENDING.nome,
         righe       = c.righe,
         serve       = "Serve " .. c.soglia .. "+ su " .. c.dadi .. "D6",
+        soglia      = c.soglia,
     })
     engine_diceCameraZoom(player)
     warningToColor("Premi Roll sul vassoio dei dadi", player, "Yellow", 4, false)
