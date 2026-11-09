@@ -399,7 +399,7 @@ function fire_smokeTemplate(nome)
 end
 -- ============================================================
 -- FUNZIONE: fire_spawnSmoke(unitKey)
--- Un fumo davanti a ogni base del primo rango dell'unità.
+-- Un fumo (AssetBundle) davanti a ogni base del primo rango.
 -- ============================================================
 function fire_spawnSmoke(unitKey)
     local u = main_unit(unitKey)
@@ -407,7 +407,8 @@ function fire_spawnSmoke(unitKey)
     local S = FIRE_SMOKE
     local nome = (u.meta.arma == "cannone") and S.cannone or S.moschetto
     local modello = fire_smokeTemplate(nome)
-    local url = (not modello) and main_uiIconUrl(nome) or nil
+    local bundle = S.bundle[nome]
+    local url = (not modello) and bundle and bundle.url ~= "" and bundle.url or nil
     if not modello and not url then
         print("[FUOCO] asset '" .. nome .. "' non trovato: niente fumo")
         return
@@ -434,13 +435,13 @@ function fire_spawnSmoke(unitKey)
         else
             spawnObjectData({
                 data = {
-                    Name = "Custom_Token",
+                    Name = "Custom_AssetBundle",
                     Nickname = nome,
                     Transform = { posX = pos.x, posY = pos.y, posZ = pos.z, rotX = rot.x, rotY = rot.y, rotZ = rot.z,
-                                  scaleX = S.scala, scaleY = 1, scaleZ = S.scala },
-                    CustomImage = {
-                        ImageURL = url, ImageSecondaryURL = "", ImageScalar = 1, WidthScale = 0,
-                        CustomToken = { Thickness = 0.05, MergeDistancePixels = 15, StandUp = false, Stackable = false },
+                                  scaleX = bundle.scala, scaleY = bundle.scala, scaleZ = bundle.scala },
+                    CustomAssetbundle = {
+                        AssetbundleURL = url, AssetbundleSecondaryURL = bundle.secondario or "",
+                        MaterialIndex = 0, TypeIndex = 0, LoopingEffectIndex = 0,
                     },
                 },
                 callback_function = pronto,

@@ -12,17 +12,21 @@ FIRE_DICEPANEL_CLOSE = 3
 
 -- ------------------------------------------------------------
 -- Fumo del tiro: segna chi ha sparato (Max, 9/11/2026). Un fumo
--- davanti a ogni base del primo rango che ha sparato, girato di
--- 180° rispetto alla base. Si cerca prima un oggetto sul tavolo
--- con quel nome o tag da copiare, poi un asset della UI del mod
--- (immagine su un gettone). Tolto a fine metà turno.
+-- (AssetBundle) davanti a ogni base del primo rango che ha
+-- sparato, girato di 180° rispetto alla base. Si copia l'oggetto
+-- sul tavolo con quel nome o tag; se non c'è, si crea dagli URL
+-- qui sotto. Tolto a fine metà turno.
 -- ------------------------------------------------------------
 FIRE_SMOKE = {
     moschetto = "musket_smoke",
     cannone   = "cannon_smoke",
+    -- AssetBundle (se non c'è l'oggetto sul tavolo da copiare)
+    bundle = {
+        musket_smoke = { url = "", secondario = "", scala = 1 },
+        cannon_smoke = { url = "", secondario = "", scala = 1 },
+    },
     davantiCm = 1.5,     -- dal bordo anteriore della base al centro del fumo
     altezza   = 0.05,    -- sopra la base
     rotY      = 180,     -- rispetto alla base
-    scala     = 0.3,     -- gettone con l'immagine (se l'asset è della UI)
     tag       = "ldc_smoke",
 }
