@@ -154,9 +154,9 @@ SPAWN = {
 -- I dadi arrivano sul vassoio (engine/dice.ttslua).
 DICE_STATIONS = {
     [COLOR.RED]    = { tray = "5418fe", bag = "eb4ed3" },
-    [COLOR.YELLOW] = { tray = "ec46dc", bag = "f524de" },
+    [COLOR.YELLOW] = { tray = "3787b8", bag = "fc24d1" },
     [COLOR.GREEN]  = { tray = "efb29f", bag = "1338a3" },
-    [COLOR.BLUE]   = { tray = "b1c1e4", bag = "672518" },
+    [COLOR.BLUE]   = { tray = "f4a3a4", bag = "1e6d1c" },
 }
 
 -- Parabola del lancio sul tavolo LDC (vedi engine/constants;
