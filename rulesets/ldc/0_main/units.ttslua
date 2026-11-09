@@ -44,6 +44,27 @@ function main_unitsOfSide(slot)
     return unita
 end
 -- ============================================================
+-- FUNZIONE: main_generalsOfSide(slot)
+-- Generali dello schieramento come "unità" di una base:
+-- { [unitKey] = { key, meta, basi = { obj }, comando = obj, generale = true } }
+-- ============================================================
+function main_generalsOfSide(slot)
+    local gen = {}
+    for _, b in ipairs(main_basesOfSide(slot)) do
+        local m = b.meta
+        if m.ruolo ~= DEPLOY_RUOLO.UNITA and m.unitKey then
+            gen[m.unitKey] = { key = m.unitKey, meta = m, basi = { b.obj }, comando = b.obj, generale = true }
+        end
+    end
+    return gen
+end
+-- ============================================================
+-- FUNZIONE: main_unitOrGeneral(slot, unitKey)
+-- ============================================================
+function main_unitOrGeneral(slot, unitKey)
+    return main_unitsOfSide(slot)[unitKey] or main_generalsOfSide(slot)[unitKey]
+end
+-- ============================================================
 -- FUNZIONE: main_unit(unitKey)
 -- Unità (come main_unitsOfSide) dalla chiave, nil se non c'è.
 -- ============================================================

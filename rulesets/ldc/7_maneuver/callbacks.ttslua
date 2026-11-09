@@ -4,9 +4,25 @@
 
 -- ============================================================
 -- FUNZIONE: maneuver_btn(player, value, id, buttonConfig)
--- Lo schieramento attivo chiude la fase (solo lui arriva qui:
--- main_canUseButton, modalità ACTIVE).
+-- "Manovre completate": lo schieramento attivo chiude la fase
+-- (solo lui arriva qui: main_canUseButton, modalità ACTIVE).
+-- Bloccata se una base è oltre il suo limite; avviso per le
+-- cariche che non sono arrivate a contatto.
 -- ============================================================
 function maneuver_btn(player, value, id, buttonConfig)
+    local slot = TURN.activeSide
+    local oltre = move_checkLimits(slot)
+    if oltre then
+        warningToColor(oltre, player, "Yellow", 5, false)
+        return false
+    end
+    for key, bersaglio in pairs(MOVE_STATE.cariche) do
+        local u, t = main_unitsOfSide(slot)[key], main_unitsOfSide(main_otherSide(slot))[bersaglio]
+        if u and t and (main_unitDistanceD(u, t) or 99) > MOVE.contattoD then
+            warningToColor((u.meta.nomeDisplay or key) .. ": carica non a contatto, niente mischia",
+                player, "Yellow", 5, false)
+        end
+    end
+    main_mirinoStop()
     return true
 end

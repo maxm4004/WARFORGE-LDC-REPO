@@ -1,4 +1,425 @@
 -- ============================================================
 -- WARFORGE LDC — 7_maneuver/lib.ttslua
--- Logica della fase.
+-- Cariche e Manovre, primo giro (regolamento 7.2-7.3, 9).
+--
+-- Movimento libero (9.1): si prendono e si posano le basi; ogni
+-- base non può allontanarsi dalla sua posizione di partenza più
+-- della velocità dell'unità (spostamento netto). Durante il
+-- trascinamento un filo per base dalla partenza (verde entro il
+-- limite, rosso oltre); al rilascio la base oltre il limite
+-- torna al limite lungo il filo, quella che non può muovere
+-- torna alla partenza. ANNULLA rimette l'unità com'era.
+-- Chi non muove: fanteria e artiglieria in HOLDS o fuori
+-- comando, chi ha sparato (tranne schermagliatori e artiglieria
+-- a cavallo). Cavalleria in HOLDS o fuori comando: velocità di
+-- pinnata, niente carica. Generali: 4D, come IEF.
+-- CARICA: mirino sul bersaglio (entro la velocità di carica,
+-- nell'arco frontale di 45°); poi le basi si portano a
+-- contatto entro la velocità di carica. Le cariche restano per
+-- la Mischia.
+-- Rimandati: perno ed elastico di IEF, cambio di formazione,
+-- unità pinnate, terreno, interpenetrazioni, quadrato
+-- d'emergenza, obbligo per i Generali di muovere per ultimi.
 -- ============================================================
+
+-- ============================================================
+--                      CHI MUOVE E QUANTO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_commandGeneral(slot, u)
+-- Base del Generale che comanda l'unità: di Brigata, o di
+-- Divisione per le unità senza Brigata.
+-- ============================================================
+function move_commandGeneral(slot, u)
+    local m = u.meta
+    local ruolo = m.brigata and DEPLOY_RUOLO.GEN_BRIGATA or DEPLOY_RUOLO.GEN_DIVISIONE
+    for _, g in pairs(main_generalsOfSide(slot)) do
+        local gm = g.meta
+        if gm.ruolo == ruolo and gm.divisione == m.divisione and (ruolo == DEPLOY_RUOLO.GEN_DIVISIONE or gm.brigata == m.brigata) then
+            return g
+        end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: move_outOfCommand(slot, u)
+-- Fuori comando (7.3)? Ritorna vero/falso e la distanza in D.
+-- ============================================================
+function move_outOfCommand(slot, u)
+    local g = move_commandGeneral(slot, u)
+    if not g then return true, nil end
+    local raggio = LDC_COMANDO_RAGGIO.tipi[u.meta.tipo or ""] or LDC_COMANDO_RAGGIO.default
+    local d = main_unitDistanceD(u, g)
+    return d == nil or d > raggio, d
+end
+-- ============================================================
+-- FUNZIONE: move_unitLimit(slot, u)
+-- Distanza massima per base in D, o nil e il motivo se non
+-- può muovere. Ritorna limite, motivo (o nota).
+-- ============================================================
+function move_unitLimit(slot, u)
+    local tipo = u.meta.tipo or ""
+    local v = LDC_VELOCITA[tipo] or {}
+    if u.generale then
+        return (LDC_VELOCITA.GEN or {}).velocita or 4, "Generale"
+    end
+
+    local sparato = fire_hasFired(u.key)
+    if sparato and not LDC_MUOVE_DOPO_TIRO[tipo] then
+        return nil, "ha sparato"
+    end
+
+    local holds = command_unitInHolds(slot, u.meta)
+    local fuori = move_outOfCommand(slot, u)
+    if holds or fuori then
+        local motivo = holds and "HOLDS" or "fuori comando"
+        if main_unitCategory(u.meta) == CATEGORIA.CAVALLERIA and v.pinnata then
+            return v.pinnata, motivo .. ": velocita' di pinnata"
+        end
+        return nil, motivo
+    end
+
+    if MOVE_STATE.cariche[u.key] and v.carica then
+        return v.carica, "in carica"
+    end
+    if sparato and v.dopoTiro then
+        return v.dopoTiro, "ha sparato"
+    end
+    return v.velocita, nil
+end
+-- ============================================================
+-- FUNZIONE: move_canCharge(slot, u)
+-- Può caricare? Ritorna vero/falso e il motivo.
+-- ============================================================
+function move_canCharge(slot, u)
+    if u.generale then return false, "Generale" end
+    local v = LDC_VELOCITA[u.meta.tipo or ""] or {}
+    if not v.carica then return false, "non carica" end
+    if fire_hasFired(u.key) then return false, "ha sparato" end
+    if command_unitInHolds(slot, u.meta) then return false, "HOLDS" end
+    if move_outOfCommand(slot, u) then return false, "fuori comando" end
+    if move_hasMoved(u.key) then return false, "ha gia' mosso" end
+    return true, nil
+end
+
+-- ============================================================
+--                         PARTENZA
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_recordStart(u)
+-- Posa di partenza di tutte le basi (la prima volta).
+-- ============================================================
+function move_recordStart(u)
+    if MOVE_STATE.partenza[u.key] then return end
+    local posa = {}
+    for _, b in ipairs(u.basi) do
+        local p, r = b.getPosition(), b.getRotation()
+        posa[b.getGUID()] = { x = p.x, y = p.y, z = p.z, ry = r.y }
+    end
+    MOVE_STATE.partenza[u.key] = posa
+end
+-- ============================================================
+-- FUNZIONE: move_baseDistanceD(u, obj)
+-- Spostamento netto della base dalla partenza, in D.
+-- ============================================================
+function move_baseDistanceD(u, obj)
+    local s = MOVE_STATE.partenza[u.key] and MOVE_STATE.partenza[u.key][obj.getGUID()]
+    if not s then return 0 end
+    local p = obj.getPosition()
+    local dx, dz = p.x - s.x, p.z - s.z
+    return main_inchToD(main_ttsToInch(math.sqrt(dx * dx + dz * dz)))
+end
+-- ============================================================
+-- FUNZIONE: move_hasMoved(unitKey)
+-- ============================================================
+function move_hasMoved(unitKey)
+    local posa = MOVE_STATE.partenza[unitKey]
+    if not posa then return false end
+    for guid, s in pairs(posa) do
+        local b = getObjectFromGUID(guid)
+        if b then
+            local p = b.getPosition()
+            if math.abs(p.x - s.x) > 0.01 or math.abs(p.z - s.z) > 0.01 then return true end
+        end
+    end
+    return false
+end
+-- ============================================================
+-- FUNZIONE: move_restore(u)
+-- L'unità torna alla posa di partenza; carica annullata.
+-- ============================================================
+function move_restore(u)
+    local posa = MOVE_STATE.partenza[u.key]
+    if posa then
+        for _, b in ipairs(u.basi) do
+            local s = posa[b.getGUID()]
+            if s then
+                b.setPosition({ x = s.x, y = s.y, z = s.z })
+                b.setRotation({ x = 0, y = s.ry, z = 0 })
+            end
+        end
+    end
+    MOVE_STATE.partenza[u.key] = nil
+    MOVE_STATE.cariche[u.key] = nil
+end
+
+-- ============================================================
+--                     PRESA E RILASCIO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_baseOfActive(player_color, obj)
+-- Base di un'unità (o Generale) dello schieramento attivo, presa
+-- da un suo giocatore in Manovra. Ritorna u, slot.
+-- ============================================================
+function move_baseOfActive(player_color, obj)
+    if not ENGINE or ENGINE.phase ~= PHASE.MANEUVER then return nil end
+    local meta = main_baseMeta(obj)
+    if not meta or not meta.unitKey or meta.side ~= TURN.activeSide then return nil end
+    if not main_colorInSide(player_color, meta.side) then return nil end
+    local u = main_unitOrGeneral(meta.side, meta.unitKey)
+    return u, meta.side
+end
+-- ============================================================
+-- FUNZIONE: move_onPickUp(player_color, obj)
+-- ============================================================
+function move_onPickUp(player_color, obj)
+    local u, slot = move_baseOfActive(player_color, obj)
+    if not u then return end
+    move_recordStart(u)
+    local limite, motivo = move_unitLimit(slot, u)
+    if not limite then
+        warningToColor((u.meta.nomeDisplay or u.key) .. " non puo' muovere: " .. tostring(motivo),
+            Player[player_color], "Yellow", 4, false)
+    end
+    if not MOVE_DRAG[u.key] then
+        MOVE_DRAG[u.key] = Wait.time(function() move_drawLines(slot) end, MOVE.tick, -1)
+    end
+end
+-- ============================================================
+-- FUNZIONE: move_onDrop(player_color, obj)
+-- La base oltre il limite torna al limite, quella che non può
+-- muovere alla partenza.
+-- ============================================================
+function move_onDrop(player_color, obj)
+    local u, slot = move_baseOfActive(player_color, obj)
+    if not u then return end
+    if MOVE_DRAG[u.key] then Wait.stop(MOVE_DRAG[u.key]); MOVE_DRAG[u.key] = nil end
+
+    local s = MOVE_STATE.partenza[u.key] and MOVE_STATE.partenza[u.key][obj.getGUID()]
+    if s then
+        local limite = move_unitLimit(slot, u)
+        local p = obj.getPosition()
+        if not limite then
+            obj.setPosition({ x = s.x, y = s.y, z = s.z })
+            obj.setRotation({ x = 0, y = s.ry, z = 0 })
+        else
+            local d = move_baseDistanceD(u, obj)
+            if d > limite then
+                local f = limite / d
+                obj.setPosition({ x = s.x + (p.x - s.x) * f, y = p.y, z = s.z + (p.z - s.z) * f })
+                warningToColor(string.format("%s: massimo %s, riportata al limite",
+                    u.meta.nomeDisplay or u.key, main_formatD(limite)), Player[player_color], "Yellow", 3, false)
+            end
+        end
+    end
+    move_drawLines(slot)
+    -- i fili restano finché un'unità è in mano
+    if next(MOVE_DRAG) == nil then
+        Wait.time(function() if next(MOVE_DRAG) == nil then main_setLines("movimento", {}) end end, 1.5)
+    end
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_drawLines(slot)
+-- Fili dalla partenza delle basi delle unità in mano.
+-- ============================================================
+function move_drawLines(slot)
+    local linee = {}
+    for key, _ in pairs(MOVE_DRAG) do
+        local u = main_unitOrGeneral(slot, key)
+        local posa = MOVE_STATE.partenza[key]
+        if u and posa then
+            local limite = move_unitLimit(slot, u) or 0
+            for _, b in ipairs(u.basi) do
+                local s = posa[b.getGUID()]
+                if s then
+                    local p = b.getPosition()
+                    local ok = move_baseDistanceD(u, b) <= limite + MOVE.tolleranzaD
+                    table.insert(linee, {
+                        points = { { s.x, s.y + 0.05, s.z }, { p.x, s.y + 0.05, p.z } },
+                        color = ok and MOVE.filoOk or MOVE.filoKo, thickness = MOVE.filoSpessore,
+                    })
+                end
+            end
+        end
+    end
+    main_setLines("movimento", linee)
+end
+-- ============================================================
+-- FUNZIONE: move_checkLimits(slot)
+-- Fine fase: testo dell'avviso se una base è oltre il limite.
+-- ============================================================
+function move_checkLimits(slot)
+    for key, _ in pairs(MOVE_STATE.partenza) do
+        local u = main_unitOrGeneral(slot, key)
+        if u then
+            local limite = move_unitLimit(slot, u) or 0
+            for _, b in ipairs(u.basi) do
+                local d = move_baseDistanceD(u, b)
+                if d > limite + MOVE.tolleranzaD then
+                    return string.format("%s ha mosso %s: massimo %s", u.meta.nomeDisplay or key,
+                        main_formatD(d), main_formatD(limite))
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- ============================================================
+--                           CARICA
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_inChargeArc(u, t)
+-- Il bersaglio è nell'arco frontale di LDC_CARICA_ARCO gradi
+-- per lato (centro di una sua base, dal centro dell'unità)?
+-- ============================================================
+function move_inChargeArc(u, t)
+    local f = main_baseForward(u.comando)
+    local c = main_unitCenter(u)
+    local cosMin = math.cos(math.rad(LDC_CARICA_ARCO))
+    for _, b in ipairs(t.basi) do
+        local p = b.getPosition()
+        local dx, dz = p.x - c.x, p.z - c.z
+        local len = math.sqrt(dx * dx + dz * dz)
+        if len > 0 and (dx * f.x + dz * f.z) / len >= cosMin then return true end
+    end
+    return false
+end
+-- ============================================================
+-- FUNZIONE: move_chargeValuta(slot, u, t)
+-- Esito e testo per il mirino della carica.
+-- ============================================================
+function move_chargeValuta(slot, u, t)
+    local v = LDC_VELOCITA[u.meta.tipo or ""] or {}
+    local d = main_unitDistanceD(u, t) or 99
+    local base = main_formatD(d)
+    if d > (v.carica or 0) then
+        return "rosso", base .. " - Fuori portata (carica " .. main_formatD(v.carica or 0) .. ")"
+    end
+    if not move_inChargeArc(u, t) then
+        return "arancio", base .. " - Fuori dall'arco frontale di " .. LDC_CARICA_ARCO .. " gradi"
+    end
+    for k, b in pairs(MOVE_STATE.cariche) do
+        if b == t.key and k ~= u.key then
+            return "arancio", base .. " - Gia' caricato da un'altra unita'"
+        end
+    end
+    return "ok", base .. " - Bersaglio valido"
+end
+
+-- ============================================================
+--                          BOTTONI
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_baseButtons(obj, u, slot)
+-- ============================================================
+function move_baseButtons(obj, u, slot)
+    local B = BASE_BUTTONS
+    if slot ~= TURN.activeSide then return {} end
+    local lista = {}
+
+    if MOVE_STATE.cariche[u.key] then
+        table.insert(lista, { label = "IN CARICA", click = "main_baseButtonNoop", color = MOVE.caricaColor, width = 520,
+            tooltip = "Porta le basi a contatto (carica " .. main_formatD(move_unitLimit(slot, u) or 0) .. ")" })
+    elseif main_mirinoActive(u.key) then
+        table.insert(lista, { label = "ANNULLA", click = "move_clickAnnullaCarica", color = B.annullaColor,
+            tooltip = "Annulla la carica" })
+        return lista
+    elseif not u.generale and move_canCharge(slot, u) and not main_mirinoActive() then
+        table.insert(lista, { label = "CARICA", click = "move_clickCarica", color = MOVE.caricaColor,
+            tooltip = "Carica (" .. main_formatD((LDC_VELOCITA[u.meta.tipo or ""] or {}).carica or 0) .. ")" })
+    end
+
+    if move_hasMoved(u.key) or MOVE_STATE.cariche[u.key] then
+        table.insert(lista, { label = "ANNULLA", click = "move_clickAnnulla", color = B.annullaColor,
+            tooltip = "Rimette l'unita' dov'era" })
+    end
+    return lista
+end
+-- ============================================================
+-- FUNZIONE: move_clickOk(player_color)
+-- ============================================================
+function move_clickOk(player_color)
+    if not ENGINE or ENGINE.phase ~= PHASE.MANEUVER or ENGINE.transitionPending then return false end
+    if not main_colorInSide(player_color, TURN.activeSide) then
+        warningToColor("Non e' la tua Manovra", Player[player_color], "Yellow", 3, false)
+        return false
+    end
+    return true
+end
+-- ============================================================
+-- FUNZIONE: move_clickAnnulla(obj, player_color, alt_click)
+-- ============================================================
+function move_clickAnnulla(obj, player_color, alt_click)
+    if not move_clickOk(player_color) then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio then return end
+    move_restore(u)
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_clickCarica(obj, player_color, alt_click)
+-- CARICA: mirino sul bersaglio.
+-- ============================================================
+function move_clickCarica(obj, player_color, alt_click)
+    if not move_clickOk(player_color) then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio or slot ~= TURN.activeSide then return end
+    local ok, motivo = move_canCharge(slot, u)
+    if not ok then
+        warningToColor("Non puo' caricare: " .. tostring(motivo), Player[player_color], "Yellow", 4, false)
+        return
+    end
+    local player = Player[player_color]
+    main_mirinoStart(player, slot, u, {
+        linee    = "carica",
+        tinta    = MOVE.tintaMirino,
+        valuta   = function(t) return move_chargeValuta(slot, u, t) end,
+        onValido = function(t)
+            MOVE_STATE.cariche[u.key] = t.key
+            move_recordStart(u)
+            printToAll(string.format("[Carica] %s carica %s", u.meta.nomeDisplay or u.key,
+                t.meta.nomeDisplay or t.key), main_sideMainColor(slot))
+            warningToColor("Porta le basi a contatto (massimo " .. main_formatD(move_unitLimit(slot, u) or 0) .. ")",
+                player, "Yellow", 5, false)
+            main_refreshBaseButtons()
+        end,
+        onChiudi = function(p)
+            main_mirinoStop()
+            main_refreshBaseButtons()
+        end,
+    })
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_clickAnnullaCarica(obj, player_color, alt_click)
+-- ============================================================
+function move_clickAnnullaCarica(obj, player_color, alt_click)
+    if not move_clickOk(player_color) then return end
+    main_mirinoStop()
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_charges()
+-- Cariche della metà turno: { [attaccante] = bersaglio } (per
+-- la Mischia).
+-- ============================================================
+function move_charges()
+    return MOVE_STATE and MOVE_STATE.cariche or {}
+end

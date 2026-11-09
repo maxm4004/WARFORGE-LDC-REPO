@@ -35,6 +35,7 @@ function main_onSave()
         units         = UNIT_STATE,
         units_broken  = UNIT_BROKEN,
         fire          = FIRE_STATE,
+        move          = MOVE_STATE,
         command_forced = COMMAND_FORCED_HOLDS,
         side_chosen   = SIDE_CHOSEN,
         sub           = ENGINE and ENGINE.sub or nil,
@@ -138,6 +139,12 @@ function main_restoreState(save_state)
     if data.fire then
         FIRE_STATE = data.fire
         FIRE_STATE.sparato = FIRE_STATE.sparato or {}
+    end
+
+    if data.move then
+        MOVE_STATE = data.move
+        MOVE_STATE.partenza = MOVE_STATE.partenza or {}
+        MOVE_STATE.cariche  = MOVE_STATE.cariche or {}
     end
 
     if data.command then

@@ -35,6 +35,11 @@ function main_refreshBaseButtons()
             local lista = provider and provider(u.comando, u, slot) or {}
             main_drawBaseButtons(u.comando, u, slot, lista)
         end
+        -- Generali: stessi bottoni (u.generale = true)
+        for _, g in pairs(main_generalsOfSide(slot)) do
+            local lista = provider and provider(g.comando, g, slot) or {}
+            if #lista > 0 then main_drawBaseButtons(g.comando, g, slot, lista) end
+        end
     end
 end
 -- ============================================================
@@ -88,7 +93,7 @@ function main_baseOwnerClick(obj, player_color)
     local meta = main_baseMeta(obj)
     if not meta or not meta.unitKey then return nil end
     local slot = meta.side
-    local u = main_unitsOfSide(slot)[meta.unitKey]
+    local u = main_unitOrGeneral(slot, meta.unitKey)
     return u, slot, main_colorInSide(player_color, slot)
 end
 
@@ -98,9 +103,11 @@ end
 -- del Fuoco, poi carica e movimento).
 -- ============================================================
 function onObjectPickUp(player_color, obj)
-    if fire_mirinoOnPickUp then fire_mirinoOnPickUp(player_color, obj) end
+    main_mirinoOnPickUp(player_color, obj)
+    if move_onPickUp then move_onPickUp(player_color, obj) end
 end
 
 function onObjectDrop(player_color, obj)
-    if fire_mirinoOnDrop then fire_mirinoOnDrop(player_color, obj) end
+    main_mirinoOnDrop(player_color, obj)
+    if move_onDrop then move_onDrop(player_color, obj) end
 end

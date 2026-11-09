@@ -1,6 +1,6 @@
 -- ============================================================
 -- WARFORGE LDC — 0_main/loader.ttslua
--- Ordine: constants → state → conditions → lib → table → measure → rules → units → buttons → phase
+-- Ordine: constants → state → conditions → lib → table → measure → rules → units → buttons → mirino → phase
 --         → persistence → ui → debug → register → rulesetInit
 -- ============================================================
 
@@ -13,6 +13,7 @@ require("rulesets.ldc.0_main.measure")
 require("rulesets.ldc.0_main.rules")
 require("rulesets.ldc.0_main.units")
 require("rulesets.ldc.0_main.buttons")
+require("rulesets.ldc.0_main.mirino")
 require("rulesets.ldc.0_main.phase")
 require("rulesets.ldc.0_main.persistence")
 require("rulesets.ldc.0_main.ui")

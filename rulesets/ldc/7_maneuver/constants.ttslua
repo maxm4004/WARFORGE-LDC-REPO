@@ -1,4 +1,17 @@
 -- ============================================================
 -- WARFORGE LDC — 7_maneuver/constants.ttslua
--- Costanti della fase (valori fissi).
+-- Costanti della fase (valori fissi). Velocità e raggi del
+-- regolamento in 0_main/rules.ttslua.
 -- ============================================================
+
+MOVE = {
+    tolleranzaD = 0.02,   -- oltre il limite di così si blocca la fine fase
+    tick        = 0.1,    -- secondi fra due disegni dei fili durante il trascinamento
+    contattoD   = 0.05,   -- unità "a contatto" (carica)
+    -- fili dalla partenza di ogni base: verde entro il limite, rosso oltre
+    filoOk      = { 0.2, 0.9, 0.2 },
+    filoKo      = { 1, 0.1, 0.1 },
+    filoSpessore = 0.06,
+    caricaColor = { r = 0.85, g = 0.45, b = 0.0 },
+    tintaMirino = { 0.9, 0.4, 0.1 },
+}

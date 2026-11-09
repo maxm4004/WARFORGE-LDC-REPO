@@ -1,4 +1,14 @@
 -- ============================================================
 -- WARFORGE LDC — 7_maneuver/state.ttslua
--- Stato della fase (da salvare in 0_main/persistence).
+-- Stato della fase (salvato in 0_main/persistence).
 -- ============================================================
+
+-- MOVE_STATE = {
+--   side, turno,
+--   partenza = { [unitKey] = { [guid] = { x, y, z, ry } } },  posa a inizio movimento
+--   cariche  = { [unitKey] = unitKey bersaglio },
+-- }
+MOVE_STATE = MOVE_STATE or { side = nil, turno = nil, partenza = {}, cariche = {} }
+
+-- Unità in mano al giocatore (non salvato): [unitKey] = waitId
+MOVE_DRAG = {}

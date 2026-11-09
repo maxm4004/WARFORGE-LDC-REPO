@@ -4,12 +4,20 @@
 
 -- ============================================================
 -- FUNZIONE: before_maneuver(phaseName, phase)
+-- Nuova Manovra dello schieramento attivo: nessuno ha mosso.
 -- ============================================================
 function before_maneuver(phaseName, phase)
+    MOVE_STATE = { side = TURN.activeSide, turno = ENGINE.turn, partenza = {}, cariche = {} }
+    MOVE_DRAG = {}
     callHandler("updateCenterPanel")
 end
 -- ============================================================
 -- FUNZIONE: after_maneuver(phaseName, phase)
+-- Le cariche restano per la Mischia.
 -- ============================================================
 function after_maneuver(phaseName, phase)
+    main_mirinoStop()
+    for _, id in pairs(MOVE_DRAG) do Wait.stop(id) end
+    MOVE_DRAG = {}
+    main_setLines("movimento", {})
 end

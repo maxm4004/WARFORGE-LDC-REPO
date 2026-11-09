@@ -232,3 +232,30 @@ BASE_BUTTONS = {
     bersaglioColor = { r = 0.85, g = 0.45, b = 0.0 },
     annullaColor   = { r = 0.35, g = 0.35, b = 0.35 },
 }
+
+-- ------------------------------------------------------------
+-- Mirino (0_main/mirino.ttslua, come IEF F38-F40): gettone da
+-- trascinare sul bersaglio nel Fuoco e nella Carica
+-- ------------------------------------------------------------
+MIRINO = {
+    icona    = "mirino_tiro",   -- asset UI del mod; senza, pedina colorata
+    scala    = 0.20,            -- gettone con l'icona
+    davanti  = 0.8,             -- pollici fra il fronte e il centro del mirino
+    rotY     = 45,              -- si somma alla direzione dell'unità
+    sotto    = 0.3,             -- pollici: base nemica "sotto" il mirino
+    tick     = 0.1,             -- secondi fra due controlli durante il trascinamento
+    colori   = { ok = "#40FF40", arancio = "#FFA020", rosso = "#FF4040" },
+    linea    = { ok = { 0.2, 0.9, 0.2 }, arancio = { 1, 0.63, 0.13 }, rosso = { 1, 0.2, 0.2 }, nessuno = { 1, 0.8, 0.1 } },
+    spessore = 0.08,
+}
+
+-- Pannellino del mirino sulla base di comando (posizioni di IEF
+-- main_calcolaPosizionePannello, per fronte di 1..8 basi)
+MIRINO_PANNELLO = {
+    bg     = "rgba(0,0,0,0.70)",
+    close  = "rgba(0.35,0.35,0.35,1)",
+    x      = { 10, 150, 310, 470, 630, 800, 960, 1120 },
+    passoX = 160,
+    y      = 100,
+    z      = -500,
+}

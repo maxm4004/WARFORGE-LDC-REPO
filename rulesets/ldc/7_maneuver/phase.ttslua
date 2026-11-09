@@ -12,6 +12,7 @@ function maneuver_phase()
             desc   = "Cariche, movimenti e cambi di formazione",
             before = "before_maneuver",
             after  = "after_maneuver",
+            baseButtons = "move_baseButtons",
             allowedActions = { ACTION.CONFIRM },
             render = "1BtnClick",
             enforceOwnership = true,

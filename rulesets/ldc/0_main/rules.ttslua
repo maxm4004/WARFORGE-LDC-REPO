@@ -72,3 +72,37 @@ LDC_FUOCO = {
     dadiPerBase       = 1,
     dadiArtCorta      = 2,
 }
+
+-- ------------------------------------------------------------
+-- Velocità in D (regolamento 9.2) per tipo:
+--   velocita = movimento normale, carica = in carica,
+--   pinnata = pinnata o in HOLDS (cavalleria), dopoTiro =
+--   artiglieria a cavallo che ha sparato.
+-- Fanteria pinnata: il regolamento non la dà (domanda per
+-- l'autore). Terreno rotto, colonna di marcia su strada e
+-- artiglieria sganciata (a spinta ½D): nel raffinamento.
+-- ------------------------------------------------------------
+LDC_VELOCITA = {
+    FAN_LINEA      = { velocita = 2, carica = 1 },
+    FAN_LEGGERA    = { velocita = 2, carica = 1 },
+    SKIRMISH       = { velocita = 2 },
+    CAV_LEGGERA    = { velocita = 4, carica = 2, pinnata = 2 },
+    CAV_LANCIERI   = { velocita = 4, carica = 2, pinnata = 2 },
+    CAV_DRAGONI    = { velocita = 3, carica = 2, pinnata = 2 },
+    CAV_CORAZZIERI = { velocita = 3, carica = 2, pinnata = 2 },
+    ART_PIEDI      = { velocita = 2, pinnata = 0.5 },
+    ART_CAVALLO    = { velocita = 3, pinnata = 0.5, dopoTiro = 2 },
+    GEN            = { velocita = 4 },
+}
+
+-- Chi può muovere dopo aver sparato (regolamento 8)
+LDC_MUOVE_DOPO_TIRO = { SKIRMISH = true, ART_CAVALLO = true }
+
+-- Raggio di comando in D (7.3): oltre, l'unità conta in HOLDS
+LDC_COMANDO_RAGGIO = {
+    default = 2,
+    tipi    = { CAV_LEGGERA = 3, CAV_LANCIERI = 3, SKIRMISH = 3 },
+}
+
+-- Carica: arco frontale (gradi per lato) per vedere il bersaglio
+LDC_CARICA_ARCO = 45

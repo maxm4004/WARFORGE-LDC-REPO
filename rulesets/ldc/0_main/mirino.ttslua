@@ -1,0 +1,248 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/mirino.ttslua
+-- Mirino da trascinare su un'unità nemica (come IEF F38-F40),
+-- usato dal Fuoco e dalla Carica.
+--
+-- Un gettone davanti al fronte dell'unità. Trascinandolo: linea
+-- dal fronte, l'unità nemica sotto si illumina e il pannellino
+-- sulla base di comando dice distanza e motivo (verde valido,
+-- arancio / rosso no). Rilasciato su un bersaglio valido chiama
+-- opts.onValido(t); altrimenti torna al suo posto.
+--
+-- main_mirinoStart(player, slot, u, opts):
+--   opts.valuta(t)   -> esito ("ok"|"arancio"|"rosso"), testo
+--   opts.onValido(t) dopo il rilascio su un bersaglio valido
+--   opts.onChiudi()  bottone Chiudi del pannellino
+--   opts.linee       gruppo di main_setLines (default "mirino")
+-- MAIN_MIRINO = { player, slot, u, opts, host, fronte, origine,
+--   start, rot, obj, sopra, bersaglio, waitId, pannello, cache }
+-- ============================================================
+
+MAIN_MIRINO = nil
+
+-- ============================================================
+-- FUNZIONE: main_uiIconUrl(nome)
+-- URL di un asset della UI del mod (come IEF).
+-- ============================================================
+function main_uiIconUrl(nome)
+    local ok, assets = pcall(function() return UI.getCustomAssets() end)
+    if not ok or type(assets) ~= "table" then return nil end
+    local cerca = string.lower(nome)
+    for _, a in ipairs(assets) do
+        if a.name and string.lower(a.name) == cerca and a.url and a.url ~= "" then return a.url end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoActive(unitKey)
+-- C'è un mirino (di quella unità, se data)?
+-- ============================================================
+function main_mirinoActive(unitKey)
+    return MAIN_MIRINO ~= nil and (unitKey == nil or MAIN_MIRINO.u.key == unitKey)
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoStart(player, slot, u, opts)
+-- ============================================================
+function main_mirinoStart(player, slot, u, opts)
+    main_mirinoStop()
+    local M = MIRINO
+
+    -- centro del fronte del primo rango e direzione del fronte
+    local primo = main_unitFirstRank(u)
+    local f = main_baseForward(u.comando)
+    local cx, cz = 0, 0
+    for _, b in ipairs(primo) do local p = b.getPosition(); cx, cz = cx + p.x, cz + p.z end
+    cx, cz = cx / #primo, cz / #primo
+    local hd = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm) / 2
+    local origine = { x = cx + f.x * hd, z = cz + f.z * hd }
+    local d = main_inchToTts(M.davanti)
+    local y = u.comando.getPosition().y + 0.15
+
+    local m = {
+        player = player, slot = slot, u = u, opts = opts or {},
+        host = u.comando, fronte = #primo, origine = origine,
+        start = { x = origine.x + f.x * d, y = y, z = origine.z + f.z * d },
+        rot = { x = 0, y = u.comando.getRotation().y + M.rotY, z = 0 },
+        cache = {},
+    }
+    MAIN_MIRINO = m
+
+    local function pronto(o)
+        if MAIN_MIRINO ~= m then o.destruct(); return end
+        o.setName("Mirino")
+        m.obj = o
+    end
+    local url = main_uiIconUrl(m.opts.icona or M.icona)
+    if url then
+        spawnObjectData({
+            data = {
+                Name = "Custom_Token",
+                Transform = { posX = m.start.x, posY = m.start.y, posZ = m.start.z,
+                              rotX = m.rot.x, rotY = m.rot.y, rotZ = m.rot.z,
+                              scaleX = M.scala, scaleY = 1, scaleZ = M.scala },
+                CustomImage = {
+                    ImageURL = url, ImageSecondaryURL = "", ImageScalar = 1, WidthScale = 0,
+                    CustomToken = { Thickness = 0.1, MergeDistancePixels = 15, StandUp = false, Stackable = false },
+                },
+            },
+            callback_function = pronto,
+        })
+    else
+        spawnObject({
+            type = "Checker_white", position = { m.start.x, m.start.y, m.start.z },
+            rotation = { m.rot.x, m.rot.y, m.rot.z }, scale = { 0.45, 0.45, 0.45 }, sound = false,
+            callback_function = function(o)
+                o.setColorTint(m.opts.tinta or { 1, 0.8, 0.1 })
+                pronto(o)
+            end,
+        })
+    end
+    main_mirinoPannello(m, "Trascina il mirino sul bersaglio", "#FFFFFF")
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoStop()
+-- ============================================================
+function main_mirinoStop()
+    local m = MAIN_MIRINO
+    if not m then return end
+    MAIN_MIRINO = nil
+    if m.waitId then Wait.stop(m.waitId) end
+    if m.obj and not m.obj.isDestroyed() then m.obj.destruct() end
+    main_mirinoEvidenzia(m, nil)
+    if m.host and not m.host.isDestroyed() then m.host.UI.setXml("") end
+    main_setLines(m.opts.linee or "mirino", {})
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoPannello(m, testo, colore)
+-- Pannellino sulla base di comando: testo e Chiudi (posizione
+-- come IEF main_calcolaPosizionePannello).
+-- ============================================================
+function main_mirinoPannello(m, testo, colore)
+    local h = m.host
+    if not h or h.isDestroyed() then return end
+    if not m.pannello then
+        m.pannello = true
+        local P = MIRINO_PANNELLO
+        local x = P.x[m.fronte] or (P.x[1] - P.passoX * (m.fronte - 1))
+        h.UI.setXml(string.format([[
+            <Panel id="panelMirino" active="true" color="%s" width="760" height="90" offsetXY="0 405" position="%f %f %f" rotation="-90 0 0" visibility="%s">
+                <HorizontalLayout spacing="10" padding="16 16 10 10" childAlignment="MiddleCenter" childForceExpandWidth="false">
+                    <Text id="txtMirino" text="%s" fontStyle="Normal" fontSize="20" color="%s" alignment="MiddleCenter" preferredWidth="560"/>
+                    <Button id="btnMirinoChiudi" text="Chiudi" fontSize="18" color="%s" textColor="White" preferredWidth="140" preferredHeight="50" onClick="Global/main_mirinoChiudi"/>
+                </HorizontalLayout>
+            </Panel>
+            ]], P.bg, x, P.y, P.z, m.player.color, testo, colore, P.close))
+        return
+    end
+    h.UI.setAttribute("txtMirino", "text", testo)
+    h.UI.setAttribute("txtMirino", "color", colore)
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoChiudi(player, value, id)
+-- Chiudi del pannellino: lo gestisce la fase (opts.onChiudi).
+-- ============================================================
+function main_mirinoChiudi(player, value, id)
+    local m = MAIN_MIRINO
+    if not m or not player or player.color ~= m.player.color then return end
+    if m.opts.onChiudi then m.opts.onChiudi(player) else main_mirinoStop() end
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoUnitaSotto(m, x, z)
+-- Unità nemica sotto il mirino: la base più vicina entro
+-- MIRINO.sotto pollici.
+-- ============================================================
+function main_mirinoUnitaSotto(m, x, z)
+    local meglio, dMin = nil, main_inchToTts(MIRINO.sotto)
+    for _, t in pairs(main_unitsOfSide(main_otherSide(m.slot))) do
+        for _, b in ipairs(t.basi) do
+            local d = main_pointRectDistance(x, z, main_baseRect(b))
+            if d <= dMin then meglio, dMin = t, d end
+        end
+    end
+    return meglio
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoEvidenzia(m, t, esito)
+-- ============================================================
+function main_mirinoEvidenzia(m, t, esito)
+    local key = t and t.key
+    if m.sopra and m.sopra.key ~= key then
+        for _, b in ipairs(m.sopra.basi) do
+            if not b.isDestroyed() then b.highlightOff() end
+        end
+    end
+    m.sopra = t
+    if t then
+        for _, b in ipairs(t.basi) do b.highlightOn(MIRINO.linea[esito] or MIRINO.linea.rosso) end
+    end
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoTick()
+-- Durante il trascinamento: linea, evidenziazione e testo.
+-- ============================================================
+function main_mirinoTick()
+    local m = MAIN_MIRINO
+    if not m or not m.obj or m.obj.isDestroyed() then return end
+    local p = m.obj.getPosition()
+    local t = main_mirinoUnitaSotto(m, p.x, p.z)
+    local esito, testo = nil, nil
+    if t then
+        if not m.cache[t.key] then
+            local e, tx = m.opts.valuta(t)
+            m.cache[t.key] = { esito = e, testo = tx }
+        end
+        esito, testo = m.cache[t.key].esito, m.cache[t.key].testo
+    end
+
+    local o = m.origine
+    local y = m.start.y - 0.1
+    main_setLines(m.opts.linee or "mirino", { {
+        points = { { o.x, y, o.z }, { p.x, y, p.z } },
+        color = MIRINO.linea[esito or "nessuno"], thickness = MIRINO.spessore,
+    } })
+
+    if not t then
+        main_mirinoEvidenzia(m, nil)
+        m.bersaglio = nil
+        main_mirinoPannello(m, "", "#FFFFFF")
+        return
+    end
+    m.bersaglio = (esito == "ok") and t or nil
+    main_mirinoEvidenzia(m, t, esito)
+    main_mirinoPannello(m, testo, MIRINO.colori[esito] or "#FFFFFF")
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoOnPickUp(player_color, obj)
+-- ============================================================
+function main_mirinoOnPickUp(player_color, obj)
+    local m = MAIN_MIRINO
+    if not m or obj ~= m.obj then return end
+    if m.player.color ~= player_color then return end
+    if m.waitId then Wait.stop(m.waitId) end
+    m.waitId = Wait.time(main_mirinoTick, MIRINO.tick, -1)
+end
+-- ============================================================
+-- FUNZIONE: main_mirinoOnDrop(player_color, obj)
+-- ============================================================
+function main_mirinoOnDrop(player_color, obj)
+    local m = MAIN_MIRINO
+    if not m or obj ~= m.obj then return end
+    if m.waitId then Wait.stop(m.waitId); m.waitId = nil end
+    main_mirinoTick()
+    if m.bersaglio then
+        local t = m.bersaglio
+        main_mirinoStop()
+        m.opts.onValido(t)
+        return
+    end
+    -- non valido: il mirino torna al suo posto
+    Wait.frames(function()
+        if MAIN_MIRINO ~= m or not m.obj or m.obj.isDestroyed() then return end
+        m.obj.setPosition(Vector(m.start.x, m.start.y, m.start.z))
+        m.obj.setRotation(Vector(m.rot.x, m.rot.y, m.rot.z))
+        m.obj.setVelocity(Vector(0, 0, 0))
+        main_setLines(m.opts.linee or "mirino", {})
+        main_mirinoEvidenzia(m, nil)
+        main_mirinoPannello(m, "Trascina il mirino sul bersaglio", "#FFFFFF")
+    end, 2)
+end
