@@ -9,8 +9,11 @@
 -- FIRE_STATE = { side, turno, sparato = { [unitKey] = true } }
 FIRE_STATE = FIRE_STATE or { side = nil, turno = nil, sparato = {} }
 
--- Tiratore scelto e bersagli possibili (non salvato):
--- { slot, tiratore = unitKey, bersagli = { [unitKey] = { dist } } }
+-- Tiratore scelto e mirino (non salvato):
+-- { slot, tiratore = unitKey, bersagli = { [unitKey] = { dist } },
+--   player, host (base di comando), obj (mirino), start, rot,
+--   origine, sopra (unitKey evidenziata), valido, bersaglio,
+--   waitId, pannello }
 FIRE_SEL = nil
 
 -- Tiro in attesa del Roll (non salvato):

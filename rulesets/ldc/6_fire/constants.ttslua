@@ -9,3 +9,24 @@ FIRE_TOLLERANZA_VICINO_D = 0.05
 
 -- Secondi prima di chiudere il pannello dadi a fine fase
 FIRE_DICEPANEL_CLOSE = 3
+
+-- ------------------------------------------------------------
+-- Mirino (come IEF F38-F40): gettone da trascinare sul bersaglio
+-- ------------------------------------------------------------
+FIRE_MIRINO = {
+    icona    = "mirino_tiro",   -- asset UI del mod; senza, pedina gialla
+    scala    = 0.20,            -- gettone con l'icona
+    davanti  = 0.8,             -- pollici fra il fronte e il centro del mirino
+    rotY     = 45,              -- si somma alla direzione dell'unità
+    sotto    = 0.3,             -- pollici: base nemica "sotto" il mirino
+    tick     = 0.1,             -- secondi fra due controlli durante il trascinamento
+    colori   = { ok = "#40FF40", arancio = "#FFA020", rosso = "#FF4040" },
+    linea    = { ok = { 0.2, 0.9, 0.2 }, arancio = { 1, 0.63, 0.13 }, rosso = { 1, 0.2, 0.2 }, nessuno = { 1, 0.8, 0.1 } },
+    spessore = 0.08,
+}
+
+-- Pannellino del mirino sulla base di comando (stile IEF MOVEPANEL)
+FIRE_PANNELLO = {
+    bg     = "rgba(0,0,0,0.70)",
+    close  = "rgba(0.35,0.35,0.35,1)",
+}

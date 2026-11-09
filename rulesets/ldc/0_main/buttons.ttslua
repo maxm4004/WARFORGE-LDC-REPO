@@ -91,3 +91,16 @@ function main_baseOwnerClick(obj, player_color)
     local u = main_unitsOfSide(slot)[meta.unitKey]
     return u, slot, main_colorInSide(player_color, slot)
 end
+
+-- ============================================================
+--                         EVENTI TTS
+-- Presa e rilascio di oggetti: li smistano alle fasi (mirino
+-- del Fuoco, poi carica e movimento).
+-- ============================================================
+function onObjectPickUp(player_color, obj)
+    if fire_mirinoOnPickUp then fire_mirinoOnPickUp(player_color, obj) end
+end
+
+function onObjectDrop(player_color, obj)
+    if fire_mirinoOnDrop then fire_mirinoOnDrop(player_color, obj) end
+end

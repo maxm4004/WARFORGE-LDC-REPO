@@ -2,8 +2,8 @@
 -- WARFORGE LDC — 6_fire/lib.ttslua
 -- Fuoco, primo giro (regolamento 8).
 --
--- Bottoni sulle basi: FUOCO sulla tua unità -> BERSAGLIO sulle
--- unità nemiche a portata -> scheda nel pannello dadi -> Roll.
+-- FUOCO sulla base della tua unità -> mirino da trascinare sul
+-- bersaglio (come IEF) -> scheda nel pannello dadi -> Roll.
 -- Lo script calcola distanza (D), gittata, dadi (1 per base del
 -- primo rango, 2 per base per l'artiglieria a distanza corta) e
 -- soglia; gli hit diventano disordini. Se gli hit manderebbero
@@ -131,33 +131,24 @@ end
 -- ============================================================
 -- FUNZIONE: fire_baseButtons(obj, u, slot)
 -- Bottoni della fase sulla base di comando (0_main/buttons).
+-- Solo sulle unità dello schieramento attivo: il bersaglio si
+-- sceglie col mirino.
 -- ============================================================
 function fire_baseButtons(obj, u, slot)
     local B = BASE_BUTTONS
-    if slot == TURN.activeSide then
-        if FIRE_PENDING and FIRE_PENDING.tiratore == u.key then
-            return { { label = "ANNULLA", click = "fire_clickAnnulla", color = B.annullaColor,
-                       tooltip = "Annulla il tiro (prima del Roll)" } }
-        end
-        if FIRE_SEL and FIRE_SEL.tiratore == u.key then
-            return { { label = "ANNULLA", click = "fire_clickAnnulla", color = B.annullaColor,
-                       tooltip = "Annulla la scelta del bersaglio" } }
-        end
-        if FIRE_STATE.sparato[u.key] then
-            return { { label = "SPARATO", click = "main_baseButtonNoop", color = B.annullaColor,
-                       tooltip = "Ha gia' sparato: non potra' muovere" } }
-        end
-        if fire_weapon(u) and not FIRE_SEL and not FIRE_PENDING then
-            return { { label = "FUOCO", click = "fire_clickFuoco",
-                       tooltip = string.format("Spara (gittata %s)", main_formatD(fire_maxRangeD(u))) } }
-        end
-        return {}
-    end
+    if slot ~= TURN.activeSide then return {} end
 
-    local info = FIRE_SEL and FIRE_SEL.bersagli[u.key]
-    if info then
-        return { { label = "BERSAGLIO", click = "fire_clickBersaglio", color = B.bersaglioColor, width = 520,
-                   tooltip = "Bersaglio a " .. main_formatD(info.dist) } }
+    if (FIRE_PENDING and FIRE_PENDING.tiratore == u.key) or (FIRE_SEL and FIRE_SEL.tiratore == u.key) then
+        return { { label = "ANNULLA", click = "fire_clickAnnulla", color = B.annullaColor,
+                   tooltip = "Annulla il tiro (prima del Roll)" } }
+    end
+    if FIRE_STATE.sparato[u.key] then
+        return { { label = "SPARATO", click = "main_baseButtonNoop", color = B.annullaColor,
+                   tooltip = "Ha gia' sparato: non potra' muovere" } }
+    end
+    if fire_weapon(u) and not FIRE_SEL and not FIRE_PENDING then
+        return { { label = "FUOCO", click = "fire_clickFuoco",
+                   tooltip = string.format("Spara (gittata %s)", main_formatD(fire_maxRangeD(u))) } }
     end
     return {}
 end
@@ -179,21 +170,14 @@ function fire_clickOk(player_color)
 end
 -- ============================================================
 -- FUNZIONE: fire_clickFuoco(obj, player_color, alt_click)
+-- FUOCO: compare il mirino davanti all'unità.
 -- ============================================================
 function fire_clickFuoco(obj, player_color, alt_click)
     if not fire_clickOk(player_color) then return end
     local u, slot, mio = main_baseOwnerClick(obj, player_color)
     if not u or not mio or slot ~= TURN.activeSide then return end
-    if FIRE_PENDING or FIRE_STATE.sparato[u.key] then return end
-
-    local bersagli = fire_targets(slot, u)
-    if next(bersagli) == nil then
-        warningToColor("Nessun bersaglio a portata (" .. main_formatD(fire_maxRangeD(u)) .. ") davanti all'unita'",
-            Player[player_color], "Yellow", 4, false)
-        return
-    end
-    FIRE_SEL = { slot = slot, tiratore = u.key, bersagli = bersagli }
-    warningToColor("Clicca BERSAGLIO sull'unita' nemica", Player[player_color], "Yellow", 4, false)
+    if FIRE_PENDING or FIRE_SEL or FIRE_STATE.sparato[u.key] then return end
+    fire_mirinoStart(Player[player_color], slot, u)
     main_refreshBaseButtons()
 end
 -- ============================================================
@@ -201,29 +185,32 @@ end
 -- ============================================================
 function fire_clickAnnulla(obj, player_color, alt_click)
     if not fire_clickOk(player_color) then return end
+    fire_annulla(Player[player_color])
+end
+-- ============================================================
+-- FUNZIONE: fire_annulla(player)
+-- Toglie mirino e tiro in sospeso (non la rottura).
+-- ============================================================
+function fire_annulla(player)
     if FIRE_PENDING and FIRE_PENDING.fase == "rottura" then
-        warningToColor("Il tiro della rottura non si annulla", Player[player_color], "Yellow", 3, false)
+        if player then warningToColor("Il tiro della rottura non si annulla", player, "Yellow", 3, false) end
         return
     end
-    FIRE_SEL, FIRE_PENDING = nil, nil
+    fire_mirinoStop()
+    FIRE_PENDING = nil
     if TURN.activeSide then engine_dicePanelClose(TURN.activeSide) end
     main_refreshBaseButtons()
 end
 -- ============================================================
--- FUNZIONE: fire_clickBersaglio(obj, player_color, alt_click)
--- Il giocatore attivo sceglie il bersaglio: scheda e Roll.
+-- FUNZIONE: fire_chooseTarget(player, sel, t)
+-- Bersaglio valido: scheda nel pannello dadi e Roll.
 -- ============================================================
-function fire_clickBersaglio(obj, player_color, alt_click)
-    if not fire_clickOk(player_color) then return end
-    local sel = FIRE_SEL
-    local t = main_baseOwnerClick(obj, player_color)
-    if not sel or not t or not sel.bersagli[t.key] then return end
+function fire_chooseTarget(player, sel, t)
     local u = main_unitsOfSide(sel.slot)[sel.tiratore]
-    if not u then FIRE_SEL = nil; main_refreshBaseButtons(); return end
+    if not u then return end
 
     local dist = sel.bersagli[t.key].dist
     local c = fire_compute(u, t, dist)
-    FIRE_SEL = nil
     FIRE_PENDING = {
         slot = sel.slot, tiratore = u.key, bersaglio = t.key, fase = "tiro",
         dadi = c.dadi, soglia = c.soglia,
@@ -237,10 +224,250 @@ function fire_clickBersaglio(obj, player_color, alt_click)
         righe       = c.righe,
         serve       = "Serve " .. c.soglia .. "+ su " .. c.dadi .. "D6",
     })
-    local player = Player[player_color]
     engine_diceCameraZoom(player)
     warningToColor("Premi Roll sul vassoio dei dadi", player, "Yellow", 4, false)
     main_refreshBaseButtons()
+end
+
+-- ============================================================
+--                  MIRINO (come IEF F38-F40)
+-- FUOCO: un gettone davanti al fronte dell'unità. Il giocatore
+-- lo trascina su un'unità nemica: verde = bersaglio valido,
+-- arancio = a portata ma non valido (non il più vicino, fuori
+-- dall'arco), rosso = fuori gittata, col motivo nel pannellino
+-- sulla base. Rilasciato su un bersaglio valido si apre la
+-- scheda del tiro; altrimenti torna al suo posto.
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: fire_uiIconUrl(nome)
+-- URL di un asset della UI del mod (come IEF main_uiIconUrl).
+-- ============================================================
+function fire_uiIconUrl(nome)
+    local ok, assets = pcall(function() return UI.getCustomAssets() end)
+    if not ok or type(assets) ~= "table" then return nil end
+    local cerca = string.lower(nome)
+    for _, a in ipairs(assets) do
+        if a.name and string.lower(a.name) == cerca and a.url and a.url ~= "" then return a.url end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoStart(player, slot, u)
+-- ============================================================
+function fire_mirinoStart(player, slot, u)
+    fire_mirinoStop()
+    local M = FIRE_MIRINO
+
+    -- centro del fronte del primo rango e direzione del fronte
+    local primo = main_unitFirstRank(u)
+    local f = main_baseForward(u.comando)
+    local cx, cz = 0, 0
+    for _, b in ipairs(primo) do local p = b.getPosition(); cx, cz = cx + p.x, cz + p.z end
+    cx, cz = cx / #primo, cz / #primo
+    local hd = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm) / 2
+    local origine = { x = cx + f.x * hd, z = cz + f.z * hd }
+    local d = main_inchToTts(M.davanti)
+    local y = u.comando.getPosition().y + 0.15
+
+    local sel = {
+        slot = slot, tiratore = u.key, bersagli = fire_targets(slot, u),
+        player = player, host = u.comando, fronte = #primo,
+        origine = origine,
+        start = { x = origine.x + f.x * d, y = y, z = origine.z + f.z * d },
+        rot = { x = 0, y = u.comando.getRotation().y + M.rotY, z = 0 },
+        cache = {},
+    }
+    FIRE_SEL = sel
+
+    local function pronto(o)
+        if FIRE_SEL ~= sel then o.destruct(); return end
+        o.setName("Mirino")
+        sel.obj = o
+    end
+    local url = fire_uiIconUrl(M.icona)
+    if url then
+        spawnObjectData({
+            data = {
+                Name = "Custom_Token",
+                Transform = { posX = sel.start.x, posY = sel.start.y, posZ = sel.start.z,
+                              rotX = sel.rot.x, rotY = sel.rot.y, rotZ = sel.rot.z,
+                              scaleX = M.scala, scaleY = 1, scaleZ = M.scala },
+                CustomImage = {
+                    ImageURL = url, ImageSecondaryURL = "", ImageScalar = 1, WidthScale = 0,
+                    CustomToken = { Thickness = 0.1, MergeDistancePixels = 15, StandUp = false, Stackable = false },
+                },
+            },
+            callback_function = pronto,
+        })
+    else
+        spawnObject({
+            type = "Checker_white", position = { sel.start.x, sel.start.y, sel.start.z },
+            rotation = { sel.rot.x, sel.rot.y, sel.rot.z }, scale = { 0.45, 0.45, 0.45 }, sound = false,
+            callback_function = function(o)
+                o.setColorTint({ 1, 0.8, 0.1 })
+                pronto(o)
+            end,
+        })
+    end
+    fire_mirinoPannello(sel, "Trascina il mirino sul bersaglio", "#FFFFFF")
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoStop()
+-- ============================================================
+function fire_mirinoStop()
+    local sel = FIRE_SEL
+    if not sel then return end
+    FIRE_SEL = nil
+    if sel.waitId then Wait.stop(sel.waitId) end
+    if sel.obj and not sel.obj.isDestroyed() then sel.obj.destruct() end
+    fire_mirinoEvidenzia(sel, nil)
+    if sel.host and not sel.host.isDestroyed() then sel.host.UI.setXml("") end
+    main_setLines("fuoco", {})
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoPannello(sel, testo, colore)
+-- Pannellino sulla base di comando: testo e Chiudi (posizione
+-- come IEF main_calcolaPosizionePannello).
+-- ============================================================
+function fire_mirinoPannello(sel, testo, colore)
+    local h = sel.host
+    if not h or h.isDestroyed() then return end
+    if not sel.pannello then
+        sel.pannello = true
+        local x = ({ 10, 150, 310, 470, 630, 800, 960, 1120 })[sel.fronte] or (10 - 160 * (sel.fronte - 1))
+        h.UI.setXml(string.format([[
+            <Panel id="panelMirino" active="true" color="%s" width="760" height="90" offsetXY="0 405" position="%f %f %f" rotation="-90 0 0" visibility="%s">
+                <HorizontalLayout spacing="10" padding="16 16 10 10" childAlignment="MiddleCenter" childForceExpandWidth="false">
+                    <Text id="txtMirino" text="%s" fontStyle="Normal" fontSize="20" color="%s" alignment="MiddleCenter" preferredWidth="560"/>
+                    <Button id="btnMirinoChiudi" text="Chiudi" fontSize="18" color="%s" textColor="White" preferredWidth="140" preferredHeight="50" onClick="Global/fire_mirinoChiudi"/>
+                </HorizontalLayout>
+            </Panel>
+            ]], FIRE_PANNELLO.bg, x, 100, -500, sel.player.color, testo, colore, FIRE_PANNELLO.close))
+        return
+    end
+    h.UI.setAttribute("txtMirino", "text", testo)
+    h.UI.setAttribute("txtMirino", "color", colore)
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoChiudi(player, value, id)
+-- Chiudi del pannellino.
+-- ============================================================
+function fire_mirinoChiudi(player, value, id)
+    if not fire_clickOk(player.color) then return end
+    fire_annulla(player)
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoUnitaSotto(sel, x, z)
+-- Unità nemica sotto il mirino: la base più vicina entro
+-- FIRE_MIRINO.sotto pollici. Ritorna l'unità o nil.
+-- ============================================================
+function fire_mirinoUnitaSotto(sel, x, z)
+    local meglio, dMin = nil, main_inchToTts(FIRE_MIRINO.sotto)
+    for _, t in pairs(main_unitsOfSide(main_otherSide(sel.slot))) do
+        for _, b in ipairs(t.basi) do
+            local d = main_pointRectDistance(x, z, main_baseRect(b))
+            if d <= dMin then meglio, dMin = t, d end
+        end
+    end
+    return meglio
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoValuta(sel, t)
+-- Esito ("ok"|"arancio"|"rosso") e testo per il bersaglio t.
+-- ============================================================
+function fire_mirinoValuta(sel, t)
+    if sel.cache[t.key] then return sel.cache[t.key].esito, sel.cache[t.key].testo end
+    local u = main_unitsOfSide(sel.slot)[sel.tiratore]
+    local d = u and main_unitDistanceD(u, t) or 0
+    local function esci(esito, causa)
+        local testo = main_formatD(d) .. (causa and (" - Bersaglio non valido: " .. causa) or " - Bersaglio valido")
+        sel.cache[t.key] = { esito = esito, testo = testo }
+        return esito, testo
+    end
+    if sel.bersagli[t.key] then return esci("ok", nil) end
+    if not u or d > fire_maxRangeD(u) then return esci("rosso", "fuori gittata") end
+    if not main_unitInFront(u, t) then return esci("arancio", "fuori dall'arco di tiro") end
+    return esci("arancio", "c'e' un bersaglio piu' vicino")
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoEvidenzia(sel, t, esito)
+-- ============================================================
+function fire_mirinoEvidenzia(sel, t, esito)
+    local key = t and t.key
+    if sel.sopra and sel.sopra.key ~= key then
+        for _, b in ipairs(sel.sopra.basi) do
+            if not b.isDestroyed() then b.highlightOff() end
+        end
+    end
+    sel.sopra = t
+    if t then
+        for _, b in ipairs(t.basi) do b.highlightOn(FIRE_MIRINO.linea[esito] or FIRE_MIRINO.linea.rosso) end
+    end
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoTick()
+-- Durante il trascinamento: linea, evidenziazione e testo.
+-- ============================================================
+function fire_mirinoTick()
+    local sel = FIRE_SEL
+    if not sel or not sel.obj or sel.obj.isDestroyed() then return end
+    local p = sel.obj.getPosition()
+    local t = fire_mirinoUnitaSotto(sel, p.x, p.z)
+    local esito, testo = nil, nil
+    if t then esito, testo = fire_mirinoValuta(sel, t) end
+
+    local o = sel.origine
+    local y = sel.start.y - 0.1
+    main_setLines("fuoco", { {
+        points = { { o.x, y, o.z }, { p.x, y, p.z } },
+        color = FIRE_MIRINO.linea[esito or "nessuno"], thickness = FIRE_MIRINO.spessore,
+    } })
+
+    if not t then
+        fire_mirinoEvidenzia(sel, nil)
+        sel.bersaglio = nil
+        fire_mirinoPannello(sel, "", "#FFFFFF")
+        return
+    end
+    sel.bersaglio = (esito == "ok") and t or nil
+    fire_mirinoEvidenzia(sel, t, esito)
+    fire_mirinoPannello(sel, testo, FIRE_MIRINO.colori[esito] or "#FFFFFF")
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoOnPickUp(player_color, obj)
+-- ============================================================
+function fire_mirinoOnPickUp(player_color, obj)
+    local sel = FIRE_SEL
+    if not sel or obj ~= sel.obj then return end
+    if sel.player.color ~= player_color then return end
+    if sel.waitId then Wait.stop(sel.waitId) end
+    sel.waitId = Wait.time(fire_mirinoTick, FIRE_MIRINO.tick, -1)
+end
+-- ============================================================
+-- FUNZIONE: fire_mirinoOnDrop(player_color, obj)
+-- ============================================================
+function fire_mirinoOnDrop(player_color, obj)
+    local sel = FIRE_SEL
+    if not sel or obj ~= sel.obj then return end
+    if sel.waitId then Wait.stop(sel.waitId); sel.waitId = nil end
+    fire_mirinoTick()
+    if sel.bersaglio then
+        local t = sel.bersaglio
+        fire_mirinoStop()
+        fire_chooseTarget(sel.player, sel, t)
+        return
+    end
+    -- non valido: il mirino torna al suo posto
+    Wait.frames(function()
+        if FIRE_SEL ~= sel or not sel.obj or sel.obj.isDestroyed() then return end
+        sel.obj.setPosition(Vector(sel.start.x, sel.start.y, sel.start.z))
+        sel.obj.setRotation(Vector(sel.rot.x, sel.rot.y, sel.rot.z))
+        sel.obj.setVelocity(Vector(0, 0, 0))
+        main_setLines("fuoco", {})
+        fire_mirinoEvidenzia(sel, nil)
+        fire_mirinoPannello(sel, "Trascina il mirino sul bersaglio", "#FFFFFF")
+    end, 2)
 end
 
 -- ============================================================
@@ -259,7 +486,7 @@ function fire_onRoll(player, slot)
     if FIRE_ROLLING then return end
     local pend = FIRE_PENDING
     if not pend or pend.slot ~= slot then
-        warningToColor("Scegli prima chi spara: FUOCO sulla base, poi BERSAGLIO", player, "Yellow", 4, false)
+        warningToColor("Scegli prima chi spara: FUOCO sulla base, poi il mirino sul bersaglio", player, "Yellow", 4, false)
         return
     end
 

@@ -19,7 +19,7 @@ end
 -- Chi ha sparato resta segnato per la Manovra.
 -- ============================================================
 function after_fire(phaseName, phase)
-    FIRE_SEL     = nil
+    fire_mirinoStop()
     FIRE_PENDING = nil
     FIRE_ROLLING = false
     if TURN.activeSide then

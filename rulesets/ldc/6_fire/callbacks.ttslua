@@ -17,6 +17,7 @@ function fire_btn(player, value, id, buttonConfig)
         warningToColor("Prima tira i dadi della rottura", player, "Yellow", 4, false)
         return false
     end
+    if FIRE_SEL then fire_mirinoStop(); main_refreshBaseButtons() end
     if FIRE_PENDING then
         warningToColor("C'e' un tiro in sospeso: tira o annullalo", player, "Yellow", 4, false)
         return false

@@ -341,7 +341,22 @@ function main_drawSpawnLines()
         end
     end
 
-    Global.setVectorLines(linee)
+    main_setLines("spawn", linee)
+end
+-- ============================================================
+-- FUNZIONE: main_setLines(gruppo, linee)
+-- Linee disegnate sul tavolo per gruppo ("spawn", "fuoco"...):
+-- Global.setVectorLines le vuole tutte insieme.
+-- ============================================================
+MAIN_LINES = MAIN_LINES or {}
+
+function main_setLines(gruppo, linee)
+    MAIN_LINES[gruppo] = linee
+    local tutte = {}
+    for _, lista in pairs(MAIN_LINES) do
+        for _, l in ipairs(lista or {}) do table.insert(tutte, l) end
+    end
+    Global.setVectorLines(tutte)
 end
 -- ============================================================
 -- FUNZIONE: main_gameArea()

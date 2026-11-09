@@ -142,6 +142,23 @@ function main_rectsDistance(r1, r2)
     return best
 end
 -- ============================================================
+-- FUNZIONE: main_pointRectDistance(x, z, r)
+-- Distanza di un punto dal rettangolo (0 se è dentro).
+-- ============================================================
+function main_pointRectDistance(x, z, r)
+    local dentro = true
+    for i = 1, 4 do
+        local a, b = r[i], r[i % 4 + 1]
+        if (b.x - a.x) * (z - a.z) - (b.z - a.z) * (x - a.x) < 0 then dentro = false end
+    end
+    if dentro then return 0 end
+    local best = math.huge
+    for i = 1, 4 do
+        best = math.min(best, puntoSegmento({ x = x, z = z }, r[i], r[i % 4 + 1]))
+    end
+    return best
+end
+-- ============================================================
 -- FUNZIONE: main_distanceInches(objA, objB)
 -- Distanza regolamentare fra due basi, in pollici. Unica fonte
 -- per ogni distanza fra basi: non reimplementarla altrove.
