@@ -12,6 +12,7 @@ function command_phase()
             desc   = "Attivazione delle Divisioni e delle Brigate",
             before = "before_command",
             after  = "after_command",
+            onRoll = "command_onRoll",
             allowedActions = { ACTION.CONFIRM },
             render = "1BtnClick",
             enforceOwnership = true,

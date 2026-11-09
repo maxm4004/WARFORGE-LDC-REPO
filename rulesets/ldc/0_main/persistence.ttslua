@@ -31,6 +31,8 @@ function main_onSave()
         turn          = TURN,
         first_roll    = FIRST_ROLL,
         deploy        = DEPLOY_STATE,
+        command       = COMMAND_STATE,
+        command_forced = COMMAND_FORCED_HOLDS,
         side_chosen   = SIDE_CHOSEN,
         sub           = ENGINE and ENGINE.sub or nil,
     }
@@ -126,6 +128,15 @@ function main_restoreState(save_state)
         }
         DEPLOY_STATE.spawned[1] = DEPLOY_STATE.spawned[1] == true
         DEPLOY_STATE.spawned[2] = DEPLOY_STATE.spawned[2] == true
+    end
+
+    if data.command then
+        COMMAND_STATE = main_slotPair(data.command)
+    end
+    if data.command_forced then
+        COMMAND_FORCED_HOLDS = main_slotPair(data.command_forced)
+        COMMAND_FORCED_HOLDS[1] = COMMAND_FORCED_HOLDS[1] or {}
+        COMMAND_FORCED_HOLDS[2] = COMMAND_FORCED_HOLDS[2] or {}
     end
 
     if data.sub then

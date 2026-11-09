@@ -214,7 +214,8 @@ function main_restart()
     engine_diceClearLastRoll(1)
     engine_diceClearLastRoll(2)
 
-    -- Eserciti spawnati tolti dal tavolo
+    -- Marker e stato del Comando, eserciti spawnati tolti dal tavolo
+    command_reset()
     deploy_clearAll()
 
     main_resetPlayers()
@@ -397,6 +398,9 @@ function main_updateCenterPanel()
 
     -- Chi aspetta l'altro schieramento vede la barra di attesa
     main_updateWaiting(phase)
+
+    -- Pannelli delle fasi (si spengono da soli fuori fase)
+    command_redrawPanel()
 
     -- Sottofasi: pannelli e blocco dei bottoni di fase
     engine_subRedraw()

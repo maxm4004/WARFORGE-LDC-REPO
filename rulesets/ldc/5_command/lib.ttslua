@@ -1,4 +1,412 @@
 -- ============================================================
 -- WARFORGE LDC — 5_command/lib.ttslua
--- Logica della fase.
+-- Attivazione delle Divisioni/Brigate (regolamento 7.1-7.2).
+--
+-- Ogni Generale tira 1D6: pari o inferiore al suo valore la
+-- Divisione è ATTIVA, altrimenti il test è fallito. Un test
+-- fallito si può far ritirare al Comandante di Corpo se è entro
+-- 4D dal Generale (col valore del Corpo), una volta per
+-- Generale e al massimo COMMAND_RITIRI_MAX volte per metà
+-- turno; altrimenti la Divisione va in HOLDS.
+-- Il tiro si sceglie nel pannello Comando e parte dal bottone
+-- Roll sul vassoio (command_onRoll).
 -- ============================================================
+
+-- ============================================================
+--                     LETTURA DAL TAVOLO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: command_readSide(slot)
+-- Generali e Comandante di Corpo dello schieramento sul tavolo.
+-- Ritorna divisioni { [id] = { nome, valore, guid } }, ordine
+-- (id ordinati), corpo { valore, guid } o nil.
+-- ============================================================
+function command_readSide(slot)
+    local divisioni, ordine, corpo = {}, {}, nil
+
+    for _, b in ipairs(main_basesOfSide(slot)) do
+        local m = b.meta
+        if m.ruolo == DEPLOY_RUOLO.GENERALE and m.divisione then
+            divisioni[m.divisione] = {
+                nome   = m.divisioneNome or m.divisione,
+                valore = m.valore or 1,
+                guid   = b.obj.getGUID(),
+            }
+            table.insert(ordine, m.divisione)
+        elseif m.ruolo == DEPLOY_RUOLO.CORPO then
+            corpo = { valore = m.valore or 1, guid = b.obj.getGUID() }
+        end
+    end
+
+    table.sort(ordine)
+    return divisioni, ordine, corpo
+end
+
+-- ============================================================
+--                       STATO DEL COMANDO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: command_start(slot)
+-- Inizio del Comando dello schieramento: elenco nuovo, marker
+-- HOLDS del Comando precedente tolti, HOLDS forzati applicati.
+-- ============================================================
+function command_start(slot)
+    command_clearMarkers(slot)
+    COMMAND_PENDING = nil
+    COMMAND_ROLLING = false
+
+    local divisioni, ordine, corpo = command_readSide(slot)
+    for _, d in pairs(divisioni) do
+        d.stato = COMMAND_STATO.DA_TIRARE
+    end
+
+    COMMAND_STATE[slot] = {
+        turno       = ENGINE.turn,
+        ordine      = ordine,
+        corpo       = corpo,
+        ritiriUsati = 0,
+        divisioni   = divisioni,
+    }
+
+    -- Generali uccisi nella metà turno avversaria
+    local forzati = COMMAND_FORCED_HOLDS[slot] or {}
+    for id, motivo in pairs(forzati) do
+        if divisioni[id] then
+            command_setHolds(slot, id, motivo)
+        end
+    end
+    COMMAND_FORCED_HOLDS[slot] = {}
+
+    if #ordine == 0 then
+        main_warningToSide(slot, "Nessun Generale di Divisione sul tavolo", "Yellow", 5)
+    end
+end
+-- ============================================================
+-- FUNZIONE: command_division(slot, divId)
+-- ============================================================
+function command_division(slot, divId)
+    local st = COMMAND_STATE[slot]
+    return st and st.divisioni and st.divisioni[divId] or nil
+end
+-- ============================================================
+-- FUNZIONE: command_divisionInHolds(slot, divId)
+-- La Divisione è in HOLDS in questa metà turno? (per Fuoco,
+-- Manovre, Mischie)
+-- ============================================================
+function command_divisionInHolds(slot, divId)
+    local d = command_division(slot, divId)
+    return d ~= nil and d.stato == COMMAND_STATO.HOLDS
+end
+-- ============================================================
+-- FUNZIONE: command_forceHolds(slot, divId, motivo)
+-- La Divisione andrà in HOLDS al prossimo Comando dello
+-- schieramento (es. Generale ucciso).
+-- ============================================================
+function command_forceHolds(slot, divId, motivo)
+    COMMAND_FORCED_HOLDS[slot] = COMMAND_FORCED_HOLDS[slot] or {}
+    COMMAND_FORCED_HOLDS[slot][divId] = motivo or "HOLDS forzato"
+end
+-- ============================================================
+-- FUNZIONE: command_allResolved(slot)
+-- Tutte le Divisioni sono ATTIVE o in HOLDS?
+-- ============================================================
+function command_allResolved(slot)
+    local st = COMMAND_STATE[slot]
+    if not st then return true end
+    for _, d in pairs(st.divisioni) do
+        if d.stato ~= COMMAND_STATO.ATTIVA and d.stato ~= COMMAND_STATO.HOLDS then
+            return false
+        end
+    end
+    return true
+end
+-- ============================================================
+-- FUNZIONE: command_reset()
+-- Partita da capo: stato e marker tolti.
+-- ============================================================
+function command_reset()
+    command_clearMarkers(1)
+    command_clearMarkers(2)
+    COMMAND_STATE        = { [1] = nil, [2] = nil }
+    COMMAND_FORCED_HOLDS = { [1] = {}, [2] = {} }
+    COMMAND_PENDING      = nil
+    COMMAND_ROLLING      = false
+    command_redrawPanel()
+end
+
+-- ============================================================
+--                  RITIRO DEL COMANDANTE DI CORPO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: command_corpsDistanceD(slot, divId)
+-- Distanza in D fra il Comandante di Corpo e il Generale, nil
+-- se uno dei due manca dal tavolo.
+-- ============================================================
+function command_corpsDistanceD(slot, divId)
+    local st = COMMAND_STATE[slot]
+    local d  = command_division(slot, divId)
+    if not st or not st.corpo or not d then return nil end
+    local corpo = getObjectFromGUID(st.corpo.guid)
+    local gen   = getObjectFromGUID(d.guid)
+    if not corpo or not gen then return nil end
+    return main_distanceD(corpo, gen)
+end
+-- ============================================================
+-- FUNZIONE: command_canReroll(slot, divId)
+-- Il Corpo può ritirare il test fallito? Ritorna ok, motivo.
+-- ============================================================
+function command_canReroll(slot, divId)
+    local st = COMMAND_STATE[slot]
+    local d  = command_division(slot, divId)
+    if not st or not d or d.stato ~= COMMAND_STATO.FALLITA then
+        return false, "nessun test fallito"
+    end
+    if d.ritiro ~= nil then
+        return false, "già ritirato"
+    end
+    if not st.corpo then
+        return false, "nessun Comandante di Corpo"
+    end
+    if COMMAND_RITIRI_MAX and st.ritiriUsati >= COMMAND_RITIRI_MAX then
+        return false, "ritiri esauriti (" .. COMMAND_RITIRI_MAX .. ")"
+    end
+    local dist = command_corpsDistanceD(slot, divId)
+    if not dist then
+        return false, "Comandante di Corpo non trovato"
+    end
+    if dist > COMMAND_RITIRO_D then
+        return false, "Corpo a " .. main_formatD(dist) .. " (max " .. COMMAND_RITIRO_D .. " D)"
+    end
+    return true, nil
+end
+
+-- ============================================================
+--                            TIRI
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: command_choose(player, slot, divId, tipo)
+-- Dal pannello: prepara il tiro ("tiro" del Generale o
+-- "ritiro" del Corpo) e porta la camera sul vassoio.
+-- ============================================================
+function command_choose(player, slot, divId, tipo)
+    local st = COMMAND_STATE[slot]
+    local d  = command_division(slot, divId)
+    if not st or not d then return end
+
+    if COMMAND_ROLLING then
+        warningToColor("Aspetta che i dadi si fermino", player, "Yellow", 3, false)
+        return
+    end
+
+    local valore, titolo
+    if tipo == "ritiro" then
+        local ok, motivo = command_canReroll(slot, divId)
+        if not ok then
+            warningToColor("Ritiro non possibile: " .. tostring(motivo), player, "Yellow", 4, false)
+            return
+        end
+        valore = st.corpo.valore
+        titolo = "RITIRO DEL CORPO"
+    else
+        if d.stato ~= COMMAND_STATO.DA_TIRARE then return end
+        valore = d.valore
+        titolo = "ATTIVAZIONE"
+    end
+
+    COMMAND_PENDING = { slot = slot, divId = divId, tipo = tipo, valore = valore }
+
+    local righe = {
+        { "Dadi", "1D6" },
+        { tipo == "ritiro" and "Comandante di Corpo" or "Generale", tostring(valore) },
+    }
+    if tipo == "ritiro" then
+        table.insert(righe, { "Primo tiro del Generale", tostring(d.tiro) })
+    end
+    engine_diceClearLastRoll(slot)
+    engine_dicePanelOpen(slot, {
+        titolo      = titolo,
+        sottotitolo = main_sideName(slot) .. " - " .. d.nome,
+        righe       = righe,
+        serve       = "Serve " .. valore .. " o meno",
+    })
+
+    engine_diceCameraZoom(player)
+    warningToColor("Premi Roll sul vassoio dei dadi", player, "Yellow", 4, false)
+    command_redrawPanel()
+end
+-- ============================================================
+-- FUNZIONE: command_onRoll(player, slot)
+-- Bottone 3D Roll durante il Comando (phase.onRoll).
+-- ============================================================
+function command_onRoll(player, slot)
+    if slot ~= TURN.activeSide then
+        warningToColor("Non è il tuo Comando", player, "Yellow", 3, false)
+        return
+    end
+    if COMMAND_ROLLING then
+        warningToColor("Aspetta che i dadi si fermino", player, "Yellow", 3, false)
+        return
+    end
+    local pend = COMMAND_PENDING
+    if not pend or pend.slot ~= slot then
+        warningToColor("Scegli prima la Divisione nel pannello Comando", player, "Yellow", 4, false)
+        return
+    end
+
+    COMMAND_ROLLING = true
+    engine_diceClearLastRoll(slot)
+    engine_diceSetNext(slot, 1, nil)
+
+    engine_diceThrowFromBag(slot, nil, function(risultati)
+        COMMAND_ROLLING = false
+        if ENGINE.phase ~= PHASE.COMMAND then return end
+        COMMAND_PENDING = nil
+        engine_diceCameraReturn(player)
+        command_resolve(slot, pend, risultati[1])
+        command_redrawPanel()
+        callHandler("updateCenterPanel")
+    end, player.color)
+end
+-- ============================================================
+-- FUNZIONE: command_resolve(slot, pend, valoreDado)
+-- Esito del tiro (o del ritiro) di una Divisione.
+-- ============================================================
+function command_resolve(slot, pend, valoreDado)
+    local st = COMMAND_STATE[slot]
+    local d  = command_division(slot, pend.divId)
+    if not st or not d or not valoreDado then return end
+
+    local riuscito = valoreDado <= pend.valore
+    local nome = main_sideName(slot) .. " - " .. d.nome
+
+    if pend.tipo == "ritiro" then
+        d.ritiro = valoreDado
+        st.ritiriUsati = st.ritiriUsati + 1
+        if riuscito then
+            d.stato = COMMAND_STATO.ATTIVA
+            command_outcome(slot, string.format("Ritiro %d su %d: ATTIVA", valoreDado, pend.valore), true)
+            command_announce(slot, nome .. ": ritiro del Corpo riuscito, ATTIVA")
+        else
+            command_outcome(slot, string.format("Ritiro %d su %d: HOLDS", valoreDado, pend.valore), false)
+            command_setHolds(slot, pend.divId, "ritiro fallito")
+            command_announce(slot, nome .. ": ritiro del Corpo fallito, HOLDS")
+        end
+        return
+    end
+
+    d.tiro = valoreDado
+    if riuscito then
+        d.stato = COMMAND_STATO.ATTIVA
+        command_outcome(slot, string.format("%d su %d: ATTIVA", valoreDado, pend.valore), true)
+        command_announce(slot, nome .. ": attivata")
+        return
+    end
+
+    d.stato = COMMAND_STATO.FALLITA
+    local puo, motivo = command_canReroll(slot, pend.divId)
+    if puo then
+        command_outcome(slot, string.format("%d su %d: fallito", valoreDado, pend.valore), false,
+            "Puoi far ritirare il Comandante di Corpo o accettare l'HOLDS")
+        command_announce(slot, nome .. ": test fallito")
+    else
+        command_outcome(slot, string.format("%d su %d: HOLDS", valoreDado, pend.valore), false,
+            "Niente ritiro: " .. tostring(motivo))
+        command_setHolds(slot, pend.divId, "test fallito")
+        command_announce(slot, nome .. ": test fallito, HOLDS (" .. tostring(motivo) .. ")")
+    end
+end
+-- ============================================================
+-- FUNZIONE: command_accept(player, slot, divId)
+-- Il giocatore rinuncia al ritiro: HOLDS.
+-- ============================================================
+function command_accept(player, slot, divId)
+    local d = command_division(slot, divId)
+    if not d or d.stato ~= COMMAND_STATO.FALLITA then return end
+    if COMMAND_PENDING and COMMAND_PENDING.divId == divId and COMMAND_ROLLING then return end
+    if COMMAND_PENDING and COMMAND_PENDING.divId == divId then COMMAND_PENDING = nil end
+    command_setHolds(slot, divId, "test fallito")
+    command_announce(slot, main_sideName(slot) .. " - " .. d.nome .. ": HOLDS")
+    command_redrawPanel()
+end
+-- ============================================================
+-- FUNZIONE: command_setHolds(slot, divId, motivo)
+-- ============================================================
+function command_setHolds(slot, divId, motivo)
+    local d = command_division(slot, divId)
+    if not d then return end
+    d.stato  = COMMAND_STATO.HOLDS
+    d.motivo = motivo
+    command_spawnMarker(slot, divId)
+end
+-- ============================================================
+-- FUNZIONE: command_outcome(slot, testo, riuscito, nota)
+-- Esito nel pannello dadi (visibile a entrambi).
+-- ============================================================
+function command_outcome(slot, testo, riuscito, nota)
+    if not engine_dicePanelIsOpen(slot) then return end
+    engine_dicePanelOutcome(slot, testo, riuscito and DICEPANEL.okColor or DICEPANEL.koColor, nota)
+end
+-- ============================================================
+-- FUNZIONE: command_announce(slot, testo)
+-- Esito in chat a tutti, col colore dello schieramento.
+-- ============================================================
+function command_announce(slot, testo)
+    printToAll("[Comando] " .. testo, main_sideMainColor(slot))
+end
+
+-- ============================================================
+--                         MARKER HOLDS
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: command_spawnMarker(slot, divId)
+-- Testo HOLDS sul tavolo dietro la base del Generale.
+-- ============================================================
+function command_spawnMarker(slot, divId)
+    local d = command_division(slot, divId)
+    local gen = d and getObjectFromGUID(d.guid)
+    if not gen then return end
+
+    local M    = COMMAND_MARKER
+    local meta = main_baseMeta(gen) or {}
+    local prof = meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm
+    local dirZ = (slot == 1) and 1 or -1     -- verso il nemico
+    local p    = gen.getPosition()
+    local z    = p.z - dirZ * main_cmToTts(prof / 2 + M.dietroCm)
+
+    spawnObject({
+        type     = "3DText",
+        position = { p.x, p.y + M.altezzaY, z },
+        rotation = { M.rotX, M.yaw[slot] or 0, 0 },
+        scale    = { M.scala, M.scala, M.scala },
+        sound    = false,
+        callback_function = function(o)
+            if o.TextTool then
+                o.TextTool.setValue(M.testo)
+                o.TextTool.setFontColor(M.colore)
+                o.TextTool.setFontSize(M.fontSize)
+            end
+            o.setName("HOLDS " .. tostring(divId))
+            o.addTag(COMMAND_MARKER_TAG[slot])
+            o.setLock(true)
+            -- Se nel frattempo è iniziato un altro Comando, il marker è vecchio
+            if not command_divisionInHolds(slot, divId) then o.destruct() end
+        end,
+    })
+end
+-- ============================================================
+-- FUNZIONE: command_clearMarkers(slot)
+-- ============================================================
+function command_clearMarkers(slot)
+    local lista = {}
+    for _, o in ipairs(getObjectsWithTag(COMMAND_MARKER_TAG[slot]) or {}) do
+        table.insert(lista, o)
+    end
+    for _, o in ipairs(lista) do
+        o.destruct()
+    end
+end

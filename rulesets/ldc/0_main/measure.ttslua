@@ -1,0 +1,159 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/measure.ttslua
+-- Basi sul tavolo e distanze di gioco.
+--
+-- Come IEF: la distanza regolamentare fra due basi è la minima
+-- bordo-bordo fra i rettangoli DICHIARATI delle basi (misure in
+-- cm delle GMNotes, non getBounds()), solo sul piano XZ. I
+-- calcoli si fanno in pollici; il regolamento ragiona in D
+-- (POLLICI_PER_D), e in D si mostrano le distanze.
+-- ============================================================
+
+-- ============================================================
+--                       BASI SUL TAVOLO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_baseMeta(obj)
+-- Dati di gioco della base (GMNotes scritte allo spawn), nil
+-- se l'oggetto non è una base LDC.
+-- ============================================================
+function main_baseMeta(obj)
+    if not obj or obj.isDestroyed() then return nil end
+    local notes = obj.getGMNotes and obj.getGMNotes() or ""
+    if notes == "" then return nil end
+    local ok, meta = pcall(JSON.decode, notes)
+    if not ok or type(meta) ~= "table" then return nil end
+    return meta
+end
+-- ============================================================
+-- FUNZIONE: main_basesOfSide(slot)
+-- Basi dello schieramento sul tavolo: lista di { obj, meta }.
+-- ============================================================
+function main_basesOfSide(slot)
+    local result = {}
+    for _, obj in ipairs(getObjectsWithTag(DEPLOY_TAG_SIDE[slot]) or {}) do
+        local meta = main_baseMeta(obj)
+        if meta then
+            table.insert(result, { obj = obj, meta = meta })
+        end
+    end
+    return result
+end
+
+-- ============================================================
+--                         DISTANZE
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_ttsToInch(tts)
+-- ============================================================
+function main_ttsToInch(tts)
+    return main_ttsToCm(tts) / CM_PER_POLLICE
+end
+-- ============================================================
+-- FUNZIONE: main_inchToD(pollici)
+-- ============================================================
+function main_inchToD(pollici)
+    return pollici / POLLICI_PER_D
+end
+-- ============================================================
+-- FUNZIONE: main_formatD(d)
+-- Distanza da mostrare: "2,4 D".
+-- ============================================================
+function main_formatD(d)
+    return (string.format("%.1f D", d or 0):gsub("%.", ","))
+end
+-- ============================================================
+-- FUNZIONE: main_baseRect(obj)
+-- Rettangolo dichiarato della base sul piano XZ: 4 angoli
+-- { x, z } in ordine, dalla posizione, dalla rotazione Y e
+-- dalle misure in cm delle GMNotes (default 4 x 3).
+-- ============================================================
+function main_baseRect(obj)
+    local meta = main_baseMeta(obj) or {}
+    local mezzoX = main_cmToTts(meta.fronteCm or CALIBRAZIONE.baseFronteCm) / 2
+    local mezzoZ = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm) / 2
+    local p = obj.getPosition()
+    local a = math.rad(obj.getRotation().y)
+    local cs, sn = math.cos(a), math.sin(a)
+
+    -- Rotazione Y di TTS: X locale -> (cos, -sin), Z locale -> (sin, cos)
+    local function angolo(lx, lz)
+        return { x = p.x + lx * cs + lz * sn, z = p.z - lx * sn + lz * cs }
+    end
+    return {
+        angolo(-mezzoX, -mezzoZ),
+        angolo( mezzoX, -mezzoZ),
+        angolo( mezzoX,  mezzoZ),
+        angolo(-mezzoX,  mezzoZ),
+    }
+end
+
+-- Distanza punto-segmento sul piano XZ
+local function puntoSegmento(p, a, b)
+    local dx, dz = b.x - a.x, b.z - a.z
+    local len2 = dx * dx + dz * dz
+    local t = 0
+    if len2 > 0 then
+        t = ((p.x - a.x) * dx + (p.z - a.z) * dz) / len2
+        t = math.max(0, math.min(1, t))
+    end
+    local qx, qz = a.x + t * dx - p.x, a.z + t * dz - p.z
+    return math.sqrt(qx * qx + qz * qz)
+end
+
+-- I due rettangoli si sovrappongono? (assi separatori)
+local function siSovrappongono(r1, r2)
+    for _, r in ipairs({ r1, r2 }) do
+        for i = 1, 4 do
+            local a, b = r[i], r[i % 4 + 1]
+            local nx, nz = -(b.z - a.z), b.x - a.x
+            local min1, max1, min2, max2 = math.huge, -math.huge, math.huge, -math.huge
+            for _, q in ipairs(r1) do
+                local v = q.x * nx + q.z * nz
+                min1, max1 = math.min(min1, v), math.max(max1, v)
+            end
+            for _, q in ipairs(r2) do
+                local v = q.x * nx + q.z * nz
+                min2, max2 = math.min(min2, v), math.max(max2, v)
+            end
+            if max1 < min2 or max2 < min1 then return false end
+        end
+    end
+    return true
+end
+-- ============================================================
+-- FUNZIONE: main_rectsDistance(r1, r2)
+-- Distanza minima bordo-bordo fra due rettangoli (unità TTS),
+-- 0 se si toccano o si sovrappongono.
+-- ============================================================
+function main_rectsDistance(r1, r2)
+    if siSovrappongono(r1, r2) then return 0 end
+    local best = math.huge
+    for _, coppia in ipairs({ { r1, r2 }, { r2, r1 } }) do
+        local punti, lati = coppia[1], coppia[2]
+        for _, p in ipairs(punti) do
+            for i = 1, 4 do
+                best = math.min(best, puntoSegmento(p, lati[i], lati[i % 4 + 1]))
+            end
+        end
+    end
+    return best
+end
+-- ============================================================
+-- FUNZIONE: main_distanceInches(objA, objB)
+-- Distanza regolamentare fra due basi, in pollici. Unica fonte
+-- per ogni distanza fra basi: non reimplementarla altrove.
+-- ============================================================
+function main_distanceInches(objA, objB)
+    if not objA or not objB then return nil end
+    return main_ttsToInch(main_rectsDistance(main_baseRect(objA), main_baseRect(objB)))
+end
+-- ============================================================
+-- FUNZIONE: main_distanceD(objA, objB)
+-- ============================================================
+function main_distanceD(objA, objB)
+    local pollici = main_distanceInches(objA, objB)
+    return pollici and main_inchToD(pollici) or nil
+end

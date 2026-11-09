@@ -44,6 +44,30 @@
           "elemento_comando": "AUS_LINIE_KOMMANDO"
         }
       ]
+    },
+    {
+      "id": "D2",
+      "nome": "2a Divisione",
+      "generale": {
+        "unit_name": "AUS_D2_GEN",
+        "nome_display": "Generale della 2a Divisione",
+        "valore": 2,
+        "elemento": "AUS_GEN"
+      },
+      "unita": [
+        {
+          "unit_name": "AUS_IR20_FAN",
+          "nome_display": "IR 20 Kaunitz",
+          "tipo": "FAN_LINEA",
+          "morale": 3,
+          "taglia": "grande",
+          "num_basi": 6,
+          "arma": "moschetto",
+          "formazione": "linea",
+          "elemento": "AUS_LINIE",
+          "elemento_comando": "AUS_LINIE_KOMMANDO"
+        }
+      ]
     }
   ],
   "elementi": {

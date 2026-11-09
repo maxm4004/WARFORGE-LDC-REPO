@@ -44,6 +44,30 @@
           "elemento_comando": "FRA_LIGNE_COMANDO"
         }
       ]
+    },
+    {
+      "id": "D2",
+      "nome": "2a Divisione",
+      "generale": {
+        "unit_name": "FRA_D2_GEN",
+        "nome_display": "Generale della 2a Divisione",
+        "valore": 2,
+        "elemento": "FRA_GEN"
+      },
+      "unita": [
+        {
+          "unit_name": "FRA_LIGNE47_FAN",
+          "nome_display": "47e Ligne",
+          "tipo": "FAN_LINEA",
+          "morale": 3,
+          "taglia": "standard",
+          "num_basi": 4,
+          "arma": "moschetto",
+          "formazione": "linea",
+          "elemento": "FRA_LIGNE",
+          "elemento_comando": "FRA_LIGNE_COMANDO"
+        }
+      ]
     }
   ],
   "elementi": {

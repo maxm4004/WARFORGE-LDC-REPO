@@ -1,4 +1,28 @@
 -- ============================================================
 -- WARFORGE LDC — 5_command/state.ttslua
--- Stato della fase (da salvare in 0_main/persistence).
+-- Stato della fase (salvato in 0_main/persistence).
 -- ============================================================
+
+-- Esito del Comando per schieramento, valido per tutta la sua
+-- metà turno (Fuoco, Manovre, Mischie lo leggono con
+-- command_divisionInHolds). Si rifà al suo Comando successivo.
+-- COMMAND_STATE[slot] = {
+--   turno       = ENGINE.turn del Comando,
+--   ordine      = { "D1", "D2", ... },
+--   corpo       = { valore, guid } o nil,
+--   ritiriUsati = 0,
+--   divisioni   = { [id] = { nome, valore, guid, tiro, ritiro, stato, motivo } },
+-- }
+COMMAND_STATE = COMMAND_STATE or { [1] = nil, [2] = nil }
+
+-- Divisioni che vanno in HOLDS al prossimo Comando dello
+-- schieramento (Generale ucciso, Azione Gloriosa):
+-- COMMAND_FORCED_HOLDS[slot][divId] = "motivo"
+COMMAND_FORCED_HOLDS = COMMAND_FORCED_HOLDS or { [1] = {}, [2] = {} }
+
+-- Tiro scelto nel pannello, in attesa del Roll sul vassoio (non
+-- salvato): { slot, divId, tipo = "tiro"|"ritiro", valore }
+COMMAND_PENDING = nil
+
+-- Dadi in volo (non salvato): blocca un secondo Roll
+COMMAND_ROLLING = false

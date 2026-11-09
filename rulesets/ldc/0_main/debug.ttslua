@@ -491,3 +491,63 @@ function debug_offsetFigure(nomeModello)
         end
     end
 end
+
+-- ============================================================
+--                         COMANDO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: debug_comando(divId, stato)
+-- Forza lo stato di una Divisione dello schieramento attivo
+-- ("ATTIVA", "HOLDS", "FALLITA", "DA_TIRARE"); senza argomenti
+-- stampa lo stato del Comando e le distanze dal Corpo.
+-- Es.: /execute debug_comando("D2", "HOLDS")
+-- ============================================================
+function debug_comando(divId, stato)
+    local slot = TURN.activeSide
+    local st = slot and COMMAND_STATE[slot]
+    if not st then
+        print("[DEBUG] nessun Comando per lo schieramento attivo")
+        return
+    end
+
+    if divId and stato then
+        local d = st.divisioni[divId]
+        if not d or not COMMAND_STATO[stato] then
+            print("[DEBUG] Divisione o stato sconosciuti: " .. tostring(divId) .. ", " .. tostring(stato))
+            return
+        end
+        if stato == COMMAND_STATO.HOLDS then
+            command_setHolds(slot, divId, "debug")
+        else
+            d.stato = stato
+        end
+        command_redrawPanel()
+    end
+
+    print(string.format("[DEBUG] Comando %s, turno %s, ritiri usati %d",
+        main_sideName(slot), tostring(st.turno), st.ritiriUsati or 0))
+    for _, id in ipairs(st.ordine) do
+        local d = st.divisioni[id]
+        local dist = command_corpsDistanceD(slot, id)
+        print(string.format("  %s %s: Gen %d, %s, tiro %s, ritiro %s, Corpo a %s",
+            id, d.nome, d.valore, d.stato, tostring(d.tiro), tostring(d.ritiro),
+            dist and main_formatD(dist) or "-"))
+    end
+end
+-- ============================================================
+-- FUNZIONE: debug_distanza()
+-- Distanza bordo-bordo fra le due basi selezionate, in D e
+-- pollici.
+-- ============================================================
+function debug_distanza()
+    local sel = debug_selectedObjects()
+    if #sel ~= 2 then
+        print("[DEBUG] seleziona esattamente due basi")
+        return
+    end
+    local a, b = sel[1].obj, sel[2].obj
+    local pollici = main_distanceInches(a, b)
+    print(string.format("[DEBUG] %s - %s: %s (%.2f\")",
+        a.getName(), b.getName(), main_formatD(main_inchToD(pollici)), pollici))
+end

@@ -4,12 +4,27 @@
 
 -- ============================================================
 -- FUNZIONE: before_command(phaseName, phase)
+-- Nuovo Comando dello schieramento attivo: elenco delle
+-- Divisioni dal tavolo, pannello acceso.
 -- ============================================================
 function before_command(phaseName, phase)
+    local slot = TURN.activeSide
+    if slot then
+        command_start(slot)
+        main_warningToSide(slot, "Tira per ogni Divisione dal pannello Comando", "Yellow", 5)
+    end
     callHandler("updateCenterPanel")
 end
 -- ============================================================
 -- FUNZIONE: after_command(phaseName, phase)
+-- Gli stati restano per tutta la metà turno; si spengono
+-- pannello e tiro in sospeso.
 -- ============================================================
 function after_command(phaseName, phase)
+    COMMAND_PENDING = nil
+    COMMAND_ROLLING = false
+    if TURN.activeSide then
+        engine_dicePanelCloseAfter(TURN.activeSide, COMMAND_DICEPANEL_CLOSE)
+    end
+    UI.setAttribute("cmdPanel", "active", "false")
 end

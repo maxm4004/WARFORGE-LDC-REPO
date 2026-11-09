@@ -1,4 +1,70 @@
 -- ============================================================
 -- WARFORGE LDC — 5_command/constants.ttslua
 -- Costanti della fase (valori fissi).
+-- Regolamento 7.1-7.2, QRS "Fase di comando".
 -- ============================================================
+
+-- Stato di ogni Divisione/Brigata nella fase di Comando
+COMMAND_STATO = {
+    DA_TIRARE = "DA_TIRARE",   -- il Generale non ha ancora tirato
+    FALLITA   = "FALLITA",     -- test fallito, si può ritirare o accettare
+    ATTIVA    = "ATTIVA",      -- attivata
+    HOLDS     = "HOLDS",       -- in HOLDS fino al prossimo Comando
+}
+
+-- Il Comandante di Corpo ritira un test fallito se è entro
+-- questa distanza dal Generale (D, misura bordo-bordo come IEF)
+COMMAND_RITIRO_D = 4
+
+-- Ritiri del Comandante di Corpo per metà turno (QRS: massimo 3;
+-- regolamento: uno per ogni Generale fallito). nil = nessun limite
+COMMAND_RITIRI_MAX = 3
+
+-- Secondi prima di chiudere il pannello dadi a fine fase
+COMMAND_DICEPANEL_CLOSE = 3
+
+-- Pannello Comando (lista delle Divisioni)
+COMMAND_PANEL = {
+    righeMax      = 8,          -- Divisioni/Brigate mostrate al massimo
+    width         = 470,
+    rowHeight     = 32,
+    headerHeight  = 34,
+    footerHeight  = 24,
+    padding       = 10,
+    spacing       = 4,
+    rectAlignment = "MiddleLeft",
+    offsetXY      = "20 60",
+    bg            = "rgba(0,0,0,0.70)",
+    titleColor    = "#FFD833",
+    textColor     = "White",
+    noteColor     = "#BBBBBB",
+    -- colore del testo di ogni stato
+    statoColor = {
+        DA_TIRARE = "#BBBBBB",
+        FALLITA   = "#FFB347",
+        ATTIVA    = "#5BD35B",
+        HOLDS     = "#FF6B6B",
+    },
+    statoTesto = {
+        DA_TIRARE = "da tirare",
+        FALLITA   = "fallito",
+        ATTIVA    = "ATTIVA",
+        HOLDS     = "HOLDS",
+    },
+}
+
+-- Marker HOLDS: testo 3D sul tavolo dietro la base del Generale
+-- (la cosa più semplice per ora; da tarare in TTS)
+COMMAND_MARKER = {
+    testo     = "HOLDS",
+    colore    = { r = 1, g = 0.15, b = 0.15 },
+    fontSize  = 64,
+    dietroCm  = 2,            -- dal bordo posteriore della base del Generale
+    altezzaY  = 0.15,         -- sopra il tavolo
+    rotX      = 90,           -- disteso sul tavolo
+    yaw       = { [1] = 0, [2] = 180 },   -- leggibile dal proprio lato
+    scala     = 1,
+}
+
+-- Tag dei marker HOLDS, per schieramento
+COMMAND_MARKER_TAG = { [1] = "ldc_holds1", [2] = "ldc_holds2" }

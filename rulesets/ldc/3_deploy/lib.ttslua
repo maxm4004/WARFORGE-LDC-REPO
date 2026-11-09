@@ -299,11 +299,13 @@ end
 -- ============================================================
 function deploy_metadata(slot, army, voce)
     local u = voce.unita
+    local fronteCm, profonditaCm = deploy_baseCm(army, voce.elemento)
     return {
         side        = slot,
         armyTag     = army.tag,
         ruolo       = voce.ruolo,
         divisione   = voce.divisione and voce.divisione.id or nil,
+        divisioneNome = voce.divisione and voce.divisione.nome or nil,
         unitName    = u.unit_name,
         unitKey     = voce.unitKey,
         nomeDisplay = u.nome_display,
@@ -317,6 +319,9 @@ function deploy_metadata(slot, army, voce)
         baseSeq     = voce.seq,
         comando     = (voce.seq == 1 and u.elemento_comando ~= nil) or nil,
         elemento    = voce.elemento,
+        -- misure dichiarate della base (distanze bordo-bordo)
+        fronteCm     = fronteCm,
+        profonditaCm = profonditaCm,
     }
 end
 -- ============================================================
