@@ -377,7 +377,8 @@ end
 -- ============================================================
 -- FUNZIONE: main_spawnStrip(slot)
 -- Fascia di spawn fuori dal piano verde, fra il suo bordo e il
--- bordo del tavolo, larga quanto il piano verde. nil se fra i
+-- bordo del tavolo, larga quanto il piano verde o fino ai bordi
+-- laterali del tavolo (SPAWN.finoAlTavolo). nil se fra i
 -- due non c'è spazio.
 -- ============================================================
 function main_spawnStrip(slot)
@@ -400,11 +401,18 @@ function main_spawnStrip(slot)
         return nil
     end
 
+    -- In larghezza: quanto il piano verde, o fino ai bordi del
+    -- tavolo (meno il margine) con SPAWN.finoAlTavolo
+    local minX, maxX = verde.minX, verde.maxX
+    if SPAWN.finoAlTavolo then
+        minX, maxX = tavolo.minX + SPAWN.margineTavolo, tavolo.maxX - SPAWN.margineTavolo
+    end
+
     return {
-        cx = verde.cx, cz = (minZ + maxZ) / 2,
-        minX = verde.minX, maxX = verde.maxX,
+        cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2,
+        minX = minX, maxX = maxX,
         minZ = minZ, maxZ = maxZ,
-        larghezza = verde.larghezza,
+        larghezza = maxX - minX,
         profondita = profondita,
         y = tavolo.y,
         -- riga di partenza: il lato della fascia vicino al verde

@@ -144,6 +144,7 @@ CM_PER_POLLICE = 2.54
 SPAWN = {
     distanzaDalVerde = 1.0,   -- spazio fra il piano verde e la fascia
     margineTavolo    = 0.5,   -- spazio fra la fascia e il bordo del tavolo
+    finoAlTavolo     = true,  -- larga fino ai bordi laterali del tavolo (false: quanto il piano verde)
     -- linee disegnate sul tavolo attorno alle fasce
     linee        = true,
     lineeSpessore = 0.3,
