@@ -143,8 +143,7 @@ function fire_baseButtons(obj, u, slot)
                    tooltip = "Annulla il tiro (prima del Roll)" } }
     end
     if FIRE_STATE.sparato[u.key] then
-        return { { label = "SPARATO", click = "main_baseButtonNoop", color = B.annullaColor,
-                   tooltip = "Ha gia' sparato: non potra' muovere" } }
+        return {}   -- il fumo davanti alle basi segna chi ha sparato
     end
     if fire_weapon(u) and not FIRE_SEL and not FIRE_PENDING then
         return { { label = "FUOCO", click = "fire_clickFuoco",
@@ -331,6 +330,7 @@ function fire_resolve(slot, pend, risultati)
 
     -- Tiro normale
     FIRE_STATE.sparato[pend.tiratore] = true
+    fire_spawnSmoke(pend.tiratore)
     local colpiti = 0
     for _, v in ipairs(risultati) do
         if v >= pend.soglia then colpiti = colpiti + 1 end
@@ -380,4 +380,79 @@ end
 -- ============================================================
 function fire_hasFired(unitKey)
     return FIRE_STATE and FIRE_STATE.sparato and FIRE_STATE.sparato[unitKey] == true
+end
+
+-- ============================================================
+--                         FUMO DEL TIRO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: fire_smokeTemplate(nome)
+-- Oggetto sul tavolo da copiare (nome o tag uguale), o nil.
+-- ============================================================
+function fire_smokeTemplate(nome)
+    for _, o in ipairs(getObjectsWithTag(nome) or {}) do return o end
+    for _, o in ipairs(getAllObjects()) do
+        if o.getName() == nome and not o.hasTag(FIRE_SMOKE.tag) then return o end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: fire_spawnSmoke(unitKey)
+-- Un fumo davanti a ogni base del primo rango dell'unità.
+-- ============================================================
+function fire_spawnSmoke(unitKey)
+    local u = main_unit(unitKey)
+    if not u then return end
+    local S = FIRE_SMOKE
+    local nome = (u.meta.arma == "cannone") and S.cannone or S.moschetto
+    local modello = fire_smokeTemplate(nome)
+    local url = (not modello) and main_uiIconUrl(nome) or nil
+    if not modello and not url then
+        print("[FUOCO] asset '" .. nome .. "' non trovato: niente fumo")
+        return
+    end
+
+    local prof = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
+    for _, b in ipairs(main_unitFirstRank(u)) do
+        local p, r = b.getPosition(), b.getRotation()
+        local f = main_baseForward(b)
+        local d = prof / 2 + main_cmToTts(S.davantiCm)
+        local pos = { x = p.x + f.x * d, y = p.y + S.altezza, z = p.z + f.z * d }
+        local rot = { x = 0, y = (r.y + S.rotY) % 360, z = 0 }
+        local function pronto(o)
+            o.addTag(S.tag)
+            o.setLock(true)
+        end
+        if modello then
+            local data = modello.getData()
+            data.Tags = nil
+            data.Transform.posX, data.Transform.posY, data.Transform.posZ = pos.x, pos.y, pos.z
+            data.Transform.rotX, data.Transform.rotY, data.Transform.rotZ = rot.x, rot.y, rot.z
+            data.GUID = nil
+            spawnObjectData({ data = data, callback_function = pronto })
+        else
+            spawnObjectData({
+                data = {
+                    Name = "Custom_Token",
+                    Nickname = nome,
+                    Transform = { posX = pos.x, posY = pos.y, posZ = pos.z, rotX = rot.x, rotY = rot.y, rotZ = rot.z,
+                                  scaleX = S.scala, scaleY = 1, scaleZ = S.scala },
+                    CustomImage = {
+                        ImageURL = url, ImageSecondaryURL = "", ImageScalar = 1, WidthScale = 0,
+                        CustomToken = { Thickness = 0.05, MergeDistancePixels = 15, StandUp = false, Stackable = false },
+                    },
+                },
+                callback_function = pronto,
+            })
+        end
+    end
+end
+-- ============================================================
+-- FUNZIONE: fire_clearSmoke()
+-- ============================================================
+function fire_clearSmoke()
+    local lista = {}
+    for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.tag) or {}) do table.insert(lista, o) end
+    for _, o in ipairs(lista) do o.destruct() end
 end

@@ -19,5 +19,6 @@ function after_melee(phaseName, phase)
     MELEE_PENDING = nil
     MELEE_ROLLING = false
     for slot = 1, 2 do engine_dicePanelCloseAfter(slot, MELEE.dicepanelClose) end
+    fire_clearSmoke()
     main_endHalfTurn()
 end

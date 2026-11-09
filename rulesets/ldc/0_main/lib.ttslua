@@ -216,6 +216,7 @@ function main_restart()
 
     -- Marker e stato del Comando, eserciti spawnati tolti dal tavolo
     command_reset()
+    fire_clearSmoke()
     main_unitsReset()
     deploy_clearAll()
 
