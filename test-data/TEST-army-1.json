@@ -1,9 +1,9 @@
 {
-  "versione": "1.0-LDC",
+  "versione": "1.1-LDC",
   "tag": "FRA",
   "nome": "Francesi (test)",
-  "comandante_corpo": {
-    "unit_name": "FRA_CORPO_GEN",
+  "comandante": {
+    "unit_name": "FRA_CIC_GEN",
     "nome_display": "Comandante di Corpo",
     "valore": 4,
     "elemento": "FRA_GEN"
@@ -11,61 +11,140 @@
   "divisioni": [
     {
       "id": "D1",
-      "nome": "1a Divisione",
+      "nome": "1a Divisione Morand",
       "generale": {
         "unit_name": "FRA_D1_GEN",
-        "nome_display": "Generale della 1a Divisione",
+        "nome_display": "Generale della 1a Divisione Morand",
         "valore": 3,
         "elemento": "FRA_GEN"
       },
-      "unita": [
+      "brigate": [
         {
-          "unit_name": "FRA_LIGNE45_FAN",
-          "nome_display": "45e Ligne",
-          "tipo": "FAN_LINEA",
-          "morale": 3,
-          "taglia": "standard",
-          "num_basi": 4,
-          "arma": "moschetto",
-          "formazione": "linea",
-          "elemento": "FRA_LIGNE",
-          "elemento_comando": "FRA_LIGNE_COMANDO"
+          "id": "B1",
+          "nome": "Brigata d'Honnières",
+          "generale": {
+            "unit_name": "FRA_D1B1_GEN",
+            "nome_display": "Generale della Brigata d'Honnières",
+            "valore": 3,
+            "elemento": "FRA_GEN"
+          },
+          "reggimenti": [
+            {
+              "id": "R45",
+              "nome": "45e Ligne",
+              "unita": [
+                {
+                  "unit_name": "FRA_R45_1_FAN",
+                  "nome_display": "1/45e Ligne",
+                  "tipo": "FAN_LINEA",
+                  "morale": 3,
+                  "taglia": "standard",
+                  "num_basi": 4,
+                  "arma": "moschetto",
+                  "formazione": "linea",
+                  "elemento": "FRA_LIGNE",
+                  "elemento_comando": "FRA_LIGNE_COMANDO"
+                },
+                {
+                  "unit_name": "FRA_R45_2_FAN",
+                  "nome_display": "2/45e Ligne",
+                  "tipo": "FAN_LINEA",
+                  "morale": 4,
+                  "taglia": "standard",
+                  "num_basi": 4,
+                  "arma": "moschetto",
+                  "formazione": "linea",
+                  "elemento": "FRA_LIGNE",
+                  "elemento_comando": "FRA_LIGNE_COMANDO"
+                }
+              ]
+            }
+          ]
         },
         {
-          "unit_name": "FRA_LIGNE46_FAN",
-          "nome_display": "46e Ligne",
-          "tipo": "FAN_LINEA",
-          "morale": 4,
-          "taglia": "standard",
-          "num_basi": 4,
-          "arma": "moschetto",
-          "formazione": "linea",
-          "elemento": "FRA_LIGNE",
-          "elemento_comando": "FRA_LIGNE_COMANDO"
+          "id": "B2",
+          "nome": "Brigata Gilly",
+          "generale": {
+            "unit_name": "FRA_D1B2_GEN",
+            "nome_display": "Generale della Brigata Gilly",
+            "valore": 2,
+            "elemento": "FRA_GEN"
+          },
+          "reggimenti": [
+            {
+              "id": "R46",
+              "nome": "46e Ligne",
+              "unita": [
+                {
+                  "unit_name": "FRA_R46_1_FAN",
+                  "nome_display": "1/46e Ligne",
+                  "tipo": "FAN_LINEA",
+                  "morale": 3,
+                  "taglia": "standard",
+                  "num_basi": 4,
+                  "arma": "moschetto",
+                  "formazione": "linea",
+                  "elemento": "FRA_LIGNE",
+                  "elemento_comando": "FRA_LIGNE_COMANDO"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
     {
       "id": "D2",
-      "nome": "2a Divisione",
+      "nome": "2a Divisione Friant",
       "generale": {
         "unit_name": "FRA_D2_GEN",
-        "nome_display": "Generale della 2a Divisione",
-        "valore": 2,
+        "nome_display": "Generale della 2a Divisione Friant",
+        "valore": 3,
         "elemento": "FRA_GEN"
       },
+      "brigate": [
+        {
+          "id": "B1",
+          "nome": "Brigata Kister",
+          "generale": {
+            "unit_name": "FRA_D2B1_GEN",
+            "nome_display": "Generale della Brigata Kister",
+            "valore": 2,
+            "elemento": "FRA_GEN"
+          },
+          "reggimenti": [
+            {
+              "id": "R47",
+              "nome": "47e Ligne",
+              "unita": [
+                {
+                  "unit_name": "FRA_R47_1_FAN",
+                  "nome_display": "1/47e Ligne",
+                  "tipo": "FAN_LINEA",
+                  "morale": 3,
+                  "taglia": "standard",
+                  "num_basi": 4,
+                  "arma": "moschetto",
+                  "formazione": "linea",
+                  "elemento": "FRA_LIGNE",
+                  "elemento_comando": "FRA_LIGNE_COMANDO"
+                }
+              ]
+            }
+          ]
+        }
+      ],
       "unita": [
         {
-          "unit_name": "FRA_LIGNE47_FAN",
-          "nome_display": "47e Ligne",
-          "tipo": "FAN_LINEA",
+          "unit_name": "FRA_BAT1_ART",
+          "nome_display": "Batteria a piedi (segnaposto)",
+          "tipo": "ART_PIEDI",
           "morale": 3,
           "taglia": "standard",
-          "num_basi": 4,
-          "arma": "moschetto",
-          "formazione": "linea",
-          "elemento": "FRA_LIGNE",
-          "elemento_comando": "FRA_LIGNE_COMANDO"
+          "num_basi": 2,
+          "arma": "cannone",
+          "formazione": "schierata",
+          "elemento": "FRA_LIGNE"
         }
       ]
     }

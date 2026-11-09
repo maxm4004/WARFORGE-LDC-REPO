@@ -6,7 +6,7 @@
 -- FUNZIONE: command_btn(player, value, id, buttonConfig)
 -- "Comando completato": lo schieramento attivo chiude la fase
 -- (solo lui arriva qui: main_canUseButton, modalità ACTIVE),
--- solo quando tutte le Divisioni sono ATTIVE o in HOLDS.
+-- solo quando tutte le Brigate sono ATTIVE o in HOLDS.
 -- ============================================================
 function command_btn(player, value, id, buttonConfig)
     local slot = TURN.activeSide
@@ -15,7 +15,7 @@ function command_btn(player, value, id, buttonConfig)
         return false
     end
     if not command_allResolved(slot) then
-        warningToColor("Prima tira per tutte le Divisioni (e decidi sui test falliti)", player, "Yellow", 5, false)
+        warningToColor("Prima tira per tutte le Brigate (e decidi sui test falliti)", player, "Yellow", 5, false)
         return false
     end
     return true
@@ -28,37 +28,36 @@ end
 
 -- ============================================================
 -- FUNZIONE: command_rowClick(player, id, prefisso)
--- Divisione della riga cliccata, se il click è valido.
--- Ritorna slot, divId.
+-- Gruppo della riga cliccata, se il click è valido.
+-- Ritorna slot, key.
 -- ============================================================
 function command_rowClick(player, id, prefisso)
     if not ENGINE or ENGINE.phase ~= PHASE.COMMAND or ENGINE.transitionPending then return nil end
     local slot = TURN.activeSide
     if not player or not main_colorInSide(player.color, slot) then return nil end
     local i = tonumber((id or ""):match("^" .. prefisso .. "(%d+)$"))
-    local st = COMMAND_STATE[slot]
-    local divId = i and st and st.ordine[i]
-    if not divId then return nil end
-    return slot, divId
+    local key = i and COMMAND_ROWS[i]
+    if not key or not command_group(slot, key) then return nil end
+    return slot, key
 end
 -- ============================================================
 -- FUNZIONE: command_clickTira(player, value, id)
 -- ============================================================
 function command_clickTira(player, value, id)
-    local slot, divId = command_rowClick(player, id, "cmdTira")
-    if slot then command_choose(player, slot, divId, "tiro") end
+    local slot, key = command_rowClick(player, id, "cmdTira")
+    if slot then command_choose(player, slot, key, "tiro") end
 end
 -- ============================================================
 -- FUNZIONE: command_clickRitira(player, value, id)
 -- ============================================================
 function command_clickRitira(player, value, id)
-    local slot, divId = command_rowClick(player, id, "cmdRitira")
-    if slot then command_choose(player, slot, divId, "ritiro") end
+    local slot, key = command_rowClick(player, id, "cmdRitira")
+    if slot then command_choose(player, slot, key, "ritiro") end
 end
 -- ============================================================
 -- FUNZIONE: command_clickHolds(player, value, id)
 -- ============================================================
 function command_clickHolds(player, value, id)
-    local slot, divId = command_rowClick(player, id, "cmdHolds")
-    if slot then command_accept(player, slot, divId) end
+    local slot, key = command_rowClick(player, id, "cmdHolds")
+    if slot then command_accept(player, slot, key) end
 end

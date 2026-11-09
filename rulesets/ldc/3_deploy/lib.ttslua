@@ -4,10 +4,13 @@
 -- claude/LDC_CONTRATTO_JSON.md) nella fascia di spawn dello
 -- schieramento.
 --
--- Disposizione: Divisioni affiancate, unità della Divisione in
--- linea una accanto all'altra (da sinistra, dal punto di vista
--- dello schieramento), generale dietro la sua Divisione,
--- comandante di corpo dietro il centro dell'esercito.
+-- Struttura: Comandante (CiC, facoltativo) → Divisioni →
+-- Brigate → Reggimenti → unità; unità anche direttamente nella
+-- Brigata o nella Divisione (senza Brigata).
+-- Disposizione: Divisioni affiancate, Brigate affiancate, unità
+-- in linea (da sinistra, dal punto di vista dello
+-- schieramento); dietro i Generali di Brigata, poi quelli di
+-- Divisione, poi il Comandante.
 -- Basi: la .1 di ogni unità è la base di comando
 -- (elemento_comando), le altre sono standard (elemento).
 -- ============================================================
@@ -64,11 +67,56 @@ function deploy_unitWidthCm(army, unita)
     return (unita.num_basi or 1) * fronte
 end
 -- ============================================================
+-- FUNZIONE: deploy_armyGroups(army)
+-- Struttura dell'esercito in gruppi di attivazione, in ordine:
+-- per ogni Divisione le sue Brigate, poi le unità senza
+-- Brigata (attivate dal Generale di Divisione).
+-- Ritorna lista di Divisioni:
+--   { div, ord, gruppi = { { brigata (o nil), ord, generale,
+--       unita = { { unita, reggimento } } } } }
+-- ============================================================
+function deploy_armyGroups(army)
+    local out = {}
+    for d, div in ipairs(army.divisioni or {}) do
+        local D = { div = div, ord = d, gruppi = {} }
+
+        for b, brig in ipairs(div.brigate or {}) do
+            local G = { brigata = brig, ord = b, generale = brig.generale, unita = {} }
+            for _, reg in ipairs(brig.reggimenti or {}) do
+                for _, u in ipairs(reg.unita or {}) do
+                    table.insert(G.unita, { unita = u, reggimento = reg })
+                end
+            end
+            for _, u in ipairs(brig.unita or {}) do
+                table.insert(G.unita, { unita = u, reggimento = nil })
+            end
+            table.insert(D.gruppi, G)
+        end
+
+        -- Unità direttamente sotto la Divisione (es. batterie)
+        if div.unita and #div.unita > 0 then
+            local G = { brigata = nil, ord = #D.gruppi + 1, generale = nil, unita = {} }
+            for _, u in ipairs(div.unita) do
+                table.insert(G.unita, { unita = u, reggimento = nil })
+            end
+            table.insert(D.gruppi, G)
+        end
+
+        table.insert(out, D)
+    end
+    return out
+end
+-- ============================================================
 -- FUNZIONE: deploy_planLayout(slot, army)
 -- Posizioni di tutte le basi: lista di
--- { ruolo, unita, divisione, seq, elemento, x, z }
--- (x, z = centro della base in unità TTS). nil se manca la
--- fascia di spawn.
+-- { ruolo, unita, divisione, brigata, reggimento, seq,
+--   elemento, x, z } (x, z = centro della base in unità TTS).
+-- nil se manca la fascia di spawn.
+--
+-- In fila, da sinistra: Divisioni, dentro le Brigate (poi le
+-- unità senza Brigata), dentro le unità in linea. Dietro: una
+-- fila di Generali di Brigata (al centro della loro Brigata),
+-- una di Generali di Divisione, poi il Comandante.
 -- ============================================================
 function deploy_planLayout(slot, army)
     local fascia = main_spawnStrip(slot)
@@ -77,17 +125,20 @@ function deploy_planLayout(slot, army)
         return nil
     end
 
-    local L    = DEPLOY_LAYOUT
-    local cm   = main_cmToTts
-    local divs = army.divisioni or {}
+    local L     = DEPLOY_LAYOUT
+    local cm    = main_cmToTts
+    local struttura = deploy_armyGroups(army)
 
-    -- Larghezza totale (cm): unità, spazi fra unità e Divisioni
+    -- Larghezza totale (cm)
     local totale = 0
-    for d, div in ipairs(divs) do
+    for d, D in ipairs(struttura) do
         if d > 1 then totale = totale + L.gapDivisioneCm end
-        for u, unita in ipairs(div.unita or {}) do
-            if u > 1 then totale = totale + L.gapUnitaCm end
-            totale = totale + deploy_unitWidthCm(army, unita)
+        for g, G in ipairs(D.gruppi) do
+            if g > 1 then totale = totale + L.gapBrigataCm end
+            for u, voce in ipairs(G.unita) do
+                if u > 1 then totale = totale + L.gapUnitaCm end
+                totale = totale + deploy_unitWidthCm(army, voce.unita)
+            end
         end
     end
 
@@ -106,64 +157,86 @@ function deploy_planLayout(slot, army)
     local xInizio = fascia.cx - dirX * cm(totale) / 2
 
     local piano = {}
+    local generali = {}         -- { voce, centro (cm), fila }
     local cursore = 0           -- cm dall'inizio, verso destra
     local profMax = 0           -- profondità massima delle unità (cm)
-    local profGen = 0           -- profondità massima delle basi dei generali (cm)
 
-    for d, div in ipairs(divs) do
+    for d, D in ipairs(struttura) do
         if d > 1 then cursore = cursore + L.gapDivisioneCm end
         local divInizio = cursore
 
-        for u, unita in ipairs(div.unita or {}) do
-            if u > 1 then cursore = cursore + L.gapUnitaCm end
+        for g, G in ipairs(D.gruppi) do
+            if g > 1 then cursore = cursore + L.gapBrigataCm end
+            local brigInizio = cursore
 
-            for seq = 1, (unita.num_basi or 1) do
-                local elemento = (seq == 1 and unita.elemento_comando) or unita.elemento
-                local fronte, prof = deploy_baseCm(army, elemento)
-                profMax = math.max(profMax, prof)
-                table.insert(piano, {
-                    ruolo     = DEPLOY_RUOLO.UNITA,
-                    unita     = unita,
-                    divisione = div,
-                    seq       = seq,
-                    elemento  = elemento,
-                    x = xInizio + dirX * cm(cursore + fronte / 2),
-                    z = zFronte - dirZ * cm(prof / 2),
-                })
-                cursore = cursore + fronte
+            for u, voce in ipairs(G.unita) do
+                if u > 1 then cursore = cursore + L.gapUnitaCm end
+                local unita = voce.unita
+                for seq = 1, (unita.num_basi or 1) do
+                    local elemento = (seq == 1 and unita.elemento_comando) or unita.elemento
+                    local fronte, prof = deploy_baseCm(army, elemento)
+                    profMax = math.max(profMax, prof)
+                    table.insert(piano, {
+                        ruolo      = DEPLOY_RUOLO.UNITA,
+                        unita      = unita,
+                        divisione  = D,
+                        brigata    = G,
+                        reggimento = voce.reggimento,
+                        seq        = seq,
+                        elemento   = elemento,
+                        x = xInizio + dirX * cm(cursore + fronte / 2),
+                        z = 0,   -- fissata dopo, quando si conosce profMax
+                        prof = prof,
+                    })
+                    cursore = cursore + fronte
+                end
+            end
+
+            if G.generale then
+                table.insert(generali, { fila = 1, centro = (brigInizio + cursore) / 2, voce = {
+                    ruolo = DEPLOY_RUOLO.GEN_BRIGATA, unita = G.generale,
+                    divisione = D, brigata = G, seq = 1, elemento = G.generale.elemento } })
             end
         end
 
-        -- Generale dietro il centro della sua Divisione
-        if div.generale then
-            local _, prof = deploy_baseCm(army, div.generale.elemento)
-            local centro = (divInizio + cursore) / 2
-            profGen = math.max(profGen, prof)
-            table.insert(piano, {
-                ruolo     = DEPLOY_RUOLO.GENERALE,
-                unita     = div.generale,
-                divisione = div,
-                seq       = 1,
-                elemento  = div.generale.elemento,
-                x = xInizio + dirX * cm(centro),
-                z = zFronte - dirZ * cm(profMax + L.gapGeneraliCm + prof / 2),
-            })
+        if D.div.generale then
+            table.insert(generali, { fila = 2, centro = (divInizio + cursore) / 2, voce = {
+                ruolo = DEPLOY_RUOLO.GEN_DIVISIONE, unita = D.div.generale,
+                divisione = D, seq = 1, elemento = D.div.generale.elemento } })
         end
     end
 
-    -- Comandante di corpo dietro il centro dell'esercito, una
-    -- fila dietro i generali
-    if army.comandante_corpo then
-        local _, prof = deploy_baseCm(army, army.comandante_corpo.elemento)
-        table.insert(piano, {
-            ruolo     = DEPLOY_RUOLO.CORPO,
-            unita     = army.comandante_corpo,
-            divisione = nil,
-            seq       = 1,
-            elemento  = army.comandante_corpo.elemento,
-            x = xInizio + dirX * cm(totale / 2),
-            z = zFronte - dirZ * cm(profMax + L.gapGeneraliCm + profGen + L.gapGeneraliCm + prof / 2),
-        })
+    -- Comandante (CiC) dietro il centro dell'esercito
+    if army.comandante then
+        table.insert(generali, { fila = 3, centro = totale / 2, voce = {
+            ruolo = DEPLOY_RUOLO.COMANDANTE, unita = army.comandante,
+            seq = 1, elemento = army.comandante.elemento } })
+    end
+
+    -- Basi delle unità allineate sul fronte
+    for _, voce in ipairs(piano) do
+        voce.z = zFronte - dirZ * cm(voce.prof / 2)
+        voce.prof = nil
+    end
+
+    -- File dei Generali: profondità di ogni fila
+    local profFila = { 0, 0, 0 }
+    for _, gen in ipairs(generali) do
+        local _, prof = deploy_baseCm(army, gen.voce.elemento)
+        gen.prof = prof
+        profFila[gen.fila] = math.max(profFila[gen.fila], prof)
+    end
+    local inizioFila = {}
+    local dietro = profMax + L.gapGeneraliCm
+    for fila = 1, 3 do
+        inizioFila[fila] = dietro
+        if profFila[fila] > 0 then dietro = dietro + profFila[fila] + L.gapGeneraliCm end
+    end
+    for _, gen in ipairs(generali) do
+        local voce = gen.voce
+        voce.x = xInizio + dirX * cm(gen.centro)
+        voce.z = zFronte - dirZ * cm(inizioFila[gen.fila] + gen.prof / 2)
+        table.insert(piano, voce)
     end
 
     return piano
@@ -299,13 +372,22 @@ end
 -- ============================================================
 function deploy_metadata(slot, army, voce)
     local u = voce.unita
+    local D, G, R = voce.divisione, voce.brigata, voce.reggimento
+    local brig = G and G.brigata
     local fronteCm, profonditaCm = deploy_baseCm(army, voce.elemento)
     return {
         side        = slot,
         armyTag     = army.tag,
         ruolo       = voce.ruolo,
-        divisione   = voce.divisione and voce.divisione.id or nil,
-        divisioneNome = voce.divisione and voce.divisione.nome or nil,
+        -- appartenenza (ord = posizione nel JSON, per l'ordine)
+        divisione     = D and D.div.id or nil,
+        divisioneNome = D and D.div.nome or nil,
+        divisioneOrd  = D and D.ord or nil,
+        brigata       = brig and brig.id or nil,
+        brigataNome   = brig and brig.nome or nil,
+        brigataOrd    = G and G.ord or nil,
+        reggimento     = R and R.id or nil,
+        reggimentoNome = R and R.nome or nil,
         unitName    = u.unit_name,
         unitKey     = voce.unitKey,
         nomeDisplay = u.nome_display,

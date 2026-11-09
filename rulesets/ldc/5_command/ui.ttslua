@@ -1,9 +1,10 @@
 -- ============================================================
 -- WARFORGE LDC — 5_command/ui.ttslua
--- Pannello Comando: una riga per Divisione/Brigata dello
--- schieramento attivo, con Generale, stato e bottoni
--- Tira / Ritira (Corpo) / HOLDS. Lo vedono tutti; i bottoni
--- solo lo schieramento attivo.
+-- Pannello Comando: per ogni Divisione una riga di intestazione
+-- (nome e Generale di Divisione), poi una riga per Brigata (e
+-- una per le unità senza Brigata) con Generale, stato e bottoni
+-- Tira / CiC (ritiro) / HOLDS. Lo vedono tutti; i bottoni solo
+-- lo schieramento attivo.
 -- Righe fisse (COMMAND_PANEL.righeMax): si accendono quelle
 -- che servono.
 -- ============================================================
@@ -35,9 +36,9 @@ function command_panelXml()
                       alignment="MiddleLeft" preferredWidth="110"/>
                 <Button id="cmdTira%d" text="Tira" fontSize="12" preferredWidth="50"
                         color="#3A6EA5" textColor="White" onClick="command_clickTira" active="false"/>
-                <Button id="cmdRitira%d" text="Corpo" fontSize="12" preferredWidth="50"
+                <Button id="cmdRitira%d" text="CiC" fontSize="12" preferredWidth="50"
                         color="#B8860B" textColor="White" onClick="command_clickRitira" active="false"
-                        tooltip="Ritiro del Comandante di Corpo" tooltipPosition="Above"/>
+                        tooltip="Ritiro del CiC" tooltipPosition="Above"/>
                 <Button id="cmdHolds%d" text="HOLDS" fontSize="12" preferredWidth="50"
                         color="#A33A3A" textColor="White" onClick="command_clickHolds" active="false"
                         tooltip="Accetta l'HOLDS" tooltipPosition="Above"/>
@@ -70,27 +71,50 @@ function command_rowText(d)
     local testo = P.statoTesto[d.stato] or d.stato
     local dadi = {}
     if d.tiro then table.insert(dadi, tostring(d.tiro)) end
-    if d.ritiro then table.insert(dadi, "Corpo " .. tostring(d.ritiro)) end
+    if d.ritiro then table.insert(dadi, "CiC " .. tostring(d.ritiro)) end
     if #dadi > 0 then
         testo = testo .. " (" .. table.concat(dadi, ", ") .. ")"
     end
     return testo
 end
 -- ============================================================
+-- FUNZIONE: command_panelRows(slot)
+-- Righe del pannello in ordine: { tipo = "div", divId } e
+-- { tipo = "gruppo", key }.
+-- ============================================================
+function command_panelRows(slot)
+    local st = COMMAND_STATE[slot]
+    local righe, ultimaDiv = {}, nil
+    for _, key in ipairs(st.ordine) do
+        local g = st.gruppi[key]
+        if g.divId ~= ultimaDiv then
+            table.insert(righe, { tipo = "div", divId = g.divId })
+            ultimaDiv = g.divId
+        end
+        table.insert(righe, { tipo = "gruppo", key = key })
+    end
+    return righe
+end
+-- ============================================================
 -- FUNZIONE: command_redrawPanel()
 -- Aggiorna il pannello; lo spegne fuori dalla fase di Comando.
+-- COMMAND_ROWS[i] = chiave del gruppo della riga i (per i click).
 -- ============================================================
+COMMAND_ROWS = {}
+
 function command_redrawPanel()
     local P = COMMAND_PANEL
     local slot = TURN and TURN.activeSide
     local st = slot and COMMAND_STATE[slot]
+    COMMAND_ROWS = {}
 
     if not ENGINE or ENGINE.phase ~= PHASE.COMMAND or not st then
         UI.setAttribute("cmdPanel", "active", "false")
         return
     end
 
-    local righe = math.min(#st.ordine, P.righeMax)
+    local elenco = command_panelRows(slot)
+    local righe = math.min(#elenco, P.righeMax)
     UI.setAttribute("cmdPanel", "active", "true")
     UI.setAttribute("cmdPanel", "height", tostring(command_panelHeight(math.max(righe, 1))))
     UI.setAttribute("cmdTitolo", "text", "COMANDO - " .. main_sideName(slot))
@@ -100,19 +124,34 @@ function command_redrawPanel()
     local inVolo = COMMAND_ROLLING or COMMAND_PENDING ~= nil
 
     for i = 1, P.righeMax do
-        local id = st.ordine[i]
-        local d  = id and st.divisioni[id]
-        if d and i <= righe then
+        local r = elenco[i]
+        if not r then
+            UI.setAttribute("cmdRow" .. i, "active", "false")
+        elseif r.tipo == "div" then
+            local div = st.divisioni[r.divId]
             UI.setAttribute("cmdRow" .. i, "active", "true")
-            UI.setAttribute("cmdNome" .. i, "text", d.nome)
-            UI.setAttribute("cmdGen" .. i, "text", "Gen " .. tostring(d.valore))
+            UI.setAttribute("cmdNome" .. i, "text", div and div.nome or tostring(r.divId))
+            UI.setAttribute("cmdNome" .. i, "color", P.titleColor)
+            UI.setAttribute("cmdGen" .. i, "text", div and ("Gen " .. tostring(div.valore)) or "")
+            UI.setAttribute("cmdStato" .. i, "text", "")
+            for _, nome in ipairs({ "cmdTira", "cmdRitira", "cmdHolds" }) do
+                UI.setAttribute(nome .. i, "active", "false")
+            end
+        else
+            local key = r.key
+            local d = st.gruppi[key]
+            COMMAND_ROWS[i] = key
+            UI.setAttribute("cmdRow" .. i, "active", "true")
+            UI.setAttribute("cmdNome" .. i, "text", "   " .. d.nome)
+            UI.setAttribute("cmdNome" .. i, "color", P.textColor)
+            UI.setAttribute("cmdGen" .. i, "text", d.valore and ("Gen " .. tostring(d.valore)) or "-")
             UI.setAttribute("cmdStato" .. i, "text", command_rowText(d))
             UI.setAttribute("cmdStato" .. i, "color", P.statoColor[d.stato] or P.textColor)
 
             -- Bottoni: solo lo schieramento attivo, solo quelli utili
-            local scelta = COMMAND_PENDING and COMMAND_PENDING.divId == id
+            local scelta = COMMAND_PENDING and COMMAND_PENDING.key == key
             local tira   = d.stato == COMMAND_STATO.DA_TIRARE and (not inVolo or scelta)
-            local ritira = d.stato == COMMAND_STATO.FALLITA and command_canReroll(slot, id) and (not inVolo or scelta)
+            local ritira = d.stato == COMMAND_STATO.FALLITA and command_canReroll(slot, key) and (not inVolo or scelta)
             local holds  = d.stato == COMMAND_STATO.FALLITA and not COMMAND_ROLLING
             for nome, acceso in pairs({ cmdTira = tira, cmdRitira = ritira, cmdHolds = holds }) do
                 UI.setAttribute(nome .. i, "active", acceso and "true" or "false")
@@ -120,23 +159,21 @@ function command_redrawPanel()
             end
             -- bottone del tiro scelto evidenziato
             UI.setAttribute("cmdTira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "tiro") and "Roll!" or "Tira")
-            UI.setAttribute("cmdRitira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "ritiro") and "Roll!" or "Corpo")
-        else
-            UI.setAttribute("cmdRow" .. i, "active", "false")
+            UI.setAttribute("cmdRitira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "ritiro") and "Roll!" or "CiC")
         end
     end
 
-    -- Nota: ritiri e Comandante di Corpo
+    -- Nota: CiC e ritiri
     local nota
-    if not st.corpo then
-        nota = "Nessun Comandante di Corpo: niente ritiri"
+    if not st.cic then
+        nota = "Nessun CiC: niente ritiri"
     else
-        nota = string.format("Corpo %d - ritiri usati %d", st.corpo.valore, st.ritiriUsati)
+        nota = string.format("CiC %d - ritiri usati %d", st.cic.valore, st.ritiriUsati)
         if COMMAND_RITIRI_MAX then nota = nota .. " su " .. COMMAND_RITIRI_MAX end
         nota = nota .. " - raggio " .. COMMAND_RITIRO_D .. " D"
     end
-    if #st.ordine > P.righeMax then
-        nota = nota .. string.format(" (mostrate %d Divisioni su %d)", P.righeMax, #st.ordine)
+    if #elenco > P.righeMax then
+        nota = nota .. string.format(" (righe %d su %d)", P.righeMax, #elenco)
     end
     UI.setAttribute("cmdNota", "text", nota)
 end

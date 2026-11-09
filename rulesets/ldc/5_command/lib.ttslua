@@ -1,15 +1,21 @@
 -- ============================================================
 -- WARFORGE LDC — 5_command/lib.ttslua
--- Attivazione delle Divisioni/Brigate (regolamento 7.1-7.2).
+-- Attivazione delle Brigate (regolamento 7.1-7.2, struttura
+-- decisa da Max il 9/11/2026).
 --
--- Ogni Generale tira 1D6: pari o inferiore al suo valore la
--- Divisione è ATTIVA, altrimenti il test è fallito. Un test
--- fallito si può far ritirare al Comandante di Corpo se è entro
--- 4D dal Generale (col valore del Corpo), una volta per
--- Generale e al massimo COMMAND_RITIRI_MAX volte per metà
--- turno; altrimenti la Divisione va in HOLDS.
+-- Si attiva ogni gruppo: una Brigata (tira il suo Generale di
+-- Brigata) oppure le unità di una Divisione senza Brigata (tira
+-- il Generale di Divisione). 1D6 pari o inferiore al valore del
+-- Generale: ATTIVA, altrimenti test fallito.
+-- Un test fallito si può far ritirare al CiC, il Generale più
+-- alto presente (il Comandante se c'è, altrimenti il Generale
+-- dell'unica Divisione), se è entro 4D dalla Brigata (base più
+-- vicina), col valore del CiC: una volta per test, al massimo
+-- COMMAND_RITIRI_MAX volte per metà turno. Altrimenti HOLDS.
 -- Il tiro si sceglie nel pannello Comando e parte dal bottone
 -- Roll sul vassoio (command_onRoll).
+--
+-- Chiave del gruppo: "D1/B1", "D2/-" (unità senza Brigata).
 -- ============================================================
 
 -- ============================================================
@@ -17,30 +23,103 @@
 -- ============================================================
 
 -- ============================================================
+-- FUNZIONE: command_groupKey(divId, brigId)
+-- ============================================================
+function command_groupKey(divId, brigId)
+    return tostring(divId) .. "/" .. tostring(brigId or "-")
+end
+-- ============================================================
+-- FUNZIONE: command_groupKeyOfMeta(meta)
+-- Gruppo di attivazione di una base (unità o Generale di
+-- Brigata); nil per Generali di Divisione e Comandante.
+-- ============================================================
+function command_groupKeyOfMeta(meta)
+    if not meta or not meta.divisione then return nil end
+    if meta.ruolo == DEPLOY_RUOLO.UNITA or meta.ruolo == DEPLOY_RUOLO.GEN_BRIGATA then
+        return command_groupKey(meta.divisione, meta.brigata)
+    end
+    return nil
+end
+-- ============================================================
 -- FUNZIONE: command_readSide(slot)
--- Generali e Comandante di Corpo dello schieramento sul tavolo.
--- Ritorna divisioni { [id] = { nome, valore, guid } }, ordine
--- (id ordinati), corpo { valore, guid } o nil.
+-- Gruppi di attivazione, Divisioni e CiC dello schieramento
+-- dal tavolo. Ritorna:
+--   gruppi    { [key] = { divId, brigId, nome, valore, guid,
+--                         basi = { guid, ... } } }
+--   divisioni { [divId] = { nome, valore, guid, ord } }
+--   ordine    lista di chiavi dei gruppi in ordine di Divisione
+--             e Brigata (senza Brigata in fondo)
+--   cic       { valore, guid, nome } o nil
 -- ============================================================
 function command_readSide(slot)
-    local divisioni, ordine, corpo = {}, {}, nil
+    local gruppi, divisioni, comandante = {}, {}, nil
+    local ordGruppo = {}
+
+    local function gruppo(m)
+        local key = command_groupKey(m.divisione, m.brigata)
+        local g = gruppi[key]
+        if not g then
+            g = { divId = m.divisione, brigId = m.brigata, basi = {},
+                  nome = m.brigata and (m.brigataNome or m.brigata) or "Senza Brigata" }
+            gruppi[key] = g
+        end
+        ordGruppo[key] = { m.divisioneOrd or 99, m.brigata and (m.brigataOrd or 99) or 999 }
+        return g, key
+    end
 
     for _, b in ipairs(main_basesOfSide(slot)) do
         local m = b.meta
-        if m.ruolo == DEPLOY_RUOLO.GENERALE and m.divisione then
+        if m.ruolo == DEPLOY_RUOLO.UNITA and m.divisione then
+            local g = gruppo(m)
+            table.insert(g.basi, b.obj.getGUID())
+        elseif m.ruolo == DEPLOY_RUOLO.GEN_BRIGATA and m.divisione then
+            local g = gruppo(m)
+            g.valore = m.valore or 1
+            g.guid   = b.obj.getGUID()
+            table.insert(g.basi, b.obj.getGUID())
+        elseif m.ruolo == DEPLOY_RUOLO.GEN_DIVISIONE and m.divisione then
             divisioni[m.divisione] = {
                 nome   = m.divisioneNome or m.divisione,
                 valore = m.valore or 1,
                 guid   = b.obj.getGUID(),
+                ord    = m.divisioneOrd or 99,
             }
-            table.insert(ordine, m.divisione)
-        elseif m.ruolo == DEPLOY_RUOLO.CORPO then
-            corpo = { valore = m.valore or 1, guid = b.obj.getGUID() }
+        elseif m.ruolo == DEPLOY_RUOLO.COMANDANTE then
+            comandante = { valore = m.valore or 1, guid = b.obj.getGUID(), nome = m.nomeDisplay or "Comandante" }
         end
     end
 
-    table.sort(ordine)
-    return divisioni, ordine, corpo
+    -- Unità senza Brigata: le attiva il Generale di Divisione
+    for key, g in pairs(gruppi) do
+        if not g.brigId then
+            local div = divisioni[g.divId]
+            if div then
+                g.valore = div.valore
+                g.guid   = div.guid
+            end
+        end
+    end
+
+    -- CiC: il Comandante, altrimenti il Generale dell'unica Divisione
+    local cic = comandante
+    if not cic then
+        local unica, n = nil, 0
+        for _, div in pairs(divisioni) do unica = div; n = n + 1 end
+        if n == 1 then
+            cic = { valore = unica.valore, guid = unica.guid, nome = "Generale di " .. unica.nome }
+        end
+    end
+
+    local ordine = {}
+    for key in pairs(gruppi) do table.insert(ordine, key) end
+    table.sort(ordine, function(a, b)
+        local oa, ob = ordGruppo[a], ordGruppo[b]
+        if oa[1] ~= ob[1] then return oa[1] < ob[1] end
+        if oa[2] ~= ob[2] then return oa[2] < ob[2] end
+        return a < b
+    end)
+
+    return gruppi, divisioni, ordine, cic
 end
 
 -- ============================================================
@@ -57,65 +136,81 @@ function command_start(slot)
     COMMAND_PENDING = nil
     COMMAND_ROLLING = false
 
-    local divisioni, ordine, corpo = command_readSide(slot)
-    for _, d in pairs(divisioni) do
-        d.stato = COMMAND_STATO.DA_TIRARE
+    local gruppi, divisioni, ordine, cic = command_readSide(slot)
+    for _, g in pairs(gruppi) do
+        g.stato = COMMAND_STATO.DA_TIRARE
     end
 
     COMMAND_STATE[slot] = {
         turno       = ENGINE.turn,
         ordine      = ordine,
-        corpo       = corpo,
+        cic         = cic,
         ritiriUsati = 0,
+        gruppi      = gruppi,
         divisioni   = divisioni,
     }
 
     -- Generali uccisi nella metà turno avversaria
     local forzati = COMMAND_FORCED_HOLDS[slot] or {}
-    for id, motivo in pairs(forzati) do
-        if divisioni[id] then
-            command_setHolds(slot, id, motivo)
+    for key, motivo in pairs(forzati) do
+        if gruppi[key] then
+            command_setHolds(slot, key, motivo)
         end
     end
     COMMAND_FORCED_HOLDS[slot] = {}
 
+    -- Gruppi senza Generale: HOLDS (nessuno può attivarli)
+    for key, g in pairs(gruppi) do
+        if not g.valore and g.stato == COMMAND_STATO.DA_TIRARE then
+            command_setHolds(slot, key, "nessun Generale")
+        end
+    end
+
     if #ordine == 0 then
-        main_warningToSide(slot, "Nessun Generale di Divisione sul tavolo", "Yellow", 5)
+        main_warningToSide(slot, "Nessuna Brigata sul tavolo", "Yellow", 5)
     end
 end
 -- ============================================================
--- FUNZIONE: command_division(slot, divId)
+-- FUNZIONE: command_group(slot, key)
 -- ============================================================
-function command_division(slot, divId)
+function command_group(slot, key)
     local st = COMMAND_STATE[slot]
-    return st and st.divisioni and st.divisioni[divId] or nil
+    return st and st.gruppi and st.gruppi[key] or nil
 end
 -- ============================================================
--- FUNZIONE: command_divisionInHolds(slot, divId)
--- La Divisione è in HOLDS in questa metà turno? (per Fuoco,
--- Manovre, Mischie)
+-- FUNZIONE: command_groupInHolds(slot, key)
+-- Il gruppo (Brigata) è in HOLDS in questa metà turno?
 -- ============================================================
-function command_divisionInHolds(slot, divId)
-    local d = command_division(slot, divId)
-    return d ~= nil and d.stato == COMMAND_STATO.HOLDS
+function command_groupInHolds(slot, key)
+    local g = command_group(slot, key)
+    return g ~= nil and g.stato == COMMAND_STATO.HOLDS
 end
 -- ============================================================
--- FUNZIONE: command_forceHolds(slot, divId, motivo)
--- La Divisione andrà in HOLDS al prossimo Comando dello
+-- FUNZIONE: command_unitInHolds(slot, meta)
+-- La base (dalle sue GMNotes) appartiene a un gruppo in HOLDS?
+-- Per Fuoco, Manovre, Mischie.
+-- ============================================================
+function command_unitInHolds(slot, meta)
+    local key = command_groupKeyOfMeta(meta)
+    return key ~= nil and command_groupInHolds(slot, key)
+end
+-- ============================================================
+-- FUNZIONE: command_forceHolds(slot, key, motivo)
+-- Il gruppo andrà in HOLDS al prossimo Comando dello
 -- schieramento (es. Generale ucciso).
 -- ============================================================
-function command_forceHolds(slot, divId, motivo)
+function command_forceHolds(slot, key, motivo)
     COMMAND_FORCED_HOLDS[slot] = COMMAND_FORCED_HOLDS[slot] or {}
-    COMMAND_FORCED_HOLDS[slot][divId] = motivo or "HOLDS forzato"
+    COMMAND_FORCED_HOLDS[slot][key] = motivo or "HOLDS forzato"
 end
 -- ============================================================
 -- FUNZIONE: command_allResolved(slot)
--- Tutte le Divisioni sono ATTIVE o in HOLDS?
+-- Tutti i gruppi sono ATTIVI o in HOLDS?
 -- ============================================================
 function command_allResolved(slot)
     local st = COMMAND_STATE[slot]
     if not st then return true end
-    for _, d in pairs(st.divisioni) do
+    for _, d in pairs(st.gruppi) do
         if d.stato ~= COMMAND_STATO.ATTIVA and d.stato ~= COMMAND_STATO.HOLDS then
             return false
         end
@@ -137,48 +232,55 @@ function command_reset()
 end
 
 -- ============================================================
---                  RITIRO DEL COMANDANTE DI CORPO
+--                       RITIRO DEL CiC
 -- ============================================================
 
 -- ============================================================
--- FUNZIONE: command_corpsDistanceD(slot, divId)
--- Distanza in D fra il Comandante di Corpo e il Generale, nil
--- se uno dei due manca dal tavolo.
+-- FUNZIONE: command_cicDistanceD(slot, key)
+-- Distanza in D fra il CiC e la Brigata (la sua base più
+-- vicina, Generale di Brigata compreso), nil se manca qualcosa.
 -- ============================================================
-function command_corpsDistanceD(slot, divId)
+function command_cicDistanceD(slot, key)
     local st = COMMAND_STATE[slot]
-    local d  = command_division(slot, divId)
-    if not st or not st.corpo or not d then return nil end
-    local corpo = getObjectFromGUID(st.corpo.guid)
-    local gen   = getObjectFromGUID(d.guid)
-    if not corpo or not gen then return nil end
-    return main_distanceD(corpo, gen)
+    local g  = command_group(slot, key)
+    if not st or not st.cic or not g then return nil end
+    local cic = getObjectFromGUID(st.cic.guid)
+    if not cic then return nil end
+    local best = nil
+    for _, guid in ipairs(g.basi or {}) do
+        local b = getObjectFromGUID(guid)
+        if b and not b.isDestroyed() then
+            local d = main_distanceD(cic, b)
+            if d and (not best or d < best) then best = d end
+        end
+    end
+    return best
 end
 -- ============================================================
--- FUNZIONE: command_canReroll(slot, divId)
--- Il Corpo può ritirare il test fallito? Ritorna ok, motivo.
+-- FUNZIONE: command_canReroll(slot, key)
+-- Il CiC può ritirare il test fallito? Ritorna ok, motivo.
 -- ============================================================
-function command_canReroll(slot, divId)
+function command_canReroll(slot, key)
     local st = COMMAND_STATE[slot]
-    local d  = command_division(slot, divId)
-    if not st or not d or d.stato ~= COMMAND_STATO.FALLITA then
+    local g  = command_group(slot, key)
+    if not st or not g or g.stato ~= COMMAND_STATO.FALLITA then
         return false, "nessun test fallito"
     end
-    if d.ritiro ~= nil then
+    if g.ritiro ~= nil then
         return false, "già ritirato"
     end
-    if not st.corpo then
-        return false, "nessun Comandante di Corpo"
+    if not st.cic then
+        return false, "nessun CiC"
     end
     if COMMAND_RITIRI_MAX and st.ritiriUsati >= COMMAND_RITIRI_MAX then
         return false, "ritiri esauriti (" .. COMMAND_RITIRI_MAX .. ")"
     end
-    local dist = command_corpsDistanceD(slot, divId)
+    local dist = command_cicDistanceD(slot, key)
     if not dist then
-        return false, "Comandante di Corpo non trovato"
+        return false, "CiC non trovato"
     end
     if dist > COMMAND_RITIRO_D then
-        return false, "Corpo a " .. main_formatD(dist) .. " (max " .. COMMAND_RITIRO_D .. " D)"
+        return false, "CiC a " .. main_formatD(dist) .. " (max " .. COMMAND_RITIRO_D .. " D)"
     end
     return true, nil
 end
@@ -188,14 +290,26 @@ end
 -- ============================================================
 
 -- ============================================================
--- FUNZIONE: command_choose(player, slot, divId, tipo)
--- Dal pannello: prepara il tiro ("tiro" del Generale o
--- "ritiro" del Corpo) e porta la camera sul vassoio.
+-- FUNZIONE: command_groupLabel(slot, key)
+-- "Army1 - Brigata Gilly (1a Divisione Morand)"
 -- ============================================================
-function command_choose(player, slot, divId, tipo)
+function command_groupLabel(slot, key)
     local st = COMMAND_STATE[slot]
-    local d  = command_division(slot, divId)
-    if not st or not d then return end
+    local g  = command_group(slot, key)
+    if not g then return tostring(key) end
+    local div = st.divisioni[g.divId]
+    local divNome = div and div.nome or tostring(g.divId)
+    return main_sideName(slot) .. " - " .. g.nome .. " (" .. divNome .. ")"
+end
+-- ============================================================
+-- FUNZIONE: command_choose(player, slot, key, tipo)
+-- Dal pannello: prepara il tiro ("tiro" del Generale di
+-- Brigata o "ritiro" del CiC) e porta la camera sul vassoio.
+-- ============================================================
+function command_choose(player, slot, key, tipo)
+    local st = COMMAND_STATE[slot]
+    local g  = command_group(slot, key)
+    if not st or not g then return end
 
     if COMMAND_ROLLING then
         warningToColor("Aspetta che i dadi si fermino", player, "Yellow", 3, false)
@@ -204,32 +318,32 @@ function command_choose(player, slot, divId, tipo)
 
     local valore, titolo
     if tipo == "ritiro" then
-        local ok, motivo = command_canReroll(slot, divId)
+        local ok, motivo = command_canReroll(slot, key)
         if not ok then
             warningToColor("Ritiro non possibile: " .. tostring(motivo), player, "Yellow", 4, false)
             return
         end
-        valore = st.corpo.valore
-        titolo = "RITIRO DEL CORPO"
+        valore = st.cic.valore
+        titolo = "RITIRO DEL CiC"
     else
-        if d.stato ~= COMMAND_STATO.DA_TIRARE then return end
-        valore = d.valore
+        if g.stato ~= COMMAND_STATO.DA_TIRARE then return end
+        valore = g.valore
         titolo = "ATTIVAZIONE"
     end
 
-    COMMAND_PENDING = { slot = slot, divId = divId, tipo = tipo, valore = valore }
+    COMMAND_PENDING = { slot = slot, key = key, tipo = tipo, valore = valore }
 
-    local righe = {
-        { "Dadi", "1D6" },
-        { tipo == "ritiro" and "Comandante di Corpo" or "Generale", tostring(valore) },
-    }
+    local righe = { { "Dadi", "1D6" } }
     if tipo == "ritiro" then
-        table.insert(righe, { "Primo tiro del Generale", tostring(d.tiro) })
+        table.insert(righe, { st.cic.nome, tostring(valore) })
+        table.insert(righe, { "Primo tiro", tostring(g.tiro) })
+    else
+        table.insert(righe, { g.brigId and "Generale di Brigata" or "Generale di Divisione", tostring(valore) })
     end
     engine_diceClearLastRoll(slot)
     engine_dicePanelOpen(slot, {
         titolo      = titolo,
-        sottotitolo = main_sideName(slot) .. " - " .. d.nome,
+        sottotitolo = command_groupLabel(slot, key),
         righe       = righe,
         serve       = "Serve " .. valore .. " o meno",
     })
@@ -253,7 +367,7 @@ function command_onRoll(player, slot)
     end
     local pend = COMMAND_PENDING
     if not pend or pend.slot ~= slot then
-        warningToColor("Scegli prima la Divisione nel pannello Comando", player, "Yellow", 4, false)
+        warningToColor("Scegli prima la Brigata nel pannello Comando", player, "Yellow", 4, false)
         return
     end
 
@@ -273,74 +387,74 @@ function command_onRoll(player, slot)
 end
 -- ============================================================
 -- FUNZIONE: command_resolve(slot, pend, valoreDado)
--- Esito del tiro (o del ritiro) di una Divisione.
+-- Esito del tiro (o del ritiro) di un gruppo.
 -- ============================================================
 function command_resolve(slot, pend, valoreDado)
     local st = COMMAND_STATE[slot]
-    local d  = command_division(slot, pend.divId)
-    if not st or not d or not valoreDado then return end
+    local g  = command_group(slot, pend.key)
+    if not st or not g or not valoreDado then return end
 
     local riuscito = valoreDado <= pend.valore
-    local nome = main_sideName(slot) .. " - " .. d.nome
+    local nome = command_groupLabel(slot, pend.key)
 
     if pend.tipo == "ritiro" then
-        d.ritiro = valoreDado
+        g.ritiro = valoreDado
         st.ritiriUsati = st.ritiriUsati + 1
         if riuscito then
-            d.stato = COMMAND_STATO.ATTIVA
+            g.stato = COMMAND_STATO.ATTIVA
             command_outcome(slot, string.format("Ritiro %d su %d: ATTIVA", valoreDado, pend.valore), true)
-            command_announce(slot, nome .. ": ritiro del Corpo riuscito, ATTIVA")
+            command_announce(slot, nome .. ": ritiro del CiC riuscito, ATTIVA")
         else
             command_outcome(slot, string.format("Ritiro %d su %d: HOLDS", valoreDado, pend.valore), false)
-            command_setHolds(slot, pend.divId, "ritiro fallito")
-            command_announce(slot, nome .. ": ritiro del Corpo fallito, HOLDS")
+            command_setHolds(slot, pend.key, "ritiro fallito")
+            command_announce(slot, nome .. ": ritiro del CiC fallito, HOLDS")
         end
         return
     end
 
-    d.tiro = valoreDado
+    g.tiro = valoreDado
     if riuscito then
-        d.stato = COMMAND_STATO.ATTIVA
+        g.stato = COMMAND_STATO.ATTIVA
         command_outcome(slot, string.format("%d su %d: ATTIVA", valoreDado, pend.valore), true)
         command_announce(slot, nome .. ": attivata")
         return
     end
 
-    d.stato = COMMAND_STATO.FALLITA
-    local puo, motivo = command_canReroll(slot, pend.divId)
+    g.stato = COMMAND_STATO.FALLITA
+    local puo, motivo = command_canReroll(slot, pend.key)
     if puo then
         command_outcome(slot, string.format("%d su %d: fallito", valoreDado, pend.valore), false,
-            "Puoi far ritirare il Comandante di Corpo o accettare l'HOLDS")
+            "Puoi far ritirare il CiC o accettare l'HOLDS")
         command_announce(slot, nome .. ": test fallito")
     else
         command_outcome(slot, string.format("%d su %d: HOLDS", valoreDado, pend.valore), false,
             "Niente ritiro: " .. tostring(motivo))
-        command_setHolds(slot, pend.divId, "test fallito")
+        command_setHolds(slot, pend.key, "test fallito")
         command_announce(slot, nome .. ": test fallito, HOLDS (" .. tostring(motivo) .. ")")
     end
 end
 -- ============================================================
--- FUNZIONE: command_accept(player, slot, divId)
+-- FUNZIONE: command_accept(player, slot, key)
 -- Il giocatore rinuncia al ritiro: HOLDS.
 -- ============================================================
-function command_accept(player, slot, divId)
-    local d = command_division(slot, divId)
-    if not d or d.stato ~= COMMAND_STATO.FALLITA then return end
-    if COMMAND_PENDING and COMMAND_PENDING.divId == divId and COMMAND_ROLLING then return end
-    if COMMAND_PENDING and COMMAND_PENDING.divId == divId then COMMAND_PENDING = nil end
-    command_setHolds(slot, divId, "test fallito")
-    command_announce(slot, main_sideName(slot) .. " - " .. d.nome .. ": HOLDS")
+function command_accept(player, slot, key)
+    local g = command_group(slot, key)
+    if not g or g.stato ~= COMMAND_STATO.FALLITA then return end
+    if COMMAND_ROLLING then return end
+    if COMMAND_PENDING and COMMAND_PENDING.key == key then COMMAND_PENDING = nil end
+    command_setHolds(slot, key, "test fallito")
+    command_announce(slot, command_groupLabel(slot, key) .. ": HOLDS")
     command_redrawPanel()
 end
 -- ============================================================
--- FUNZIONE: command_setHolds(slot, divId, motivo)
+-- FUNZIONE: command_setHolds(slot, key, motivo)
 -- ============================================================
-function command_setHolds(slot, divId, motivo)
-    local d = command_division(slot, divId)
-    if not d then return end
-    d.stato  = COMMAND_STATO.HOLDS
-    d.motivo = motivo
-    command_spawnMarker(slot, divId)
+function command_setHolds(slot, key, motivo)
+    local g = command_group(slot, key)
+    if not g then return end
+    g.stato  = COMMAND_STATO.HOLDS
+    g.motivo = motivo
+    command_spawnMarker(slot, key)
 end
 -- ============================================================
 -- FUNZIONE: command_outcome(slot, testo, riuscito, nota)
@@ -363,12 +477,14 @@ end
 -- ============================================================
 
 -- ============================================================
--- FUNZIONE: command_spawnMarker(slot, divId)
--- Testo HOLDS sul tavolo dietro la base del Generale.
+-- FUNZIONE: command_spawnMarker(slot, key)
+-- Testo HOLDS sul tavolo dietro la base del Generale che
+-- attiva il gruppo (di Brigata, o di Divisione se senza
+-- Brigata).
 -- ============================================================
-function command_spawnMarker(slot, divId)
-    local d = command_division(slot, divId)
-    local gen = d and getObjectFromGUID(d.guid)
+function command_spawnMarker(slot, key)
+    local g = command_group(slot, key)
+    local gen = g and g.guid and getObjectFromGUID(g.guid)
     if not gen then return end
 
     local M    = COMMAND_MARKER
@@ -377,6 +493,10 @@ function command_spawnMarker(slot, divId)
     local dirZ = (slot == 1) and 1 or -1     -- verso il nemico
     local p    = gen.getPosition()
     local z    = p.z - dirZ * main_cmToTts(prof / 2 + M.dietroCm)
+    -- due gruppi senza Brigata non esistono per Divisione, ma il
+    -- Generale di Divisione può avere sotto anche Brigate: il suo
+    -- marker va una riga più indietro per non sovrapporsi
+    if not g.brigId then z = z - dirZ * main_cmToTts(M.dietroCm) end
 
     spawnObject({
         type     = "3DText",
@@ -390,11 +510,11 @@ function command_spawnMarker(slot, divId)
                 o.TextTool.setFontColor(M.colore)
                 o.TextTool.setFontSize(M.fontSize)
             end
-            o.setName("HOLDS " .. tostring(divId))
+            o.setName("HOLDS " .. tostring(key))
             o.addTag(COMMAND_MARKER_TAG[slot])
             o.setLock(true)
             -- Se nel frattempo è iniziato un altro Comando, il marker è vecchio
-            if not command_divisionInHolds(slot, divId) then o.destruct() end
+            if not command_groupInHolds(slot, key) then o.destruct() end
         end,
     })
 end

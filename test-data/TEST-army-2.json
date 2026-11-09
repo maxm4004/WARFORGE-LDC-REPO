@@ -1,9 +1,9 @@
 {
-  "versione": "1.0-LDC",
+  "versione": "1.1-LDC",
   "tag": "AUS",
   "nome": "Austriaci (test)",
-  "comandante_corpo": {
-    "unit_name": "AUS_CORPO_GEN",
+  "comandante": {
+    "unit_name": "AUS_CIC_GEN",
     "nome_display": "Comandante di Corpo",
     "valore": 4,
     "elemento": "AUS_GEN"
@@ -11,61 +11,140 @@
   "divisioni": [
     {
       "id": "D1",
-      "nome": "1a Divisione",
+      "nome": "1a Divisione Hohenzollern",
       "generale": {
         "unit_name": "AUS_D1_GEN",
-        "nome_display": "Generale della 1a Divisione",
+        "nome_display": "Generale della 1a Divisione Hohenzollern",
         "valore": 3,
         "elemento": "AUS_GEN"
       },
-      "unita": [
+      "brigate": [
         {
-          "unit_name": "AUS_IR4_FAN",
-          "nome_display": "IR 4 Hoch- und Deutschmeister",
-          "tipo": "FAN_LINEA",
-          "morale": 3,
-          "taglia": "grande",
-          "num_basi": 6,
-          "arma": "moschetto",
-          "formazione": "linea",
-          "elemento": "AUS_LINIE",
-          "elemento_comando": "AUS_LINIE_KOMMANDO"
+          "id": "B1",
+          "nome": "Brigata Bianchi",
+          "generale": {
+            "unit_name": "AUS_D1B1_GEN",
+            "nome_display": "Generale della Brigata Bianchi",
+            "valore": 3,
+            "elemento": "AUS_GEN"
+          },
+          "reggimenti": [
+            {
+              "id": "R4",
+              "nome": "IR 4 Hoch- und Deutschmeister",
+              "unita": [
+                {
+                  "unit_name": "AUS_R4_1_FAN",
+                  "nome_display": "I/IR 4",
+                  "tipo": "FAN_LINEA",
+                  "morale": 3,
+                  "taglia": "grande",
+                  "num_basi": 6,
+                  "arma": "moschetto",
+                  "formazione": "linea",
+                  "elemento": "AUS_LINIE",
+                  "elemento_comando": "AUS_LINIE_KOMMANDO"
+                },
+                {
+                  "unit_name": "AUS_R4_2_FAN",
+                  "nome_display": "II/IR 4",
+                  "tipo": "FAN_LINEA",
+                  "morale": 4,
+                  "taglia": "grande",
+                  "num_basi": 6,
+                  "arma": "moschetto",
+                  "formazione": "linea",
+                  "elemento": "AUS_LINIE",
+                  "elemento_comando": "AUS_LINIE_KOMMANDO"
+                }
+              ]
+            }
+          ]
         },
         {
-          "unit_name": "AUS_IR49_FAN",
-          "nome_display": "IR 49 Kerpen",
-          "tipo": "FAN_LINEA",
-          "morale": 4,
-          "taglia": "grande",
-          "num_basi": 6,
-          "arma": "moschetto",
-          "formazione": "linea",
-          "elemento": "AUS_LINIE",
-          "elemento_comando": "AUS_LINIE_KOMMANDO"
+          "id": "B2",
+          "nome": "Brigata Koller",
+          "generale": {
+            "unit_name": "AUS_D1B2_GEN",
+            "nome_display": "Generale della Brigata Koller",
+            "valore": 2,
+            "elemento": "AUS_GEN"
+          },
+          "reggimenti": [
+            {
+              "id": "R49",
+              "nome": "IR 49 Kerpen",
+              "unita": [
+                {
+                  "unit_name": "AUS_R49_1_FAN",
+                  "nome_display": "I/IR 49",
+                  "tipo": "FAN_LINEA",
+                  "morale": 3,
+                  "taglia": "grande",
+                  "num_basi": 6,
+                  "arma": "moschetto",
+                  "formazione": "linea",
+                  "elemento": "AUS_LINIE",
+                  "elemento_comando": "AUS_LINIE_KOMMANDO"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
     {
       "id": "D2",
-      "nome": "2a Divisione",
+      "nome": "2a Divisione Rosenberg",
       "generale": {
         "unit_name": "AUS_D2_GEN",
-        "nome_display": "Generale della 2a Divisione",
+        "nome_display": "Generale della 2a Divisione Rosenberg",
         "valore": 2,
         "elemento": "AUS_GEN"
       },
+      "brigate": [
+        {
+          "id": "B1",
+          "nome": "Brigata Mayer",
+          "generale": {
+            "unit_name": "AUS_D2B1_GEN",
+            "nome_display": "Generale della Brigata Mayer",
+            "valore": 3,
+            "elemento": "AUS_GEN"
+          },
+          "reggimenti": [
+            {
+              "id": "R20",
+              "nome": "IR 20 Kaunitz",
+              "unita": [
+                {
+                  "unit_name": "AUS_R20_1_FAN",
+                  "nome_display": "I/IR 20",
+                  "tipo": "FAN_LINEA",
+                  "morale": 3,
+                  "taglia": "grande",
+                  "num_basi": 6,
+                  "arma": "moschetto",
+                  "formazione": "linea",
+                  "elemento": "AUS_LINIE",
+                  "elemento_comando": "AUS_LINIE_KOMMANDO"
+                }
+              ]
+            }
+          ]
+        }
+      ],
       "unita": [
         {
-          "unit_name": "AUS_IR20_FAN",
-          "nome_display": "IR 20 Kaunitz",
-          "tipo": "FAN_LINEA",
+          "unit_name": "AUS_BAT1_ART",
+          "nome_display": "Batteria di posizione (segnaposto)",
+          "tipo": "ART_PIEDI",
           "morale": 3,
-          "taglia": "grande",
-          "num_basi": 6,
-          "arma": "moschetto",
-          "formazione": "linea",
-          "elemento": "AUS_LINIE",
-          "elemento_comando": "AUS_LINIE_KOMMANDO"
+          "taglia": "standard",
+          "num_basi": 2,
+          "arma": "cannone",
+          "formazione": "schierata",
+          "elemento": "AUS_LINIE"
         }
       ]
     }

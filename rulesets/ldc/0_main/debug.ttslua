@@ -497,13 +497,14 @@ end
 -- ============================================================
 
 -- ============================================================
--- FUNZIONE: debug_comando(divId, stato)
--- Forza lo stato di una Divisione dello schieramento attivo
+-- FUNZIONE: debug_comando(key, stato)
+-- Forza lo stato di un gruppo dello schieramento attivo
 -- ("ATTIVA", "HOLDS", "FALLITA", "DA_TIRARE"); senza argomenti
--- stampa lo stato del Comando e le distanze dal Corpo.
--- Es.: /execute debug_comando("D2", "HOLDS")
+-- stampa lo stato del Comando e le distanze dal CiC.
+-- Chiave: "D1/B1", "D2/-" (unità senza Brigata).
+-- Es.: /execute debug_comando("D1/B2", "HOLDS")
 -- ============================================================
-function debug_comando(divId, stato)
+function debug_comando(key, stato)
     local slot = TURN.activeSide
     local st = slot and COMMAND_STATE[slot]
     if not st then
@@ -511,27 +512,28 @@ function debug_comando(divId, stato)
         return
     end
 
-    if divId and stato then
-        local d = st.divisioni[divId]
-        if not d or not COMMAND_STATO[stato] then
-            print("[DEBUG] Divisione o stato sconosciuti: " .. tostring(divId) .. ", " .. tostring(stato))
+    if key and stato then
+        local g = st.gruppi[key]
+        if not g or not COMMAND_STATO[stato] then
+            print("[DEBUG] gruppo o stato sconosciuti: " .. tostring(key) .. ", " .. tostring(stato))
             return
         end
         if stato == COMMAND_STATO.HOLDS then
-            command_setHolds(slot, divId, "debug")
+            command_setHolds(slot, key, "debug")
         else
-            d.stato = stato
+            g.stato = stato
         end
         command_redrawPanel()
     end
 
-    print(string.format("[DEBUG] Comando %s, turno %s, ritiri usati %d",
-        main_sideName(slot), tostring(st.turno), st.ritiriUsati or 0))
-    for _, id in ipairs(st.ordine) do
-        local d = st.divisioni[id]
-        local dist = command_corpsDistanceD(slot, id)
-        print(string.format("  %s %s: Gen %d, %s, tiro %s, ritiro %s, Corpo a %s",
-            id, d.nome, d.valore, d.stato, tostring(d.tiro), tostring(d.ritiro),
+    print(string.format("[DEBUG] Comando %s, turno %s, CiC %s, ritiri usati %d",
+        main_sideName(slot), tostring(st.turno), st.cic and (st.cic.nome .. " " .. st.cic.valore) or "nessuno",
+        st.ritiriUsati or 0))
+    for _, k in ipairs(st.ordine) do
+        local g = st.gruppi[k]
+        local dist = command_cicDistanceD(slot, k)
+        print(string.format("  %s %s: Gen %s, %s, tiro %s, ritiro %s, CiC a %s",
+            k, g.nome, tostring(g.valore), g.stato, tostring(g.tiro), tostring(g.ritiro),
             dist and main_formatD(dist) or "-"))
     end
 end

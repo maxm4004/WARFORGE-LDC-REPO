@@ -16,9 +16,10 @@ DEPLOY_TEST_ARMIES = {
 
 -- Disposizione nella fascia di spawn (cm di gioco)
 DEPLOY_LAYOUT = {
-    gapUnitaCm      = 4,     -- fra due unità della stessa Divisione
+    gapUnitaCm      = 4,     -- fra due unità della stessa Brigata
+    gapBrigataCm    = 8,     -- fra due Brigate della stessa Divisione
     gapDivisioneCm  = 12,    -- fra due Divisioni
-    gapGeneraliCm   = 3,     -- fra le unità e i loro generali, dietro
+    gapGeneraliCm   = 3,     -- fra le file: unità, Gen di Brigata, Gen di Divisione, Comandante
     distanzaVerdeCm = 1,     -- fra il fronte delle unità e il bordo della fascia lato verde
     cadutaY         = 0.3,   -- altezza di comparsa sopra il tavolo (unità TTS)
     -- rotazione Y delle basi: Army1 guarda verso Z positiva,
@@ -32,7 +33,8 @@ DEPLOY_TAG_SIDE = { [1] = "ldc_army1", [2] = "ldc_army2" }
 
 -- Ruoli delle basi nelle GMNotes
 DEPLOY_RUOLO = {
-    UNITA     = "unita",
-    GENERALE  = "generale_divisione",
-    CORPO     = "comandante_corpo",
+    UNITA         = "unita",
+    GEN_BRIGATA   = "generale_brigata",
+    GEN_DIVISIONE = "generale_divisione",
+    COMANDANTE    = "comandante",      -- CiC (facoltativo)
 }

@@ -5,13 +5,13 @@
 -- ============================================================
 -- FUNZIONE: before_command(phaseName, phase)
 -- Nuovo Comando dello schieramento attivo: elenco delle
--- Divisioni dal tavolo, pannello acceso.
+-- Brigate dal tavolo, pannello acceso.
 -- ============================================================
 function before_command(phaseName, phase)
     local slot = TURN.activeSide
     if slot then
         command_start(slot)
-        main_warningToSide(slot, "Tira per ogni Divisione dal pannello Comando", "Yellow", 5)
+        main_warningToSide(slot, "Tira per ogni Brigata dal pannello Comando", "Yellow", 5)
     end
     callHandler("updateCenterPanel")
 end

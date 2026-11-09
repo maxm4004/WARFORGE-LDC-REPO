@@ -4,7 +4,8 @@
 -- Regolamento 7.1-7.2, QRS "Fase di comando".
 -- ============================================================
 
--- Stato di ogni Divisione/Brigata nella fase di Comando
+-- Stato di ogni gruppo di attivazione (Brigata, o unità di una
+-- Divisione senza Brigata) nella fase di Comando
 COMMAND_STATO = {
     DA_TIRARE = "DA_TIRARE",   -- il Generale non ha ancora tirato
     FALLITA   = "FALLITA",     -- test fallito, si può ritirare o accettare
@@ -12,22 +13,22 @@ COMMAND_STATO = {
     HOLDS     = "HOLDS",       -- in HOLDS fino al prossimo Comando
 }
 
--- Il Comandante di Corpo ritira un test fallito se è entro
--- questa distanza dal Generale (D, misura bordo-bordo come IEF)
+-- Il CiC ritira un test fallito se è entro questa distanza
+-- dalla Brigata (D, bordo-bordo come IEF, base più vicina)
 COMMAND_RITIRO_D = 4
 
--- Ritiri del Comandante di Corpo per metà turno (QRS: massimo 3;
--- regolamento: uno per ogni Generale fallito). nil = nessun limite
+-- Ritiri del CiC per metà turno (ogni turno, per giocatore):
+-- massimo 3, uno per test fallito. nil = nessun limite
 COMMAND_RITIRI_MAX = 3
 
 -- Secondi prima di chiudere il pannello dadi a fine fase
 COMMAND_DICEPANEL_CLOSE = 3
 
--- Pannello Comando (lista delle Divisioni)
+-- Pannello Comando (Divisioni e loro Brigate)
 COMMAND_PANEL = {
-    righeMax      = 8,          -- Divisioni/Brigate mostrate al massimo
+    righeMax      = 14,         -- righe al massimo (intestazioni di Divisione comprese)
     width         = 470,
-    rowHeight     = 32,
+    rowHeight     = 28,
     headerHeight  = 34,
     footerHeight  = 24,
     padding       = 10,
