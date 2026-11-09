@@ -220,7 +220,7 @@ CENTERPANEL = {
 -- ------------------------------------------------------------
 BASE_BUTTONS = {
     y        = 0.1,      -- sopra la base
-    dietro   = 0.45,     -- dal bordo posteriore della base
+    dietro   = 0.2,      -- dal bordo posteriore della base
     passoX   = 0.85,     -- fra due bottoni affiancati
     passoZ   = 0.55,     -- seconda fila (cartellino disordini)
     width    = 400,
