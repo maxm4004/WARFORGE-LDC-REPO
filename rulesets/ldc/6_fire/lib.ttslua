@@ -393,7 +393,7 @@ end
 function fire_smokeTemplate(nome)
     for _, o in ipairs(getObjectsWithTag(nome) or {}) do return o end
     for _, o in ipairs(getAllObjects()) do
-        if o.getName() == nome and not o.hasTag(FIRE_SMOKE.tag) then return o end
+        if o.getName() == nome and not o.hasTag(FIRE_SMOKE.tag) and not o.hasTag(FIRE_SMOKE.cacheTag) then return o end
     end
     return nil
 end
@@ -500,6 +500,42 @@ function fire_smokeEffects(o, stampa)
     end, function()
         return o == nil or o.isDestroyed() or not o.loading_custom
     end, 10)
+end
+-- ============================================================
+-- FUNZIONE: fire_preloadSmoke()
+-- Una copia di ogni fumo sotto il tavolo (bloccata, non
+-- interagibile): Unity tiene il bundle caricato e i fumi del
+-- tiro compaiono subito. Una sola volta per partita.
+-- ============================================================
+function fire_preloadSmoke()
+    local presenti = {}
+    for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.cacheTag) or {}) do
+        presenti[o.getName()] = true
+    end
+    local y = ((TABLE_AREA and TABLE_AREA.y) or 1) - FIRE_SMOKE.cacheSotto
+    for i, nome in ipairs({ FIRE_SMOKE.moschetto, FIRE_SMOKE.cannone }) do
+        local b = FIRE_SMOKE.bundle[nome]
+        if not presenti[nome] and b and b.url ~= "" then
+            spawnObjectData({
+                data = {
+                    Name = "Custom_AssetBundle",
+                    Nickname = nome,
+                    Locked = true,
+                    Transform = { posX = i * 2, posY = y, posZ = 0, rotX = 0, rotY = 0, rotZ = 0,
+                                  scaleX = b.scala or 1, scaleY = b.scala or 1, scaleZ = b.scala or 1 },
+                    CustomAssetbundle = {
+                        AssetbundleURL = b.url, AssetbundleSecondaryURL = b.secondario or "",
+                        MaterialIndex = 0, TypeIndex = 0, LoopingEffectIndex = 0,
+                    },
+                },
+                callback_function = function(o)
+                    o.addTag(FIRE_SMOKE.cacheTag)
+                    o.setLock(true)
+                    o.interactable = false
+                end,
+            })
+        end
+    end
 end
 -- ============================================================
 -- FUNZIONE: fire_spawnSmoke(unitKey)

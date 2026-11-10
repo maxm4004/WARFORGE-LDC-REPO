@@ -31,8 +31,12 @@ FIRE_SMOKE = {
     -- effetto del bundle da avviare (il suono): "trigger" o
     -- "looping" e indice; nil = il primo che c'è
     effetto   = { tipo = nil, indice = 0 },
-    davantiCm = 1.5,     -- dal bordo anteriore della base al centro del fumo
+    davantiCm = 0.5,     -- dal bordo anteriore della base al centro del fumo
     altezza   = 0.05,    -- sopra la base
     rotY      = 180,     -- rispetto alla base
     tag       = "ldc_smoke",
+    -- copie nascoste sotto il tavolo per tenere i bundle già
+    -- caricati: al tiro il fumo (e il suono) compare subito
+    cacheTag  = "ldc_smoke_cache",
+    cacheSotto = 3,      -- unità sotto la superficie del tavolo
 }

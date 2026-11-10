@@ -12,6 +12,7 @@ function before_fire(phaseName, phase)
     FIRE_SEL     = nil
     FIRE_PENDING = nil
     FIRE_ROLLING = false
+    fire_preloadSmoke()
     callHandler("updateCenterPanel")
 end
 -- ============================================================

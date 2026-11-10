@@ -442,6 +442,8 @@ function deploy_spawnArmy(slot, army)
     callHandler("updateCenterPanel")
     -- bottoni sulle basi appena gli oggetti esistono
     Wait.time(main_refreshBaseButtons, 1)
+    -- fumi del tiro già caricati per il primo Fuoco
+    fire_preloadSmoke()
 end
 -- ============================================================
 -- FUNZIONE: deploy_clearAll()
