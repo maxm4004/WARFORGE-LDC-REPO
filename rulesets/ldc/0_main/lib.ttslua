@@ -220,6 +220,7 @@ function main_restart()
     main_unitsReset()
     main_divReset()
     deploy_clearAll()
+    LDC_UNIT_INFO = {}
 
     main_resetPlayers()
     main_initUI()
@@ -409,6 +410,7 @@ function main_updateCenterPanel()
 
     -- Sottofasi: pannelli e blocco dei bottoni di fase
     engine_subRedraw()
+    if main_unitInfoRefresh then main_unitInfoRefresh() end
 end
 -- ============================================================
 -- FUNZIONE: main_waitingText(phase, slot)

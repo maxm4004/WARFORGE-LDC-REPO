@@ -1,0 +1,302 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/unitinfo.ttslua
+-- SCHEDA UNITÀ ricalcata su IEF 0_main/unitinfo: pannello 2D
+-- aperto dal bottone INFO della base di comando.
+--
+-- Una scheda per schieramento, visibile solo a lui. Parte fissa
+-- (tipo, basi, morale, arma, formazione, disordini, velocità,
+-- comando) + sezione della fase corrente con i dati che il
+-- gioco già calcola. Si aggiorna a ogni main_updateCenterPanel.
+-- Click sullo stesso INFO, alt-click o X = chiude.
+-- Stato non salvato.
+-- ============================================================
+
+UNITINFO = {
+    rectAlignment = "MiddleLeft",
+    offsetXY      = "20 0",
+    width         = 400,
+    bg            = "rgba(0,0,0,0.70)",
+    rowBg         = "rgba(1,1,1,0.06)",
+    font          = "warforge_font",
+    padding       = 12,
+    spacing       = 2,
+    titleHeight   = 24,
+    subHeight     = 16,
+    rowHeight     = 18,
+    sectionHeight = 24,
+    maxRows       = 24,
+    titleColor    = "#FFD833",
+    sectionColor  = "#FFD833",
+    textColor     = "White",
+    subColor      = "#BBBBBB",
+    okColor       = "#5BD35B",
+    warnColor     = "#FFB347",
+    koColor       = "#FF6B6B",
+    valueWidth    = 190,
+}
+
+-- unitKey mostrata per schieramento
+LDC_UNIT_INFO = LDC_UNIT_INFO or {}
+
+local function uiEsc(t)
+    t = tostring(t or "")
+    t = t:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub('"', "&quot;"):gsub("\n", " ")
+    return t
+end
+local function uiValueColor(r)
+    if r[3] then return r[3] end
+    local v = tostring(r[2] or "")
+    if v:match("^%+%d") then return UNITINFO.okColor end
+    if v:match("^%-%d") then return UNITINFO.koColor end
+    return UNITINFO.textColor
+end
+local function uiLabelColor(r)
+    if tostring(r[1] or ""):match("^  ") then return UNITINFO.subColor end
+    return UNITINFO.textColor
+end
+
+-- ============================================================
+-- FUNZIONE: main_unitInfoUnit(key)
+-- Unità o Generale e schieramento.
+-- ============================================================
+function main_unitInfoUnit(key)
+    for slot = 1, 2 do
+        local u = main_unitOrGeneral(slot, key)
+        if u then return u, slot end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_unitInfoFixedRows(u, slot)
+-- ============================================================
+function main_unitInfoFixedRows(u, slot)
+    local m = u.meta
+    local U = UNITINFO
+    local righe = { { sezione = "UNITA'" } }
+    if u.generale then
+        table.insert(righe, { "Ruolo", (tostring(m.ruolo or "generale"):gsub("_", " ")) })
+        table.insert(righe, { "Valore", tostring(m.valore or "-") })
+        if m.divisioneNome then table.insert(righe, { "Divisione", m.divisioneNome }) end
+        if m.brigataNome then table.insert(righe, { "Brigata", m.brigataNome }) end
+        table.insert(righe, { "Movimento", main_formatD((LDC_VELOCITA.GEN or {}).velocita or 4) })
+        return righe
+    end
+    local tipo = LDC_TIPI[m.tipo or ""] or {}
+    table.insert(righe, { "Tipo", tipo.nome or tostring(m.tipo) })
+    table.insert(righe, { "Basi", string.format("%d", #u.basi) .. (m.numBasi and m.numBasi ~= #u.basi and (" su " .. m.numBasi) or "") })
+    table.insert(righe, { "Morale", tostring(m.morale or "-") })
+    if m.taglia then table.insert(righe, { "Taglia", tostring(m.taglia) }) end
+    if m.arma then
+        local a = LDC_ARMI[m.arma] or {}
+        table.insert(righe, { "Arma", (a.nome or m.arma) .. (fire_maxRangeD and ("  (" .. main_formatD(fire_maxRangeD(u)) .. ")") or "") })
+    end
+    if m.formazione then table.insert(righe, { "Formazione", tostring(m.formazione) }) end
+    local dis, lim = main_unitDisorders(u.key), main_unitDisorderLimit(m)
+    table.insert(righe, { "Disordini", string.format("%d / %d", dis, lim),
+        dis == 0 and U.okColor or (dis >= lim and U.koColor or U.warnColor) })
+    local v = LDC_VELOCITA[m.tipo or ""] or {}
+    table.insert(righe, { "Velocita'", main_formatD(v.velocita or 0) .. (v.carica and ("   carica " .. main_formatD(v.carica)) or "") })
+
+    table.insert(righe, { sezione = "COMANDO" })
+    if m.divisioneNome then table.insert(righe, { "Divisione", m.divisioneNome }) end
+    table.insert(righe, { "Brigata", m.brigataNome or "senza Brigata" })
+    if m.reggimentoNome then table.insert(righe, { "Reggimento", m.reggimentoNome }) end
+    local st = COMMAND_STATE and COMMAND_STATE[slot]
+    local key = command_groupKeyOfMeta and command_groupKeyOfMeta(m)
+    local g = st and st.gruppi and key and st.gruppi[key]
+    if g then
+        local colore = (g.stato == COMMAND_STATO.ATTIVA and U.okColor) or (g.stato == COMMAND_STATO.HOLDS and U.koColor) or U.subColor
+        table.insert(righe, { "Stato", (COMMAND_PANEL.statoTesto[g.stato] or g.stato), colore })
+    end
+    if move_outOfCommand then
+        local fuori, d = move_outOfCommand(slot, u)
+        table.insert(righe, { "Dal Generale", d and main_formatD(d) or "-", fuori and U.koColor or U.okColor })
+    end
+    return righe
+end
+-- ============================================================
+-- FUNZIONE: main_unitInfoPhaseRows(u, slot)
+-- Sezione della fase corrente.
+-- ============================================================
+function main_unitInfoPhaseRows(u, slot)
+    local U = UNITINFO
+    local righe = {}
+    local fase = ENGINE and ENGINE.phase
+    if u.generale then return righe end
+    if fase == PHASE.FIRE then
+        table.insert(righe, { sezione = "FUOCO" })
+        table.insert(righe, { "Ha sparato", fire_hasFired(u.key) and "si" or "no" })
+        if fire_weapon(u) then table.insert(righe, { "Gittata", main_formatD(fire_maxRangeD(u)) }) end
+    elseif fase == PHASE.MANEUVER then
+        table.insert(righe, { sezione = "MANOVRA" })
+        local limite, motivo = move_unitLimit(slot, u)
+        table.insert(righe, { "Puo' muovere", limite and main_formatD(limite) or "no", limite and U.okColor or U.koColor })
+        if motivo then table.insert(righe, { "  motivo", motivo }) end
+        if MOVE_STATE.budget and MOVE_STATE.budget[u.key] then
+            table.insert(righe, { "Movimento residuo", main_formatD(MOVE_STATE.budget[u.key]) })
+        end
+        local t = MOVE_STATE.cariche[u.key]
+        if t then
+            local x = main_unit(t)
+            table.insert(righe, { "In carica su", x and (x.meta.nomeDisplay or x.key) or t, U.warnColor })
+        end
+        if fire_hasFired(u.key) then table.insert(righe, { "Ha sparato", "si" }) end
+    elseif fase == PHASE.MELEE then
+        table.insert(righe, { sezione = "MISCHIA" })
+        local trovata = false
+        for _, m in ipairs(MELEE_STATE.mischie or {}) do
+            if m.att == u.key or m.dif == u.key then
+                local altro = main_unit(m.att == u.key and m.dif or m.att)
+                if altro then
+                    local c = melee_compute(u, altro)
+                    table.insert(righe, { "Contro", altro.meta.nomeDisplay or altro.key })
+                    table.insert(righe, { "Dadi", c.dadi .. "D6, serve " .. c.soglia .. "+" })
+                    if c.ritira then table.insert(righe, { "  ritira", c.ritira == 1 and "gli 1" or "1 e 2" }) end
+                    table.insert(righe, { "Stato", m.fatta and "risolta" or "da risolvere", m.fatta and U.subColor or U.warnColor })
+                    trovata = true
+                end
+            end
+        end
+        if not trovata then table.insert(righe, { "Nessuna mischia", "" }) end
+    end
+    return righe
+end
+-- ============================================================
+-- FUNZIONE: main_unitInfoRows(key)
+-- ============================================================
+function main_unitInfoRows(key)
+    local u, slot = main_unitInfoUnit(key)
+    if not u then return {} end
+    local righe = main_unitInfoFixedRows(u, slot)
+    for _, r in ipairs(main_unitInfoPhaseRows(u, slot)) do table.insert(righe, r) end
+    local out = {}
+    for i = 1, math.min(#righe, UNITINFO.maxRows) do out[i] = righe[i] end
+    return out
+end
+local function uiHeight(righe)
+    local U = UNITINFO
+    local h = U.padding * 2 + U.titleHeight + U.subHeight + U.spacing * 2
+    for _, r in ipairs(righe) do
+        h = h + (r.sezione and U.sectionHeight or U.rowHeight) + U.spacing
+    end
+    return h
+end
+-- ============================================================
+-- FUNZIONE: main_unitInfoOpen(obj, player_color, alt_click)
+-- Bottone INFO della base di comando.
+-- ============================================================
+function main_unitInfoOpen(obj, player_color, alt_click)
+    local slot = main_sideOfColor(player_color)
+    if not slot then return end
+    local meta = main_baseMeta(obj)
+    local key = meta and meta.unitKey
+    if not key then return end
+    if alt_click or LDC_UNIT_INFO[slot] == key then
+        main_unitInfoClose(slot)
+        return
+    end
+    LDC_UNIT_INFO[slot] = key
+    main_unitInfoRedraw(slot)
+end
+function main_unitInfoClose(slot)
+    LDC_UNIT_INFO[slot] = nil
+    main_unitInfoRedraw(slot)
+end
+function main_unitInfoCloseClick(player, value, id)
+    local slot = tonumber(id:match("^unit_info_army(%d)_close$"))
+    if slot then main_unitInfoClose(slot) end
+end
+-- ============================================================
+-- FUNZIONE: main_unitInfoRefresh()
+-- Ricalcola le schede aperte (da main_updateCenterPanel).
+-- ============================================================
+function main_unitInfoRefresh()
+    for slot = 1, 2 do
+        local key = LDC_UNIT_INFO[slot]
+        if key then
+            if not main_unitInfoUnit(key) then LDC_UNIT_INFO[slot] = nil end
+            main_unitInfoRedraw(slot)
+        end
+    end
+end
+function main_unitInfoSub(key)
+    local u, slot = main_unitInfoUnit(key)
+    if not u then return "" end
+    return string.format("%s  -  %s", main_sideName(slot), key)
+end
+function main_unitInfoTitle(key)
+    local u = main_unitInfoUnit(key)
+    return u and (u.meta.nomeDisplay or u.meta.unitName or key) or ""
+end
+-- ============================================================
+-- FUNZIONE: main_unitInfoRedraw(slot)
+-- ============================================================
+function main_unitInfoRedraw(slot)
+    local U = UNITINFO
+    local pre = "unit_info_army" .. slot
+    local key = LDC_UNIT_INFO[slot]
+    if not key then
+        UI.setAttribute(pre, "active", "false")
+        return
+    end
+    local righe = main_unitInfoRows(key)
+    UI.setAttribute(pre, "height", tostring(uiHeight(righe)))
+    UI.setAttribute(pre, "visibility", main_sideVisibility(slot))
+    UI.setAttribute(pre .. "_title", "text", main_unitInfoTitle(key))
+    UI.setAttribute(pre .. "_sub", "text", main_unitInfoSub(key))
+    for i = 1, U.maxRows do
+        local r = righe[i]
+        local id = pre .. "_row" .. i
+        UI.setAttribute(id, "active", r and "true" or "false")
+        if r then
+            local sezione = r.sezione ~= nil
+            UI.setAttribute(id, "preferredHeight", tostring(sezione and U.sectionHeight or U.rowHeight))
+            UI.setAttribute(id .. "_l", "text", sezione and r.sezione or (r[1] or ""))
+            UI.setAttribute(id .. "_l", "color", sezione and U.sectionColor or uiLabelColor(r))
+            UI.setAttribute(id .. "_l", "fontStyle", sezione and "Bold" or "Normal")
+            UI.setAttribute(id .. "_l", "fontSize", sezione and "13" or "12")
+            UI.setAttribute(id .. "_v", "text", sezione and "" or (r[2] or ""))
+            UI.setAttribute(id .. "_v", "color", sezione and U.textColor or uiValueColor(r))
+        end
+    end
+    UI.setAttribute(pre, "active", "true")
+end
+-- ============================================================
+-- FUNZIONE: main_unitInfoPanelsXml()
+-- XML delle due schede (dentro getRulesetUiXml), righe fisse.
+-- ============================================================
+function main_unitInfoPanelsXml()
+    local U = UNITINFO
+    local xml = ""
+    for slot = 1, 2 do
+        local pre = "unit_info_army" .. slot
+        local rowsXml = ""
+        for i = 1, U.maxRows do
+            rowsXml = rowsXml .. string.format(
+                '<HorizontalLayout id="%s_row%d" preferredHeight="%d" childForceExpandWidth="true" active="false">' ..
+                    '<Text id="%s_row%d_l" text="" font="%s" fontSize="12" color="%s" alignment="MiddleLeft"/>' ..
+                    '<Text id="%s_row%d_v" text="" font="%s" fontSize="12" fontStyle="Bold" color="%s" alignment="MiddleRight" preferredWidth="%d" flexibleWidth="0"/>' ..
+                '</HorizontalLayout>',
+                pre, i, U.rowHeight, pre, i, U.font, U.textColor, pre, i, U.font, U.textColor, U.valueWidth)
+        end
+        xml = xml .. string.format(
+            '<Panel id="%s" rectAlignment="%s" offsetXY="%s" width="%d" height="%d" color="%s" visibility="%s" active="false">' ..
+                '<VerticalLayout padding="%d %d %d %d" spacing="%d" childAlignment="UpperLeft" childForceExpandHeight="false" childForceExpandWidth="true">' ..
+                    '<HorizontalLayout preferredHeight="%d" childForceExpandWidth="false" childForceExpandHeight="false">' ..
+                        '<Text id="%s_title" text="" font="%s" fontSize="16" fontStyle="Bold" color="%s" alignment="MiddleLeft" preferredWidth="%d"/>' ..
+                        '<Button id="%s_close" text="X" font="%s" fontSize="13" fontStyle="Bold" textColor="White" color="%s" preferredWidth="%d" preferredHeight="%d" onClick="main_unitInfoCloseClick"/>' ..
+                    '</HorizontalLayout>' ..
+                    '<Text id="%s_sub" text="" font="%s" fontSize="10" color="%s" alignment="MiddleLeft" preferredHeight="%d"/>' ..
+                    '%s' ..
+                '</VerticalLayout>' ..
+            '</Panel>',
+            pre, U.rectAlignment, U.offsetXY, U.width, uiHeight({}), U.bg, main_sideVisibility(slot),
+            U.padding, U.padding, U.padding, U.padding, U.spacing,
+            U.titleHeight,
+            pre, U.font, U.titleColor, U.width - U.padding * 2 - U.titleHeight,
+            pre, U.font, U.rowBg, U.titleHeight, U.titleHeight,
+            pre, U.font, U.subColor, U.subHeight,
+            rowsXml)
+    end
+    return xml
+end

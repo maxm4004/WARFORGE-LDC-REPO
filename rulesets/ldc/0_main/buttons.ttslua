@@ -38,7 +38,7 @@ function main_refreshBaseButtons()
         -- Generali: stessi bottoni (u.generale = true)
         for _, g in pairs(main_generalsOfSide(slot)) do
             local lista = provider and provider(g.comando, g, slot) or {}
-            if #lista > 0 then main_drawBaseButtons(g.comando, g, slot, lista) end
+            main_drawBaseButtons(g.comando, g, slot, lista)
         end
     end
 end
@@ -67,6 +67,18 @@ function main_drawBaseButtons(obj, u, slot, lista)
             tooltip        = "Disordini dell'unita'",
         })
     end
+
+    -- INFO: scheda dell'unità (come IEF), seconda fila a destra
+    obj.createButton({
+        click_function = "main_unitInfoOpen",
+        function_owner = Global,
+        label          = "INFO",
+        position       = { x = -B.passoX, y = B.y, z = -(metaProf / 2 + B.dietro + B.passoZ) },
+        rotation       = { x = 0, y = 180, z = 0 },
+        width          = B.infoWidth or 300, height = B.height, font_size = B.fontSize,
+        color          = B.infoColor or { r = 0.25, g = 0.25, b = 0.25 }, font_color = B.textColor,
+        tooltip        = "Scheda dell'unita' (alt-click chiude)",
+    })
 
     -- Bottoni della fase, centrati dietro la base
     local n = #lista
