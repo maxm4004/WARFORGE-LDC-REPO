@@ -10,6 +10,7 @@ function before_maneuver(phaseName, phase)
     MOVE_STATE = { side = TURN.activeSide, turno = ENGINE.turn, partenza = {}, cariche = {},
                    budget = {}, lati = {}, dopoCarica = {}, pannello = {} }
     MOVE_PANEL, MOVE_MANUAL, MOVE_PIVOT, MOVE_CHARGE_PREP = nil, nil, nil, nil
+    MOVE_CIRCLE = {}
     MOVE_DRAG = {}
     callHandler("updateCenterPanel")
 end
@@ -21,7 +22,9 @@ function after_maneuver(phaseName, phase)
     main_mirinoStop()
     if MOVE_PANEL then move_panelClose() end
     if MOVE_CHARGE_PREP then move_chargeChiudi(nil) end
-    for _, id in pairs(MOVE_DRAG) do Wait.stop(id) end
+    for _, id in pairs(MOVE_DRAG) do if type(id) == "number" then Wait.stop(id) end end
     MOVE_DRAG = {}
+    MOVE_CIRCLE = {}
+    move_dragText(nil, nil)
     main_setLines("movimento", {})
 end

@@ -201,7 +201,7 @@ function move_onPickUp(player_color, obj)
             Player[player_color], "Yellow", 4, false)
     end
     if not MOVE_DRAG[u.key] then
-        MOVE_DRAG[u.key] = Wait.time(function() move_drawLines(slot) end, MOVE.tick, -1)
+        MOVE_DRAG[u.key] = Wait.time(function() move_drawLines(slot) end, MOVE.tick, -1) or true
     end
 end
 -- ============================================================
@@ -213,7 +213,10 @@ function move_onDrop(player_color, obj)
     if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_manualOnDrop(player_color, obj) then return end
     local u, slot = move_baseOfActive(player_color, obj)
     if not u then return end
-    if MOVE_DRAG[u.key] then Wait.stop(MOVE_DRAG[u.key]); MOVE_DRAG[u.key] = nil end
+    if MOVE_DRAG[u.key] then
+        if type(MOVE_DRAG[u.key]) == "number" then Wait.stop(MOVE_DRAG[u.key]) end
+        MOVE_DRAG[u.key] = nil
+    end
 
     -- unità in carica: resta a contatto (ANNULLA per rifare)
     local fine = MOVE_STATE.dopoCarica and MOVE_STATE.dopoCarica[u.key]
@@ -254,6 +257,7 @@ function move_onDrop(player_color, obj)
     move_drawLines(slot)
     -- i fili restano finché un'unità è in mano
     if next(MOVE_DRAG) == nil then
+        move_dragText(slot, nil)
         Wait.time(function() if next(MOVE_DRAG) == nil then main_setLines("movimento", {}) end end, 1.5)
     end
     main_refreshBaseButtons()
@@ -264,11 +268,33 @@ end
 -- ============================================================
 function move_drawLines(slot)
     local linee = {}
+    -- cerchi del movimento dei Generali (IEF main_generalMoveLines)
+    for key, _ in pairs(MOVE_CIRCLE) do
+        local g = main_unitOrGeneral(slot, key)
+        local s = g and MOVE_STATE.partenza[key] and MOVE_STATE.partenza[key][g.comando.getGUID()]
+        if g and not s then
+            local p = g.comando.getPosition()
+            s = { x = p.x, y = p.y, z = p.z }
+        end
+        if s then
+            local r = main_dToTts(move_unitLimit(slot, g) or 0)
+            local punti = {}
+            for i = 0, 48 do
+                local a = (i / 48) * 2 * math.pi
+                table.insert(punti, { s.x + math.cos(a) * r, s.y + 0.05, s.z + math.sin(a) * r })
+            end
+            table.insert(linee, { points = punti, color = MOVE.cerchio, thickness = 0.05 })
+        end
+    end
     for key, _ in pairs(MOVE_DRAG) do
         local u = main_unitOrGeneral(slot, key)
         local posa = MOVE_STATE.partenza[key]
         if u and posa then
             local limite = move_unitLimit(slot, u) or 0
+            local massimo = 0
+            for _, b in ipairs(u.basi) do massimo = math.max(massimo, move_baseDistanceD(u, b)) end
+            move_dragText(slot, string.format("%s: %s / %s", u.meta.nomeDisplay or u.key, main_formatD(massimo),
+                main_formatD(limite)), massimo > limite + MOVE.tolleranzaD)
             for _, b in ipairs(u.basi) do
                 local s = posa[b.getGUID()]
                 if s then
@@ -379,10 +405,15 @@ function move_baseButtons(obj, u, slot)
     if not MOVE_STATE.cariche[u.key] and not main_mirinoActive() and not MOVE_CHARGE_PREP then
         if MOVE_PANEL and MOVE_PANEL.key == u.key then
             table.insert(lista, { label = "IN MOVIMENTO", click = "main_baseButtonNoop", color = MOVE.muoviColor, width = 620 })
-        elseif move_unitLimit(slot, u) then
+        elseif move_unitLimit(slot, u) and not u.generale then
             table.insert(lista, { label = "MUOVI", click = "move_clickMuovi", color = MOVE.muoviColor,
                 tooltip = "Pannello di movimento (avanti, perno)" })
         end
+    end
+    if u.generale then
+        table.insert(lista, { label = MOVE_CIRCLE[u.key] and "CERCHIO X" or "CERCHIO", click = "move_clickCerchio",
+            color = MOVE.muoviColor, width = 480,
+            tooltip = "Cerchio del movimento (" .. main_formatD(move_unitLimit(slot, u) or 0) .. "); alt-click: torna alla partenza" })
     end
     if move_hasMoved(u.key) or MOVE_STATE.cariche[u.key] then
         table.insert(lista, { label = "ANNULLA", click = "move_clickAnnulla", color = B.annullaColor,
@@ -467,4 +498,53 @@ end
 -- ============================================================
 function move_charges()
     return MOVE_STATE and MOVE_STATE.cariche or {}
+end
+
+-- ============================================================
+--            DISTANZA E CERCHIO (IEF 0_main/general)
+-- ============================================================
+
+MOVE_CIRCLE = MOVE_CIRCLE or {}   -- [key] = true: cerchio del movimento acceso
+
+-- ============================================================
+-- FUNZIONE: move_dragTextXml()
+-- Pannellino della distanza durante il trascinamento (IEF
+-- txtDistGen; qui a schermo, sopra il pannello di movimento).
+-- ============================================================
+function move_dragTextXml()
+    local P = MOVEPANEL
+    return string.format([[
+        <Panel id="move_drag_panel" rectAlignment="LowerCenter" offsetXY="0 330" width="460" height="56" color="%s" active="false" visibility="">
+            <Text id="move_drag_text" text="" font="%s" fontStyle="Bold" fontSize="26" color="White" alignment="MiddleCenter"/>
+        </Panel>]], P.bg, P.font)
+end
+function move_dragText(slot, testo, oltre)
+    if not testo then
+        UI.setAttribute("move_drag_panel", "active", "false")
+        return
+    end
+    UI.setAttribute("move_drag_panel", "visibility", main_sideVisibility(slot))
+    UI.setAttribute("move_drag_text", "text", testo)
+    UI.setAttribute("move_drag_text", "color", oltre and "#FF4040" or "White")
+    UI.setAttribute("move_drag_panel", "active", "true")
+end
+-- ============================================================
+-- FUNZIONE: move_clickCerchio(obj, player_color, alt_click)
+-- IEF main_generalMoveButton: accende/spegne il cerchio del
+-- movimento attorno alla partenza; alt-click riporta il
+-- Generale alla partenza.
+-- ============================================================
+function move_clickCerchio(obj, player_color, alt_click)
+    if not move_clickOk(player_color) then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio then return end
+    if alt_click then
+        move_restore(u)
+    elseif MOVE_CIRCLE[u.key] then
+        MOVE_CIRCLE[u.key] = nil
+    else
+        MOVE_CIRCLE[u.key] = true
+    end
+    move_drawLines(slot)
+    main_refreshBaseButtons()
 end
