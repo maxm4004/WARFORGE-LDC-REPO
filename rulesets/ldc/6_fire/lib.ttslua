@@ -429,7 +429,7 @@ function fire_spawnSmokeAt(nome, basi)
         return nil
     end
 
-    for _, b in ipairs(basi) do
+    for i, b in ipairs(basi) do
         local meta = main_baseMeta(b) or {}
         local prof = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
         local p, r = b.getPosition(), b.getRotation()
@@ -440,6 +440,8 @@ function fire_spawnSmokeAt(nome, basi)
         local function pronto(o)
             o.addTag(S.tag)
             o.setLock(true)
+            -- suono: una volta per unità, non per ogni base
+            if i == 1 then fire_smokeEffects(o, false) end
         end
         if fonte.modello then
             local data = fonte.modello.getData()
@@ -467,6 +469,37 @@ function fire_spawnSmokeAt(nome, basi)
         end
     end
     return fonte
+end
+-- ============================================================
+-- FUNZIONE: fire_smokeEffects(o, stampa)
+-- A bundle caricato: avvia l'effetto (suono) del fumo. I suoni
+-- di un AssetBundle di TTS sono "trigger effects" o "looping
+-- effects": non partono da soli, li avvia lo script.
+-- stampa = true elenca gli effetti in console (debug).
+-- ============================================================
+function fire_smokeEffects(o, stampa)
+    Wait.condition(function()
+        if not o or o.isDestroyed() or not o.AssetBundle then return end
+        local trigger = o.AssetBundle.getTriggerEffects() or {}
+        local looping = o.AssetBundle.getLoopingEffects() or {}
+        if stampa then
+            print(string.format("[DEBUG] effetti del bundle: %d trigger, %d looping", #trigger, #looping))
+            for _, e in ipairs(trigger) do print("  trigger " .. tostring(e.index) .. ": " .. tostring(e.name)) end
+            for _, e in ipairs(looping) do print("  looping " .. tostring(e.index) .. ": " .. tostring(e.name)) end
+        end
+        local E = FIRE_SMOKE.effetto
+        if E.tipo == "trigger" and #trigger > 0 then
+            o.AssetBundle.playTriggerEffect(E.indice or 0)
+        elseif E.tipo == "looping" and #looping > 0 then
+            o.AssetBundle.playLoopingEffect(E.indice or 0)
+        elseif #trigger > 0 then
+            o.AssetBundle.playTriggerEffect(0)
+        elseif #looping > 0 then
+            o.AssetBundle.playLoopingEffect(0)
+        end
+    end, function()
+        return o == nil or o.isDestroyed() or not o.loading_custom
+    end, 10)
 end
 -- ============================================================
 -- FUNZIONE: fire_spawnSmoke(unitKey)

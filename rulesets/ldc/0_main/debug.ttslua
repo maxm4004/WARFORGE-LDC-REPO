@@ -624,6 +624,7 @@ function debug_mostraFumo(nome)
     local function pronto(o)
         o.addTag(FIRE_SMOKE.tag)
         print("[DEBUG] fumo creato: " .. o.getGUID() .. " in " .. string.format("%.2f, %.2f, %.2f", pos.x, pos.y, pos.z))
+        fire_smokeEffects(o, true)
     end
     if fonte.modello then
         local data = fonte.modello.getData()

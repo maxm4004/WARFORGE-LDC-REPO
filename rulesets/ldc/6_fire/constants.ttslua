@@ -28,6 +28,9 @@ FIRE_SMOKE = {
         musket_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/10216868266385070597/6333980E1C48F5D0DF89886C3A0AC87379B2042F/", secondario = "", scala = 1 },
         cannon_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/17443463942960264975/C45FFA02FEC54EF262C52C54262D8ABFEEFC7063/", secondario = "", scala = 1 },
     },
+    -- effetto del bundle da avviare (il suono): "trigger" o
+    -- "looping" e indice; nil = il primo che c'è
+    effetto   = { tipo = nil, indice = 0 },
     davantiCm = 1.5,     -- dal bordo anteriore della base al centro del fumo
     altezza   = 0.05,    -- sopra la base
     rotY      = 180,     -- rispetto alla base
