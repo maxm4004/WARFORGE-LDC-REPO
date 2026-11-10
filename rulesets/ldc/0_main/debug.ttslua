@@ -553,3 +553,31 @@ function debug_distanza()
     print(string.format("[DEBUG] %s - %s: %s (%.2f\")",
         a.getName(), b.getName(), main_formatD(main_inchToD(pollici)), pollici))
 end
+
+-- ============================================================
+-- FUNZIONE: debug_fumo(nome)
+-- Fumo davanti alle basi selezionate ("musket_smoke" di
+-- default) e da dove è stato preso; senza selezione dice solo
+-- dove lo troverebbe. Toglierli: debug_fumo("via").
+-- ============================================================
+function debug_fumo(nome)
+    if nome == "via" then
+        fire_clearSmoke()
+        print("[DEBUG] fumi tolti")
+        return
+    end
+    nome = nome or FIRE_SMOKE.moschetto
+    local fonte = fire_smokeSource(nome)
+    if not fonte then
+        print("[DEBUG] fumo '" .. nome .. "' non trovato: ne' oggetto sul tavolo (nome o tag), ne' URL, ne' asset della UI")
+        local ok, assets = pcall(function() return UI.getCustomAssets() end)
+        if ok and type(assets) == "table" then
+            for _, a in ipairs(assets) do print("  asset UI: " .. tostring(a.name) .. " (tipo " .. tostring(a.type) .. ")") end
+        end
+        return
+    end
+    print("[DEBUG] fumo '" .. nome .. "' da: " .. fonte.da .. (fonte.url and (" - " .. fonte.url) or ""))
+    local basi = {}
+    for _, s in ipairs(debug_selectedObjects()) do table.insert(basi, s.obj) end
+    if #basi > 0 then fire_spawnSmokeAt(nome, basi) end
+end

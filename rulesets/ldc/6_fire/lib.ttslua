@@ -398,24 +398,42 @@ function fire_smokeTemplate(nome)
     return nil
 end
 -- ============================================================
--- FUNZIONE: fire_spawnSmoke(unitKey)
--- Un fumo (AssetBundle) davanti a ogni base del primo rango.
+-- FUNZIONE: fire_smokeSource(nome)
+-- Da dove si prende il fumo, in quest'ordine:
+--   1. oggetto sul tavolo con quel nome o tag (si copia)
+--   2. URL in FIRE_SMOKE.bundle
+--   3. asset della UI del mod con quel nome (Modding ->
+--      Scripting -> Custom UI Assets, tipo AssetBundle)
+-- Ritorna { modello = obj } o { url, secondario, scala, da }, o nil.
 -- ============================================================
-function fire_spawnSmoke(unitKey)
-    local u = main_unit(unitKey)
-    if not u then return end
-    local S = FIRE_SMOKE
-    local nome = (u.meta.arma == "cannone") and S.cannone or S.moschetto
+function fire_smokeSource(nome)
     local modello = fire_smokeTemplate(nome)
-    local bundle = S.bundle[nome]
-    local url = (not modello) and bundle and bundle.url ~= "" and bundle.url or nil
-    if not modello and not url then
-        print("[FUOCO] asset '" .. nome .. "' non trovato: niente fumo")
-        return
+    if modello then return { modello = modello, da = "oggetto sul tavolo" } end
+    local b = FIRE_SMOKE.bundle[nome] or {}
+    if b.url and b.url ~= "" then
+        return { url = b.url, secondario = b.secondario, scala = b.scala or 1, da = "URL in FIRE_SMOKE" }
+    end
+    local url = main_uiIconUrl(nome)
+    if url then
+        return { url = url, secondario = "", scala = b.scala or 1, da = "asset della UI" }
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: fire_spawnSmokeAt(nome, basi)
+-- Un fumo davanti a ogni base della lista. Ritorna la fonte.
+-- ============================================================
+function fire_spawnSmokeAt(nome, basi)
+    local S = FIRE_SMOKE
+    local fonte = fire_smokeSource(nome)
+    if not fonte then
+        print("[FUOCO] fumo '" .. nome .. "' non trovato: ne' oggetto sul tavolo, ne' URL, ne' asset della UI")
+        return nil
     end
 
-    local prof = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
-    for _, b in ipairs(main_unitFirstRank(u)) do
+    for _, b in ipairs(basi) do
+        local meta = main_baseMeta(b) or {}
+        local prof = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
         local p, r = b.getPosition(), b.getRotation()
         local f = main_baseForward(b)
         local d = prof / 2 + main_cmToTts(S.davantiCm)
@@ -425,22 +443,24 @@ function fire_spawnSmoke(unitKey)
             o.addTag(S.tag)
             o.setLock(true)
         end
-        if modello then
-            local data = modello.getData()
+        if fonte.modello then
+            local data = fonte.modello.getData()
             data.Tags = nil
+            data.GUID = nil
+            data.Locked = true
             data.Transform.posX, data.Transform.posY, data.Transform.posZ = pos.x, pos.y, pos.z
             data.Transform.rotX, data.Transform.rotY, data.Transform.rotZ = rot.x, rot.y, rot.z
-            data.GUID = nil
             spawnObjectData({ data = data, callback_function = pronto })
         else
             spawnObjectData({
                 data = {
                     Name = "Custom_AssetBundle",
                     Nickname = nome,
+                    Locked = true,
                     Transform = { posX = pos.x, posY = pos.y, posZ = pos.z, rotX = rot.x, rotY = rot.y, rotZ = rot.z,
-                                  scaleX = bundle.scala, scaleY = bundle.scala, scaleZ = bundle.scala },
+                                  scaleX = fonte.scala, scaleY = fonte.scala, scaleZ = fonte.scala },
                     CustomAssetbundle = {
-                        AssetbundleURL = url, AssetbundleSecondaryURL = bundle.secondario or "",
+                        AssetbundleURL = fonte.url, AssetbundleSecondaryURL = fonte.secondario or "",
                         MaterialIndex = 0, TypeIndex = 0, LoopingEffectIndex = 0,
                     },
                 },
@@ -448,6 +468,17 @@ function fire_spawnSmoke(unitKey)
             })
         end
     end
+    return fonte
+end
+-- ============================================================
+-- FUNZIONE: fire_spawnSmoke(unitKey)
+-- Fumo davanti a ogni base del primo rango dell'unità.
+-- ============================================================
+function fire_spawnSmoke(unitKey)
+    local u = main_unit(unitKey)
+    if not u then return end
+    local nome = (u.meta.arma == "cannone") and FIRE_SMOKE.cannone or FIRE_SMOKE.moschetto
+    fire_spawnSmokeAt(nome, main_unitFirstRank(u))
 end
 -- ============================================================
 -- FUNZIONE: fire_clearSmoke()
