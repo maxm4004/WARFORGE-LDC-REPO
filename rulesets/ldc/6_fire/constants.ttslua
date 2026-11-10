@@ -16,6 +16,9 @@ FIRE_DICEPANEL_CLOSE = 3
 -- sparato, girato di 180° rispetto alla base. Si copia l'oggetto
 -- sul tavolo con quel nome o tag; se non c'è, si crea dagli URL
 -- qui sotto. Tolto a fine metà turno.
+-- Attenzione: il fumo NON va registrato fra gli asset della UI
+-- del mod, altrimenti Unity tiene il bundle già caricato e
+-- l'oggetto non si vede.
 -- ------------------------------------------------------------
 FIRE_SMOKE = {
     moschetto = "musket_smoke",

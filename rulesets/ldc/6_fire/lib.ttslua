@@ -402,8 +402,7 @@ end
 -- Da dove si prende il fumo, in quest'ordine:
 --   1. oggetto sul tavolo con quel nome o tag (si copia)
 --   2. URL in FIRE_SMOKE.bundle
---   3. asset della UI del mod con quel nome (Modding ->
---      Scripting -> Custom UI Assets, tipo AssetBundle)
+-- Il fumo NON va registrato fra gli asset della UI del mod.
 -- Ritorna { modello = obj } o { url, secondario, scala, da }, o nil.
 -- ============================================================
 function fire_smokeSource(nome)
@@ -413,10 +412,9 @@ function fire_smokeSource(nome)
     if b.url and b.url ~= "" then
         return { url = b.url, secondario = b.secondario, scala = b.scala or 1, da = "URL in FIRE_SMOKE" }
     end
-    local url = main_uiIconUrl(nome)
-    if url then
-        return { url = url, secondario = "", scala = b.scala or 1, da = "asset della UI" }
-    end
+    -- Niente asset della UI: un AssetBundle registrato fra gli
+    -- asset della UI resta caricato da Unity e lo stesso bundle
+    -- non si carica più come oggetto (prova di Max, 10/11/2026).
     return nil
 end
 -- ============================================================
@@ -427,7 +425,7 @@ function fire_spawnSmokeAt(nome, basi)
     local S = FIRE_SMOKE
     local fonte = fire_smokeSource(nome)
     if not fonte then
-        print("[FUOCO] fumo '" .. nome .. "' non trovato: ne' oggetto sul tavolo, ne' URL, ne' asset della UI")
+        print("[FUOCO] fumo '" .. nome .. "' non trovato: ne' oggetto sul tavolo, ne' URL in FIRE_SMOKE.bundle")
         return nil
     end
 
