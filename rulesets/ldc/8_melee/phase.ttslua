@@ -14,6 +14,7 @@ function melee_phase()
             after  = "after_melee",
             onRoll = "melee_onRoll",
             baseButtons = "melee_baseButtons",
+            subphases = { "MELEE_RESOLVE" },
             allowedActions = { ACTION.CONFIRM },
             render = "1BtnClick",
             enforceOwnership = true,

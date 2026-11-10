@@ -1,0 +1,39 @@
+-- ============================================================
+-- WARFORGE LDC — 8_melee/subphase.ttslua
+-- Sottofasi della mischia (come IEF 8_melee/subphase).
+--
+-- MELEE_RESOLVE (scope shared): una mischia.
+--   TIRO    : entrambi tirano (bottone "Combatti in Mischia" =
+--             camera sui dadi), ritiri per il morale più alto
+--   ROTTURA : chi ha inflitto hit oltre il limite tira, serve
+--             più del morale del bersaglio
+--   MORALE  : test di morale di chi perde, poi ritirata
+--   ESCI    : esito per MORALE_ESITO_SECONDS, poi chiusura
+-- ============================================================
+
+function melee_subphases()
+    return {
+        MELEE_RESOLVE = {
+            scope       = "shared",
+            blocksPhase = false,
+            title       = "MISCHIA",
+            first       = "TIRO",
+            onEnter     = "melee_resolveEnter",
+            steps = {
+                TIRO    = { render = "meleeTiro",    actor = "both", icon = "mischia", label = "Combatti in Mischia", onClick = "melee_resolveFocus", onRoll = "melee_resolveRoll" },
+                ROTTURA = { render = "meleeRoller",  actor = "both", label = "Tira per la rottura",    onClick = "melee_resolveFocus", onRoll = "melee_rotturaRoll" },
+                MORALE  = { render = "meleeRoller",  actor = "both", label = "Test di morale",         onClick = "melee_resolveFocus", onRoll = "melee_moraleRoll" },
+                ESCI    = { render = "meleeEsci",    actor = "both", onEnter = "melee_resolveEsciEnter", onRestore = "melee_resolveEsciEnter" },
+            },
+        },
+    }
+end
+
+registerSubphases(melee_subphases())
+registerHandler("melee_resolveEnter",     function(c,s,r)   return melee_resolveEnter(c,s,r)     end)
+registerHandler("melee_resolveFocus",     function(c,s,p,r) return melee_resolveFocus(c,s,p,r)   end)
+registerHandler("melee_resolveRoll",      function(c,s,p,r) return melee_resolveRoll(c,s,p,r)    end)
+registerHandler("melee_rotturaRoll",      function(c,s,p,r) return melee_rotturaRoll(c,s,p,r)    end)
+registerHandler("melee_moraleRoll",       function(c,s,p,r) return melee_moraleRoll(c,s,p,r)     end)
+registerHandler("melee_resolveEsciEnter", function(c,s,r)   return melee_resolveEsciEnter(c,s,r) end)
+registerHandler("melee_resolveDone",      function(c,res,s) return melee_resolveDone(c,res,s)    end)

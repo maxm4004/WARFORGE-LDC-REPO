@@ -8,13 +8,13 @@
 -- ============================================================
 function melee_btn(player, value, id, buttonConfig)
     if main_divBlocks(player) then return false end
-    if MELEE_ROLLING or MELEE_PENDING then
+    if melee_resolveCtx() then
         warningToColor("C'e' una mischia in corso", player, "Yellow", 4, false)
         return false
     end
     for _, m in ipairs(MELEE_STATE.mischie) do
         if not m.fatta then
-            warningToColor("Prima risolvi tutte le mischie (MISCHIA sulle unita' in carica)", player, "Yellow", 5, false)
+            warningToColor("Prima risolvi tutte le mischie (lista MISCHIE o MISCHIA sulle basi)", player, "Yellow", 5, false)
             return false
         end
     end

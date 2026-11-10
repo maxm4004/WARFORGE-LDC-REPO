@@ -1,0 +1,63 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/listpanel.ttslua
+-- Pannello lista (copiato da IEF 4_charge: ui_listPanelXml e
+-- LISTPANEL), usato dalle liste delle mischie e delle cariche.
+-- ============================================================
+
+LISTPANEL = LISTPANEL or {
+    width     = 420,
+    offsetXY  = "-10 -330",
+    padding   = 10,
+    spacing   = 2,
+    titleH    = 22,
+    noteH     = 16,
+    rowH      = 24,
+    bg        = "rgba(0,0,0,0.70)",
+    rowBg     = "rgba(1,1,1,0.06)",
+    gold      = "#FFD833",
+    grey      = "#BBBBBB",
+    todo      = "White",     -- riga da fare
+    done      = "#5BD35B",   -- riga fatta / scelta
+    font      = "warforge_font",
+    rowFont   = 10,          -- testo delle righe (piccolo: la riga si legge per intero)
+}
+
+-- ============================================================
+-- FUNZIONE: ui_listPanelXml(o)  (IEF, invariata)
+-- o = { id, titleId, titolo, nota, visibility, attivo, righe =
+--       { { id, testo, colore, onClick } }, vuoto, offsetXY,
+--       rectAlignment }
+-- ============================================================
+function ui_listPanelXml(o)
+    local S = LISTPANEL
+    local function esc(t)
+        t = tostring(t or "")
+        return (t:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub('"', "&quot;"))
+    end
+    local righe = o.righe or {}
+    local rows = ""
+    for _, r in ipairs(righe) do
+        rows = rows .. string.format(
+            '<Button id="%s" text="%s" font="%s" fontSize="%d" color="%s" textColor="%s" textAlignment="MiddleCenter" preferredHeight="%d" onClick="%s"/>',
+            r.id, esc(r.testo), S.font, S.rowFont or 10, S.rowBg, r.colore or S.todo, S.rowH, r.onClick)
+    end
+    local n = #righe
+    if n == 0 and o.vuoto then
+        rows = string.format('<Text text="%s" font="%s" fontSize="11" color="%s" alignment="MiddleCenter" preferredHeight="%d"/>',
+            esc(o.vuoto), S.font, S.grey, S.rowH)
+        n = 1
+    end
+    local h = 2 * S.padding + S.titleH + (o.nota and (S.noteH + S.spacing) or 0) + n * (S.rowH + S.spacing)
+    return string.format(
+        '<Panel id="%s" rectAlignment="%s" color="%s" width="%d" height="%d" offsetXY="%s" visibility="%s" active="%s">' ..
+        '<VerticalLayout padding="%d %d %d %d" spacing="%d" childForceExpandHeight="false" childAlignment="UpperCenter">' ..
+            '<Text id="%s" text="%s" font="%s" fontSize="14" fontStyle="Bold" color="%s" alignment="MiddleCenter" preferredHeight="%d"/>' ..
+            '%s%s' ..
+        '</VerticalLayout></Panel>',
+        o.id, o.rectAlignment or "UpperRight", S.bg, S.width, h, o.offsetXY or S.offsetXY, o.visibility or "", o.attivo or "false",
+        S.padding, S.padding, S.padding, S.padding, S.spacing,
+        o.titleId, esc(o.titolo), S.font, S.gold, S.titleH,
+        o.nota and string.format('<Text text="%s" font="%s" fontSize="10" color="%s" alignment="MiddleCenter" preferredHeight="%d"/>',
+            esc(o.nota), S.font, S.grey, S.noteH) or "",
+        rows)
+end

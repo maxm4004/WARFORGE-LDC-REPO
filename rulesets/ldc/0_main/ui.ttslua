@@ -76,7 +76,7 @@ function getRulesetUiXml()
             </HorizontalLayout>
         </VerticalLayout>
     </Panel>
-    ]] .. main_waitPanelsXml() .. command_panelXml() .. fire_confirmPanelXml()
+    ]] .. main_waitPanelsXml() .. command_panelXml() .. fire_confirmPanelXml() .. melee_listPanelXml(1) .. melee_listPanelXml(2)
 end
 -- ============================================================
 -- FUNZIONE: main_waitPanelsXml()

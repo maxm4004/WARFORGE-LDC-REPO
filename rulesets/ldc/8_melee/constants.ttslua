@@ -10,4 +10,5 @@ MELEE = {
     mischiaColor = { r = 0.7, g = 0.1, b = 0.1 },
     ritiroFanteria   = 1,  -- D di ritirata (10.1.1)
     ritiroCavalleria = 2,
+    listaMax = 10,         -- righe della lista MISCHIE
 }

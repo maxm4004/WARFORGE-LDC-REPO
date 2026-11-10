@@ -7,10 +7,5 @@
 -- MELEE_STATE = { side, turno, mischie = { { att, dif, fatta, esito } } }
 MELEE_STATE = MELEE_STATE or { side = nil, turno = nil, mischie = {} }
 
--- Mischia in corso (non salvato):
--- { i, step, roller (slot che tira), dadi, soglia, ritira (facce <=),
---   colpi = { [slot] = successi }, calcolo = { [slot] = { dadi, soglia, ritira } } }
-MELEE_PENDING = nil
-
--- Dadi in volo (non salvato)
-MELEE_ROLLING = false
+-- La mischia in corso è la sottofase condivisa MELEE_RESOLVE
+-- (melee_resolveCtx).
