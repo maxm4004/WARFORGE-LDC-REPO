@@ -1,0 +1,893 @@
+-- ============================================================
+-- WARFORGE LDC — 7_maneuver/panel.ttslua
+-- Pannello di movimento ricalcato su IEF 6_move: MUOVI sulla
+-- base apre il pannello (Avanti elastico, Avanti Max, Perno Sn /
+-- Perno Ds a maniglia, Annulla Ultimo / Annulla Tutto, Chiudi).
+--
+-- Differenze dal regolamento IEF (decisioni di Max):
+--   * misure in D (calcoli in pollici, POLLICI_PER_D);
+--   * il perno è libero: non costa movimento e non ha il limite
+--     di 3" (massimo MOVE.pernoMaxGradi per perno, ripetibile);
+--   * l'Avanti consuma la velocità dell'unità (move_unitLimit);
+--   * le basi si possono comunque prendere a mano (movimento e
+--     formazioni liberi, 9.1): restano i fili dalla partenza e il
+--     limite di spostamento netto per base. L'unità mossa con il
+--     pannello è controllata dal budget, non dallo spostamento
+--     netto (il perno sposta molto le basi esterne).
+-- Il pannello è a schermo, in basso al centro (IEF: 3D sulla
+-- base; vedi dubbi in LDC_PORTING_IEF).
+-- ============================================================
+
+-- Pannello aperto (uno solo: muove solo lo schieramento attivo)
+-- MOVE_PANEL = { key, slot, player, history = { snap } }
+MOVE_PANEL  = nil
+MOVE_MANUAL = nil   -- avanti elastico in corso
+MOVE_PIVOT  = nil   -- perno a maniglia in corso
+MOVE_HANDLES = {}   -- [guid maniglia] = { key, dir }
+
+-- ============================================================
+--                          GEOMETRIA
+-- ============================================================
+
+-- Rettangolo della base nel formato IEF (main_baseRectOfType)
+function move_rect(obj)
+    return fire_rectIEF(obj)
+end
+-- ============================================================
+-- FUNZIONE: move_rectSweepInterval(a, dirX, dirZ, b, tol)
+-- IEF main_rectSweepInterval: intervallo di t (unità TTS) in cui
+-- il rettangolo a, traslato di t lungo dir, si sovrappone a b.
+-- ============================================================
+function move_rectSweepInterval(a, dirX, dirZ, b, tol)
+    local tMin, tMax = -math.huge, math.huge
+    local assi = { { a.fx, a.fz }, { a.rx, a.rz }, { b.fx, b.fz }, { b.rx, b.rz } }
+    for _, n in ipairs(assi) do
+        local nx, nz = n[1], n[2]
+        local ra = a.hw * math.abs(a.rx * nx + a.rz * nz) + a.hd * math.abs(a.fx * nx + a.fz * nz)
+        local rb = b.hw * math.abs(b.rx * nx + b.rz * nz) + b.hd * math.abs(b.fx * nx + b.fz * nz)
+        local R = ra + rb - tol
+        if R <= 0 then return nil end
+        local s0 = (b.x - a.x) * nx + (b.z - a.z) * nz
+        local v = dirX * nx + dirZ * nz
+        if math.abs(v) < 1e-6 then
+            if math.abs(s0) >= R then return nil end
+        else
+            local t1, t2 = (s0 - R) / v, (s0 + R) / v
+            if t1 > t2 then t1, t2 = t2, t1 end
+            if t1 > tMin then tMin = t1 end
+            if t2 < tMax then tMax = t2 end
+            if tMin >= tMax then return nil end
+        end
+    end
+    return tMin, tMax
+end
+-- ============================================================
+-- FUNZIONE: move_otherBases(u)
+-- Basi delle altre unità (Generali esclusi: si attraversano).
+-- Ritorna { { obj, key, nemico } }.
+-- ============================================================
+function move_otherBases(u, slot)
+    local out = {}
+    for s = 1, 2 do
+        for key, x in pairs(main_unitsOfSide(s)) do
+            if key ~= u.key then
+                for _, b in ipairs(x.basi) do
+                    table.insert(out, { obj = b, key = key, nemico = s ~= slot })
+                end
+            end
+        end
+    end
+    return out
+end
+-- ============================================================
+-- FUNZIONE: move_pathLimitD(u, slot, dir, maxD)
+-- IEF main_pathCheck: fin dove l'unità avanza lungo dir senza
+-- toccare un'amica (contatto) o il nemico (si ferma a
+-- MOVE.margineNemicoD). Ritorna D, chi, nemico.
+-- ============================================================
+function move_pathLimitD(u, slot, dir, maxD)
+    local migliore, chi, nemico = main_dToTts(maxD), nil, false
+    local mie = {}
+    for _, b in ipairs(u.basi) do table.insert(mie, move_rect(b)) end
+    for _, o in ipairs(move_otherBases(u, slot)) do
+        local rb = move_rect(o.obj)
+        for _, ra in ipairs(mie) do
+            local t1, t2 = move_rectSweepInterval(ra, dir.x, dir.z, rb, 0.01)
+            if t1 and t2 > 0 then
+                local d = math.max(0, t1)
+                if o.nemico then d = math.max(0, d - main_dToTts(MOVE.margineNemicoD)) end
+                if d < migliore then migliore, chi, nemico = d, o.key, o.nemico end
+            end
+        end
+    end
+    return main_inchToD(main_ttsToInch(migliore)), chi, nemico
+end
+-- ============================================================
+-- FUNZIONE: move_overlapKey(u, slot)
+-- Unità sotto le basi di u (IEF main_unitOverlapKey).
+-- ============================================================
+function move_overlapKey(u, slot)
+    local mie = {}
+    for _, b in ipairs(u.basi) do table.insert(mie, move_rect(b)) end
+    for _, o in ipairs(move_otherBases(u, slot)) do
+        local rb = move_rect(o.obj)
+        for _, ra in ipairs(mie) do
+            if move_rectSweepInterval(ra, 1, 0, rb, 0.02) then
+                local t1, t2 = move_rectSweepInterval(ra, 1, 0, rb, 0.02)
+                if t1 < 0 and t2 > 0 then return o.key end
+            end
+        end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: move_frontCorners(u)
+-- IEF main_pivotCorners: angoli anteriori estremi (sx, dx),
+-- fronte e destra dell'unità.
+-- ============================================================
+function move_frontCorners(u)
+    local f = main_baseForward(u.comando)
+    local right = { x = f.z, z = -f.x }
+    local fronte = -math.huge
+    local angoli = {}
+    for _, b in ipairs(u.basi) do
+        for _, c in ipairs(move_rect(b).corners) do
+            local v = c.x * f.x + c.z * f.z
+            table.insert(angoli, { x = c.x, z = c.z, v = v, u = c.x * right.x + c.z * right.z })
+            if v > fronte then fronte = v end
+        end
+    end
+    local sx, dx = nil, nil
+    for _, c in ipairs(angoli) do
+        if c.v >= fronte - 0.05 then
+            if not sx or c.u < sx.u then sx = c end
+            if not dx or c.u > dx.u then dx = c end
+        end
+    end
+    return sx, dx, f, right
+end
+-- Ruota il punto (x, z) attorno a c di ang (convenzione IEF)
+local function ruota(c, x, z, ang)
+    local cs, sn = math.cos(ang), math.sin(ang)
+    local rx, rz = x - c.x, z - c.z
+    return c.x + rx * cs - rz * sn, c.z + rx * sn + rz * cs
+end
+move_ruota = ruota
+-- Angolo con segno da a a b attorno a c
+local function angoloAttorno(c, ax, az, bx, bz)
+    local ux, uz = ax - c.x, az - c.z
+    local vx, vz = bx - c.x, bz - c.z
+    return move_angolo(ux * vz - uz * vx, ux * vx + uz * vz)
+end
+-- IEF charge_angolo: atan2 senza math.atan2
+function move_angolo(y, x)
+    if x > 0 then return math.atan(y / x) end
+    if x < 0 then
+        if y >= 0 then return math.atan(y / x) + math.pi end
+        return math.atan(y / x) - math.pi
+    end
+    if y > 0 then return math.pi / 2 end
+    if y < 0 then return -math.pi / 2 end
+    return 0
+end
+-- ============================================================
+-- FUNZIONE: move_rotateUnit(basi, c, ang, start, rot)
+-- Rotazione rigida attorno a c (dalle pose start/rot se date).
+-- ============================================================
+function move_rotateUnit(basi, c, ang, start, rot)
+    local gradi = math.deg(ang)
+    for _, b in ipairs(basi) do
+        local g = b.getGUID()
+        local p = (start and start[g]) or b.getPosition()
+        local r = (rot and rot[g]) or b.getRotation()
+        local x, z = ruota(c, p.x, p.z, ang)
+        b.setPosition({ x = x, y = p.y, z = z })
+        b.setRotation({ x = r.x or 0, y = (r.y or 0) - gradi, z = r.z or 0 })
+    end
+end
+
+-- ============================================================
+--                     BUDGET E FOTOGRAFIE
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_budget(slot, u)
+-- D di movimento residui (velocità dell'unità all'apertura).
+-- ============================================================
+function move_budget(slot, u)
+    MOVE_STATE.budget = MOVE_STATE.budget or {}
+    if MOVE_STATE.budget[u.key] == nil then
+        MOVE_STATE.budget[u.key] = move_unitLimit(slot, u) or 0
+    end
+    return MOVE_STATE.budget[u.key]
+end
+-- ============================================================
+-- FUNZIONE: move_snapshot(u)
+-- IEF move_snapshot: pose per GUID e budget.
+-- ============================================================
+function move_snapshot(u)
+    local pos, rot = {}, {}
+    for _, b in ipairs(u.basi) do
+        local p, r = b.getPosition(), b.getRotation()
+        pos[b.getGUID()] = { x = p.x, y = p.y, z = p.z }
+        rot[b.getGUID()] = { x = r.x, y = r.y, z = r.z }
+    end
+    return { pos = pos, rot = rot, budget = MOVE_STATE.budget and MOVE_STATE.budget[u.key] }
+end
+-- ============================================================
+-- FUNZIONE: move_restoreSnapshot(u, snap)
+-- ============================================================
+function move_restoreSnapshot(u, snap)
+    if not snap then return end
+    for _, b in ipairs(u.basi) do
+        local g = b.getGUID()
+        if snap.pos[g] then b.setPosition(snap.pos[g]) end
+        if snap.rot[g] then b.setRotation(snap.rot[g]) end
+    end
+    MOVE_STATE.budget = MOVE_STATE.budget or {}
+    MOVE_STATE.budget[u.key] = snap.budget
+end
+
+-- ============================================================
+--                         PANNELLO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_panelXml()
+-- Pannello unico (IEF main_buildMovementPanel3DXml, senza la
+-- sezione FORMAZIONE: in LDC le formazioni si cambiano a mano).
+-- ============================================================
+function move_panelXml()
+    local P = MOVEPANEL
+    local function btn(id, testo, onClick, larghezza, colore)
+        return string.format('<Button id="%s" text="%s" font="%s" fontStyle="Bold" fontSize="15" color="%s" textColor="White" preferredWidth="%d" preferredHeight="32" onClick="%s"/>',
+            id, testo, P.font, colore or P.btnOn, larghezza, onClick)
+    end
+    local function sezione(testo)
+        return string.format('<Text text="%s" font="%s" fontStyle="Bold" fontSize="14" color="%s" alignment="MiddleLeft" preferredHeight="20"/>', testo, P.font, P.gold)
+    end
+    local function riga(contenuto)
+        return '<HorizontalLayout spacing="8" childAlignment="MiddleCenter" childForceExpandWidth="false" preferredHeight="32">' .. contenuto .. '</HorizontalLayout>'
+    end
+    return string.format([[
+        <Panel id="move_panel" rectAlignment="LowerCenter" offsetXY="0 90" color="%s" width="%d" height="%d" active="false" visibility="">
+            <VerticalLayout spacing="5" padding="16 16 12 12" childAlignment="UpperCenter" childForceExpandHeight="false">
+                <Text id="move_panel_title" text="" font="%s" fontStyle="Bold" fontSize="20" color="%s" alignment="MiddleCenter" preferredHeight="26"/>
+                <Text id="move_panel_info" text="" font="%s" fontSize="14" color="%s" alignment="MiddleCenter" preferredHeight="20"/>
+                <Text id="move_panel_dist" text="" font="%s" fontStyle="Bold" fontSize="30" color="White" alignment="MiddleCenter" preferredHeight="36"/>
+                %s %s %s
+                %s
+            </VerticalLayout>
+        </Panel>
+        ]], P.bg, P.width, P.height,
+        P.font, P.gold, P.font, P.grey, P.font,
+        sezione("MOVIMENTO"),
+        riga(btn("move_btn_Avanti", "Avanti", "move_btnManual", 160) .. btn("move_btn_AvantiMax", "Avanti Max", "move_btnMoveMax", 160)
+          .. btn("move_btn_PernoSn", "Perno Sn", "move_btnPivotSx", 160) .. btn("move_btn_PernoDs", "Perno Ds", "move_btnPivotDx", 160)),
+        riga(btn("move_btn_UndoLast", "Annulla Ultimo", "move_btnUndoLast", 330, P.undo1) .. btn("move_btn_UndoAll", "Annulla Tutto", "move_btnUndoAll", 330, P.undo2)),
+        riga(btn("move_btn_Close", "Chiudi", "move_btnClose", 676, P.close)))
+end
+-- ============================================================
+-- FUNZIONE: move_panelUnit()
+-- Unità del pannello aperto (u, slot) o nil.
+-- ============================================================
+function move_panelUnit()
+    if not MOVE_PANEL then return nil end
+    local u = main_unitOrGeneral(MOVE_PANEL.slot, MOVE_PANEL.key)
+    if not u then return nil end
+    return u, MOVE_PANEL.slot
+end
+-- ============================================================
+-- FUNZIONE: move_panelRedraw()
+-- IEF move_redraw: testi, bottoni accesi/spenti, corridoio.
+-- ============================================================
+function move_panelRedraw()
+    local P = MOVEPANEL
+    local u, slot = move_panelUnit()
+    if not u then
+        UI.setAttribute("move_panel", "active", "false")
+        return
+    end
+    local residuo = move_budget(slot, u)
+    local carica = MOVE_STATE.cariche[u.key] ~= nil
+    UI.setAttribute("move_panel", "visibility", main_sideVisibility(slot))
+    UI.setAttribute("move_panel", "active", "true")
+    UI.setAttribute("move_panel_title", "text", (u.meta.nomeDisplay or u.key):upper())
+    local _, nota = move_unitLimit(slot, u)
+    UI.setAttribute("move_panel_info", "text", string.format("Movimento %s   Perno libero%s",
+        main_formatD(residuo), (carica and "   IN CARICA") or (nota and ("   " .. nota)) or ""))
+    if not MOVE_MANUAL and not MOVE_PIVOT then UI.setAttribute("move_panel_dist", "text", "") end
+
+    local function setBtn(id, ok, acceso)
+        UI.setAttribute(id, "interactable", ok and "true" or "false")
+        UI.setAttribute(id, "color", acceso and P.manualOn or (ok and P.btnOn or P.btnOff))
+        UI.setAttribute(id, "textColor", ok and "White" or P.grey)
+    end
+    local muove = residuo > 0.001 and not carica
+    setBtn("move_btn_Avanti", muove, MOVE_MANUAL ~= nil)
+    setBtn("move_btn_AvantiMax", muove and not MOVE_MANUAL and not MOVE_PIVOT)
+    local perno = #u.basi >= 2 and not carica and not u.generale
+    setBtn("move_btn_PernoSn", perno, MOVE_PIVOT and MOVE_PIVOT.soloDir == "left")
+    setBtn("move_btn_PernoDs", perno, MOVE_PIVOT and MOVE_PIVOT.soloDir == "right")
+    local hist = #MOVE_PANEL.history > 0
+    setBtn("move_btn_UndoLast", hist)
+    setBtn("move_btn_UndoAll", hist or move_hasMoved(u.key))
+    if hist then
+        UI.setAttribute("move_btn_UndoLast", "color", P.undo1)
+        UI.setAttribute("move_btn_UndoAll", "color", P.undo2)
+    end
+    move_panelLines()
+end
+-- ============================================================
+-- FUNZIONE: move_panelLines()
+-- Corridoio giallo davanti all'unità lungo quanto il movimento
+-- residuo (IEF move_redraw), o le linee di manuale / perno.
+-- ============================================================
+function move_panelLines()
+    local u, slot = move_panelUnit()
+    if not u then main_setLines("pannello", {}); return end
+    local linee = {}
+    if MOVE_MANUAL then
+        linee = move_manualLines()
+    elseif MOVE_PIVOT then
+        linee = MOVE_PIVOT.linee or {}
+    else
+        local residuo = move_budget(slot, u)
+        if residuo > 0.001 and not MOVE_STATE.cariche[u.key] then
+            local sx, dx, f = move_frontCorners(u)
+            if sx then
+                local L = main_dToTts(residuo)
+                local y = u.comando.getPosition().y + 0.05
+                local eL = { sx.x + f.x * L, y, sx.z + f.z * L }
+                local eR = { dx.x + f.x * L, y, dx.z + f.z * L }
+                local G = MOVE.giallo
+                linee = {
+                    { points = { { sx.x, y, sx.z }, eL }, color = G, thickness = 0.03 },
+                    { points = { { dx.x, y, dx.z }, eR }, color = G, thickness = 0.03 },
+                    { points = { eL, eR }, color = G, thickness = 0.03 },
+                }
+            end
+        end
+    end
+    main_setLines("pannello", linee)
+end
+-- ============================================================
+-- FUNZIONE: move_panelOpen(player, slot, u)
+-- MUOVI: apre il pannello sull'unità (IEF
+-- main_movementOpenFromButton). Camera dietro l'unità.
+-- ============================================================
+function move_panelOpen(player, slot, u)
+    if MOVE_PANEL and MOVE_PANEL.key ~= u.key then move_panelClose() end
+    local limite, motivo = move_unitLimit(slot, u)
+    if not limite then
+        warningToColor((u.meta.nomeDisplay or u.key) .. " non puo' muovere: " .. tostring(motivo), player, "Yellow", 5, true)
+        return false
+    end
+    move_recordStart(u)
+    move_budget(slot, u)
+    if (MOVE_STATE.budget[u.key] or 0) <= 0.001 and not move_hasMoved(u.key) then
+        warningToColor("Movimento gia' eseguito in questo turno", player, "Yellow", 5, true)
+        return false
+    end
+    MOVE_STATE.pannello = MOVE_STATE.pannello or {}
+    MOVE_STATE.pannello[u.key] = true
+    MOVE_PANEL = MOVE_PANEL or { key = u.key, slot = slot, history = {} }
+    MOVE_PANEL.player = player
+    local c = main_unitCenter(u)
+    local yaw = u.comando.getRotation().y
+    player.lookAt({ position = { x = c.x, y = u.comando.getPosition().y + 2, z = c.z }, pitch = 30, yaw = yaw, distance = 15 })
+    move_panelRedraw()
+    main_refreshBaseButtons()
+    return true
+end
+-- ============================================================
+-- FUNZIONE: move_panelClose()
+-- IEF move_close.
+-- ============================================================
+function move_panelClose()
+    if MOVE_MANUAL then move_manualOff(true) end
+    if MOVE_PIVOT then move_pivotOff() end
+    MOVE_PANEL = nil
+    UI.setAttribute("move_panel", "active", "false")
+    main_setLines("pannello", {})
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_panelPlayerOk(player)
+-- ============================================================
+function move_panelPlayerOk(player)
+    if not MOVE_PANEL or not ENGINE or ENGINE.phase ~= PHASE.MANEUVER then return false end
+    if not main_colorInSide(player.color, MOVE_PANEL.slot) then return false end
+    MOVE_PANEL.player = player
+    return true
+end
+
+-- ============================================================
+--                     BOTTONI DEL PANNELLO
+-- ============================================================
+
+function move_btnMoveMax(player, value, id)
+    if not move_panelPlayerOk(player) then return end
+    local u, slot = move_panelUnit()
+    if u then move_avantiApply(u, slot, move_budget(slot, u)) end
+end
+function move_btnManual(player, value, id)
+    if not move_panelPlayerOk(player) then return end
+    if MOVE_MANUAL then
+        move_manualOff()
+        move_panelRedraw()
+        return
+    end
+    move_manualOn()
+end
+function move_btnPivotSx(player, value, id)
+    if move_panelPlayerOk(player) then move_pivotToggle("left") end
+end
+function move_btnPivotDx(player, value, id)
+    if move_panelPlayerOk(player) then move_pivotToggle("right") end
+end
+function move_btnUndoLast(player, value, id)
+    if not move_panelPlayerOk(player) then return end
+    local u = move_panelUnit()
+    if not u or #MOVE_PANEL.history == 0 then return end
+    if MOVE_MANUAL then move_manualOff() end
+    if MOVE_PIVOT then move_pivotOff() end
+    move_restoreSnapshot(u, table.remove(MOVE_PANEL.history))
+    move_panelRedraw()
+end
+function move_btnUndoAll(player, value, id)
+    if not move_panelPlayerOk(player) then return end
+    local u = move_panelUnit()
+    if not u then return end
+    if MOVE_MANUAL then move_manualOff() end
+    if MOVE_PIVOT then move_pivotOff() end
+    move_restore(u)
+    MOVE_STATE.budget[u.key] = nil
+    MOVE_PANEL.history = {}
+    move_recordStart(u)
+    move_panelRedraw()
+    main_refreshBaseButtons()
+end
+function move_btnClose(player, value, id)
+    if not move_panelPlayerOk(player) then return end
+    move_panelClose()
+end
+
+-- ============================================================
+--                          AVANTI
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_avantiApply(u, slot, d)
+-- IEF move_avanti_apply: avanti di d D lungo il fronte, fermo
+-- davanti ad amiche e nemici.
+-- ============================================================
+function move_avantiApply(u, slot, d)
+    local residuo = move_budget(slot, u)
+    if residuo <= 0.001 then return false end
+    if d > residuo then d = residuo end
+    local f = main_baseForward(u.comando)
+    local libero, chi, nemico = move_pathLimitD(u, slot, f, d)
+    local player = MOVE_PANEL and MOVE_PANEL.player
+    if libero < d - 0.005 then
+        local x = chi and main_unitOrGeneral(nemico and main_otherSide(slot) or slot, chi)
+        local nome = x and (x.meta.nomeDisplay or x.key) or ""
+        local msg = nemico and ("Nemico davanti (" .. nome .. "): per il contatto serve la CARICA")
+            or ("Unita' amica davanti (" .. nome .. ")")
+        if libero <= 0.005 then
+            if player then warningToColor(msg, player, "Yellow", 5, true) end
+            move_panelRedraw()
+            return false
+        end
+        if player then warningToColor(msg .. ": avanza solo " .. main_formatD(libero), player, "Yellow", 5, true) end
+        d = libero
+    end
+    table.insert(MOVE_PANEL.history, move_snapshot(u))
+    local t = main_dToTts(d)
+    for _, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        b.setPosition({ x = p.x + f.x * t, y = p.y, z = p.z + f.z * t })
+    end
+    MOVE_STATE.budget[u.key] = residuo - d
+    if MOVE_STATE.budget[u.key] < 0.005 then MOVE_STATE.budget[u.key] = 0 end
+    move_panelRedraw()
+    main_refreshBaseButtons()
+    return true
+end
+
+-- ============================================================
+--              AVANTI ELASTICO (IEF move_manual*)
+-- Si prende UNA base qualsiasi dell'unità e la si trascina:
+-- conta solo quanto va avanti lungo il fronte; al rilascio tutte
+-- le basi vanno esatte sull'asse a quella distanza.
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_manualOn()
+-- ============================================================
+function move_manualOn()
+    local u, slot = move_panelUnit()
+    if not u then return end
+    if MOVE_PIVOT then move_pivotOff() end
+    local residuo = move_budget(slot, u)
+    if residuo <= 0.001 then return end
+    local f = main_baseForward(u.comando)
+    local limite = move_pathLimitD(u, slot, f, residuo)
+    local player = MOVE_PANEL.player
+    if limite <= 0.005 then
+        if player then warningToColor("Nessuno spazio per avanzare", player, "Yellow", 5, true) end
+        return
+    end
+    local m = { key = u.key, dir = f, maxD = limite, start = {}, snap = move_snapshot(u), t = 0,
+                colore = player and player.color }
+    for _, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        m.start[b.getGUID()] = { x = p.x, y = p.y, z = p.z }
+    end
+    MOVE_MANUAL = m
+    move_manualSeleziona(u, m.colore, true)
+    m.linee = move_manualStaticLines(u, m)
+    move_panelRedraw()
+    if player then
+        warningToColor("Trascina una base dell'unita' in avanti: massimo " .. main_formatD(limite), player, "White", 5, true)
+    end
+end
+-- ============================================================
+-- FUNZIONE: move_manualOff(nonRiposizionare)
+-- ============================================================
+function move_manualOff(nonRiposizionare)
+    local m = MOVE_MANUAL
+    if not m then return end
+    if m.waitId then Wait.stop(m.waitId); m.waitId = nil end
+    local u = main_unit(m.key) or (MOVE_PANEL and move_panelUnit())
+    if u then
+        move_manualSeleziona(u, m.colore, false)
+        if m.driver and not nonRiposizionare then
+            for _, b in ipairs(u.basi) do
+                local s0 = m.start[b.getGUID()]
+                if s0 then b.setPosition(s0) end
+            end
+        end
+    end
+    MOVE_MANUAL = nil
+    move_panelLines()
+end
+-- Aggiunge/toglie le basi dalla selezione del giocatore
+function move_manualSeleziona(u, colore, si)
+    if not u or not colore then return end
+    for _, b in ipairs(u.basi) do
+        pcall(function()
+            if si then b.addToPlayerSelection(colore) else b.removeFromPlayerSelection(colore) end
+        end)
+    end
+end
+-- Distanza lungo il fronte della base presa, limitata a [0, max]
+function move_manualProietta(m)
+    local s0 = m.start[m.driver.getGUID()]
+    local p = m.driver.getPosition()
+    local t = main_inchToD(main_ttsToInch((p.x - s0.x) * m.dir.x + (p.z - s0.z) * m.dir.z))
+    m.oltre = t > m.maxD + 0.01
+    return math.max(0, math.min(m.maxD, t))
+end
+function move_manualTesto(m)
+    if m.oltre then return "max " .. main_formatD(m.maxD) end
+    return main_formatD(m.t)
+end
+-- ============================================================
+-- FUNZIONE: move_manualOnPickUp(player_color, obj)
+-- Vero se la presa è del manuale o del perno.
+-- ============================================================
+function move_manualOnPickUp(player_color, obj)
+    local h = MOVE_HANDLES[obj.getGUID()]
+    if h then move_pivotOnPickUp(player_color, obj); return true end
+    local meta = main_baseMeta(obj)
+    if MOVE_PIVOT and meta and meta.unitKey == MOVE_PIVOT.key then return true end
+    local m = MOVE_MANUAL
+    if not m or not meta or meta.unitKey ~= m.key then return false end
+    if m.driver then return true end
+    if m.colore and m.colore ~= player_color then return true end
+    if not m.start[obj.getGUID()] then return false end
+    m.driver = obj
+    UI.setAttribute("move_panel_dist", "text", move_manualTesto(m))
+    m.waitId = Wait.time(function() move_manualTick() end, MOVE.tickManuale, -1)
+    return true
+end
+function move_manualTick()
+    local m = MOVE_MANUAL
+    if not m or not m.driver or m.driver.isDestroyed() then
+        if m then move_manualOff() end
+        return
+    end
+    m.t = move_manualProietta(m)
+    UI.setAttribute("move_panel_dist", "text", move_manualTesto(m))
+    UI.setAttribute("move_panel_dist", "color", m.oltre and "#FF4040" or "White")
+    move_panelLines()
+end
+-- ============================================================
+-- FUNZIONE: move_manualOnDrop(player_color, obj)
+-- ============================================================
+function move_manualOnDrop(player_color, obj)
+    local h = MOVE_HANDLES[obj.getGUID()]
+    if h then move_pivotOnDrop(player_color, obj); return true end
+    local meta = main_baseMeta(obj)
+    if MOVE_PIVOT and meta and meta.unitKey == MOVE_PIVOT.key then return true end
+    local m = MOVE_MANUAL
+    if not m or m.driver ~= obj then return m ~= nil and meta ~= nil and meta.unitKey == m.key end
+    if m.waitId then Wait.stop(m.waitId); m.waitId = nil end
+    m.t = move_manualProietta(m)
+    m.oltre = nil
+    Wait.frames(function() move_manualFinalizza() end, 2)
+    return true
+end
+function move_manualFinalizza()
+    local m = MOVE_MANUAL
+    if not m then return end
+    local u, slot = move_panelUnit()
+    if not u then MOVE_MANUAL = nil; return end
+    move_manualSeleziona(u, m.colore, false)
+    local t = m.t
+    if t < 0.005 then t = 0 end
+    local d = main_dToTts(t)
+    for _, b in ipairs(u.basi) do
+        local g = b.getGUID()
+        local s0 = m.start[g]
+        if s0 then
+            if m.snap.rot[g] then b.setRotation(m.snap.rot[g]) end
+            b.setPosition({ x = s0.x + m.dir.x * d, y = s0.y, z = s0.z + m.dir.z * d })
+        end
+    end
+    m.driver = nil
+    if t == 0 then
+        -- nessun avanzamento: il manuale resta attivo
+        move_manualSeleziona(u, m.colore, true)
+        UI.setAttribute("move_panel_dist", "text", "")
+        move_panelLines()
+        return
+    end
+    local residuo = move_budget(slot, u)
+    table.insert(MOVE_PANEL.history, m.snap)
+    MOVE_STATE.budget[u.key] = math.max(0, residuo - t)
+    if MOVE_STATE.budget[u.key] < 0.005 then MOVE_STATE.budget[u.key] = 0 end
+    MOVE_MANUAL = nil
+    if MOVE_PANEL.player then warningToColor("Avanza " .. main_formatD(t), MOVE_PANEL.player, "White", 4, false) end
+    UI.setAttribute("move_panel_dist", "text", "")
+    move_panelRedraw()
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_manualStaticLines(u, m)
+-- Corridoio giallo, tacche ogni D (IEF: ogni pollice).
+-- ============================================================
+function move_manualStaticLines(u, m)
+    local out = {}
+    local sx, dx = move_frontCorners(u)
+    if not sx then return out end
+    m.frontL, m.frontR = sx, dx
+    local y = u.comando.getPosition().y + 0.05
+    local G = MOVE.giallo
+    local function punto(c, t)
+        local d = main_dToTts(t)
+        return { c.x + m.dir.x * d, y, c.z + m.dir.z * d }
+    end
+    table.insert(out, { points = { punto(sx, 0), punto(sx, m.maxD) }, color = G, thickness = 0.04 })
+    table.insert(out, { points = { punto(dx, 0), punto(dx, m.maxD) }, color = G, thickness = 0.04 })
+    local t = 1
+    while t < m.maxD - 0.05 do
+        table.insert(out, { points = { punto(sx, t), punto(dx, t) }, color = G, thickness = 0.015 })
+        t = t + 1
+    end
+    table.insert(out, { points = { punto(sx, m.maxD), punto(dx, m.maxD) }, color = G, thickness = 0.05 })
+    return out
+end
+function move_manualLines()
+    local m = MOVE_MANUAL
+    local out = {}
+    if not m then return out end
+    for _, l in ipairs(m.linee or {}) do table.insert(out, l) end
+    if m.driver and m.frontL and m.t > 0 then
+        local d = main_dToTts(m.t)
+        local cx, cz = (m.frontL.x + m.frontR.x) / 2, (m.frontL.z + m.frontR.z) / 2
+        local y = m.linee[1] and m.linee[1].points[1][2] or 1.2
+        table.insert(out, { points = { { cx, y, cz }, { cx + m.dir.x * d, y, cz + m.dir.z * d } }, color = MOVE.giallo, thickness = 0.08 })
+    end
+    return out
+end
+
+-- ============================================================
+--               PERNO A MANIGLIA (IEF move_pivotMan*)
+-- Perno Sn: fermo l'angolo anteriore sinistro, avanza il destro
+-- (maniglia gialla davanti all'angolo destro); Perno Ds il
+-- contrario. Libero: non costa movimento.
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_pivotToggle(dir)
+-- ============================================================
+function move_pivotToggle(dir)
+    local m = MOVE_PIVOT
+    if m then
+        move_pivotOff()
+        if m.soloDir == dir then move_panelRedraw(); return end
+    end
+    move_pivotOn(dir)
+end
+-- ============================================================
+-- FUNZIONE: move_pivotOn(dir)
+-- ============================================================
+function move_pivotOn(dir)
+    local u, slot = move_panelUnit()
+    if not u or #u.basi < 2 then return end
+    if MOVE_MANUAL then move_manualOff() end
+    local sx, dx, f = move_frontCorners(u)
+    if not sx then return end
+    local larghezza = math.sqrt((dx.x - sx.x) ^ 2 + (dx.z - sx.z) ^ 2)
+    if larghezza < 0.01 then return end
+    local player = MOVE_PANEL.player
+    local m = { key = u.key, sx = sx, dx = dx, fwd = f, larghezza = larghezza,
+                maxAng = math.rad(MOVE.pernoMaxGradi), start = {}, rot = {}, colore = player and player.color,
+                ang = 0, maniglie = {}, hStart = {}, bloccate = {}, soloDir = dir or "left" }
+    for _, b in ipairs(u.basi) do
+        local p, r = b.getPosition(), b.getRotation()
+        m.start[b.getGUID()] = { x = p.x, y = p.y, z = p.z }
+        m.rot[b.getGUID()] = { x = r.x, y = r.y, z = r.z }
+        -- le basi non si trascinano: si usa la maniglia
+        if not b.getLock() then b.setLock(true); table.insert(m.bloccate, b) end
+    end
+    MOVE_PIVOT = m
+    m.linee = move_pivotStaticLines(m, u)
+    if m.soloDir == "left" then move_pivotManiglia(m, "left", dx, u)
+    else move_pivotManiglia(m, "right", sx, u) end
+    move_panelRedraw()
+    if player then
+        warningToColor(string.format("Perno %s: trascina la maniglia gialla lungo l'arco",
+            m.soloDir == "left" and "Sn" or "Ds"), player, "White", 5, true)
+    end
+end
+function move_pivotManiglia(m, dir, angolo, u)
+    local off = main_dToTts(MOVE.manigliaAvantiD)
+    local x, z = angolo.x + m.fwd.x * off, angolo.z + m.fwd.z * off
+    local y = u.comando.getPosition().y + 0.3
+    m.hStart[dir] = { x = x, y = y, z = z }
+    spawnObject({
+        type = "Checker_white", position = { x, y, z }, rotation = { 0, 0, 0 },
+        scale = { 0.45, 0.45, 0.45 }, sound = false,
+        callback_function = function(o)
+            if MOVE_PIVOT ~= m then o.destruct(); return end
+            o.setColorTint({ 1, 0.8, 0.1 })
+            o.setName(dir == "left" and "Perno Sn" or "Perno Ds")
+            MOVE_HANDLES[o.getGUID()] = { key = m.key, dir = dir }
+            m.maniglie[dir] = o
+        end,
+    })
+end
+function move_pivotOff()
+    local m = MOVE_PIVOT
+    if not m then return end
+    MOVE_PIVOT = nil
+    if m.waitId then Wait.stop(m.waitId); m.waitId = nil end
+    for _, o in pairs(m.maniglie or {}) do
+        if o and not o.isDestroyed() then
+            MOVE_HANDLES[o.getGUID()] = nil
+            o.destruct()
+        end
+    end
+    local u = main_unit(m.key) or move_panelUnit()
+    if m.driver and u then move_rotateUnit(u.basi, m.sx, 0, m.start, m.rot) end
+    for _, b in ipairs(m.bloccate or {}) do
+        if b and not b.isDestroyed() then b.setLock(false) end
+    end
+    UI.setAttribute("move_panel_dist", "text", "")
+    move_panelLines()
+end
+-- Angolo dalla posizione della maniglia in mano (IEF move_pivotManMisura)
+function move_pivotMisura(m)
+    local dir = m.manDir
+    local hs = m.hStart[dir]
+    local p = m.driver.getPosition()
+    local c = (dir == "left") and m.sx or m.dx
+    local ang = angoloAttorno(c, hs.x, hs.z, p.x, p.z)
+    if (dir == "left" and ang < 0) or (dir == "right" and ang > 0) then ang = 0 end
+    local oltre = math.abs(ang) > m.maxAng + 1e-4
+    if oltre then ang = (ang < 0) and -m.maxAng or m.maxAng end
+    return ang, oltre
+end
+function move_pivotOnPickUp(player_color, obj)
+    local m = MOVE_PIVOT
+    local h = MOVE_HANDLES[obj.getGUID()]
+    if not m or m.driver or not h then return end
+    if m.colore and m.colore ~= player_color then return end
+    m.driver, m.manDir = obj, h.dir
+    UI.setAttribute("move_panel_dist", "text", "Perno 0 gradi")
+    m.waitId = Wait.time(function() move_pivotTick() end, MOVE.tickManuale, -1)
+end
+function move_pivotTick()
+    local m = MOVE_PIVOT
+    local u = m and move_panelUnit()
+    if not m or not u or not m.driver or m.driver.isDestroyed() then
+        if m then move_pivotOff() end
+        return
+    end
+    local ang, oltre = move_pivotMisura(m)
+    m.ang = ang
+    local c = (m.manDir == "left") and m.sx or m.dx
+    move_rotateUnit(u.basi, c, ang, m.start, m.rot)
+    UI.setAttribute("move_panel_dist", "text", string.format("%sPerno %s %d gradi", oltre and "max " or "",
+        m.manDir == "left" and "Sn" or "Ds", math.floor(math.abs(math.deg(ang)) + 0.5)))
+end
+function move_pivotOnDrop(player_color, obj)
+    local m = MOVE_PIVOT
+    if not m or m.driver ~= obj then return end
+    if m.waitId then Wait.stop(m.waitId); m.waitId = nil end
+    local ang = move_pivotMisura(m)
+    Wait.frames(function() move_pivotFinalizza(ang) end, 2)
+end
+function move_pivotFinalizza(ang)
+    local m = MOVE_PIVOT
+    if not m then return end
+    local u, slot = move_panelUnit()
+    if not u then move_pivotOff(); return end
+    local dir = m.manDir
+    local maniglia = m.driver
+    m.driver, m.manDir = nil, nil
+    -- tutte le basi alla partenza, poi il perno esatto
+    move_rotateUnit(u.basi, m.sx, 0, m.start, m.rot)
+    if math.abs(ang) < math.rad(0.5) then
+        local hs = m.hStart[dir]
+        if maniglia and not maniglia.isDestroyed() and hs then
+            maniglia.setPosition({ x = hs.x, y = hs.y, z = hs.z })
+            maniglia.setRotation({ x = 0, y = 0, z = 0 })
+        end
+        UI.setAttribute("move_panel_dist", "text", "")
+        return
+    end
+    local snap = move_snapshot(u)
+    local c = (dir == "left") and m.sx or m.dx
+    move_pivotOff()
+    move_rotateUnit(u.basi, c, ang)
+    local sopra = move_overlapKey(u, slot)
+    if sopra then
+        move_restoreSnapshot(u, snap)
+        local x = main_unit(sopra)
+        if MOVE_PANEL.player then
+            warningToColor("Perno impossibile: l'unita' finirebbe sopra " .. (x and (x.meta.nomeDisplay or x.key) or sopra),
+                MOVE_PANEL.player, "Yellow", 5, true)
+        end
+        move_panelRedraw()
+        return
+    end
+    table.insert(MOVE_PANEL.history, snap)
+    if MOVE_PANEL.player then
+        warningToColor(string.format("Perno %s di %d gradi", dir == "left" and "Sn" or "Ds",
+            math.floor(math.abs(math.deg(ang)) + 0.5)), MOVE_PANEL.player, "White", 4, false)
+    end
+    move_panelRedraw()
+    main_refreshBaseButtons()
+end
+-- Ventaglio del perno (IEF move_pivotManStaticLines): raggio di
+-- partenza, un raggio ogni 15 gradi, raggio finale e arco.
+function move_pivotStaticLines(m, u)
+    local out = {}
+    local G = MOVE.giallo
+    local segno = (m.soloDir == "left") and 1 or -1
+    local c = (m.soloDir == "left") and m.sx or m.dx
+    local lontano = (m.soloDir == "left") and m.dx or m.sx
+    local y = u.comando.getPosition().y + 0.05
+    local function raggio(a, spessore)
+        local x, z = ruota(c, lontano.x, lontano.z, a)
+        table.insert(out, { points = { { c.x, y, c.z }, { x, y, z } }, color = G, thickness = spessore })
+    end
+    raggio(0, 0.04)
+    local k = 15
+    while k < MOVE.pernoMaxGradi - 0.5 do
+        raggio(segno * math.rad(k), 0.02)
+        k = k + 15
+    end
+    raggio(segno * m.maxAng, 0.04)
+    local pts = {}
+    for i = 0, 24 do
+        local x, z = ruota(c, lontano.x, lontano.z, segno * m.maxAng * i / 24)
+        table.insert(pts, { x, y, z })
+    end
+    table.insert(out, { points = pts, color = G, thickness = 0.04 })
+    return out
+end

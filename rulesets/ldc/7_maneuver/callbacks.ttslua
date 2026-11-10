@@ -24,5 +24,7 @@ function maneuver_btn(player, value, id, buttonConfig)
         end
     end
     main_mirinoStop()
+    if MOVE_PANEL then move_panelClose() end
+    if MOVE_CHARGE_PREP then move_chargeChiudi(nil) end
     return true
 end

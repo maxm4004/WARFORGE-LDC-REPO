@@ -17,8 +17,10 @@
 -- nell'arco frontale di 45°); poi le basi si portano a
 -- contatto entro la velocità di carica. Le cariche restano per
 -- la Mischia.
--- Rimandati: perno ed elastico di IEF, cambio di formazione,
--- unità pinnate, terreno, interpenetrazioni, quadrato
+-- Pannello di movimento di IEF (MUOVI: avanti elastico, perno a
+-- maniglia, annulla) in panel.ttslua; dichiarazione e movimento
+-- di carica di IEF in charge.ttslua.
+-- Rimandati: unità pinnate, terreno, interpenetrazioni, quadrato
 -- d'emergenza, obbligo per i Generali di muovere per ultimi.
 -- ============================================================
 
@@ -163,6 +165,9 @@ function move_restore(u)
     end
     MOVE_STATE.partenza[u.key] = nil
     MOVE_STATE.cariche[u.key] = nil
+    for _, t in ipairs({ "budget", "lati", "dopoCarica", "pannello" }) do
+        if MOVE_STATE[t] then MOVE_STATE[t][u.key] = nil end
+    end
 end
 
 -- ============================================================
@@ -186,6 +191,7 @@ end
 -- FUNZIONE: move_onPickUp(player_color, obj)
 -- ============================================================
 function move_onPickUp(player_color, obj)
+    if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_manualOnPickUp(player_color, obj) then return end
     local u, slot = move_baseOfActive(player_color, obj)
     if not u then return end
     move_recordStart(u)
@@ -204,9 +210,29 @@ end
 -- muovere alla partenza.
 -- ============================================================
 function move_onDrop(player_color, obj)
+    if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_manualOnDrop(player_color, obj) then return end
     local u, slot = move_baseOfActive(player_color, obj)
     if not u then return end
     if MOVE_DRAG[u.key] then Wait.stop(MOVE_DRAG[u.key]); MOVE_DRAG[u.key] = nil end
+
+    -- unità in carica: resta a contatto (ANNULLA per rifare)
+    local fine = MOVE_STATE.dopoCarica and MOVE_STATE.dopoCarica[u.key]
+    if fine and fine[obj.getGUID()] then
+        local s = fine[obj.getGUID()]
+        obj.setPosition({ x = s.x, y = s.y, z = s.z })
+        obj.setRotation({ x = 0, y = s.ry, z = 0 })
+        warningToColor("Unita' in carica: resta a contatto (ANNULLA per rifare la carica)", Player[player_color], "Yellow", 4, false)
+        main_setLines("movimento", {})
+        return
+    end
+    -- unità mossa con il pannello: conta il budget, non lo
+    -- spostamento netto
+    if MOVE_STATE.pannello and MOVE_STATE.pannello[u.key] then
+        move_drawLines(slot)
+        if MOVE_PANEL and MOVE_PANEL.key == u.key then move_panelRedraw() end
+        main_refreshBaseButtons()
+        return
+    end
 
     local s = MOVE_STATE.partenza[u.key] and MOVE_STATE.partenza[u.key][obj.getGUID()]
     if s then
@@ -265,7 +291,8 @@ end
 function move_checkLimits(slot)
     for key, _ in pairs(MOVE_STATE.partenza) do
         local u = main_unitOrGeneral(slot, key)
-        if u then
+        local esente = MOVE_STATE.cariche[key] or (MOVE_STATE.pannello and MOVE_STATE.pannello[key])
+        if u and not esente then
             local limite = move_unitLimit(slot, u) or 0
             for _, b in ipairs(u.basi) do
                 local d = move_baseDistanceD(u, b)
@@ -334,9 +361,12 @@ function move_baseButtons(obj, u, slot)
     if slot ~= TURN.activeSide then return {} end
     local lista = {}
 
+    if MOVE_CHARGE_PREP and MOVE_CHARGE_PREP.key == u.key then
+        return { { label = "ANNULLA", click = "move_clickAnnullaCarica", color = B.annullaColor, tooltip = "Annulla la carica" } }
+    end
     if MOVE_STATE.cariche[u.key] then
         table.insert(lista, { label = "IN CARICA", click = "main_baseButtonNoop", color = MOVE.caricaColor, width = 520,
-            tooltip = "Porta le basi a contatto (carica " .. main_formatD(move_unitLimit(slot, u) or 0) .. ")" })
+            tooltip = "A contatto: la mischia nella fase Mischie" })
     elseif main_mirinoActive(u.key) then
         table.insert(lista, { label = "ANNULLA", click = "move_clickAnnullaCarica", color = B.annullaColor,
             tooltip = "Annulla la carica" })
@@ -346,6 +376,14 @@ function move_baseButtons(obj, u, slot)
             tooltip = "Carica (" .. main_formatD((LDC_VELOCITA[u.meta.tipo or ""] or {}).carica or 0) .. ")" })
     end
 
+    if not MOVE_STATE.cariche[u.key] and not main_mirinoActive() and not MOVE_CHARGE_PREP then
+        if MOVE_PANEL and MOVE_PANEL.key == u.key then
+            table.insert(lista, { label = "IN MOVIMENTO", click = "main_baseButtonNoop", color = MOVE.muoviColor, width = 620 })
+        elseif move_unitLimit(slot, u) then
+            table.insert(lista, { label = "MUOVI", click = "move_clickMuovi", color = MOVE.muoviColor,
+                tooltip = "Pannello di movimento (avanti, perno)" })
+        end
+    end
     if move_hasMoved(u.key) or MOVE_STATE.cariche[u.key] then
         table.insert(lista, { label = "ANNULLA", click = "move_clickAnnulla", color = B.annullaColor,
             tooltip = "Rimette l'unita' dov'era" })
@@ -370,8 +408,19 @@ function move_clickAnnulla(obj, player_color, alt_click)
     if not move_clickOk(player_color) then return end
     local u, slot, mio = main_baseOwnerClick(obj, player_color)
     if not u or not mio then return end
+    if MOVE_PANEL and MOVE_PANEL.key == u.key then move_panelClose() end
     move_restore(u)
     main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_clickMuovi(obj, player_color, alt_click)
+-- MUOVI: pannello di movimento (come IEF Movimento).
+-- ============================================================
+function move_clickMuovi(obj, player_color, alt_click)
+    if not move_clickOk(player_color) then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio or slot ~= TURN.activeSide then return end
+    move_panelOpen(Player[player_color], slot, u)
 end
 -- ============================================================
 -- FUNZIONE: move_clickCarica(obj, player_color, alt_click)
@@ -387,18 +436,13 @@ function move_clickCarica(obj, player_color, alt_click)
         return
     end
     local player = Player[player_color]
+    if MOVE_PANEL then move_panelClose() end
     main_mirinoStart(player, slot, u, {
         linee    = "carica",
         tinta    = MOVE.tintaMirino,
         valuta   = function(t) return move_chargeValuta(slot, u, t) end,
         onValido = function(t)
-            MOVE_STATE.cariche[u.key] = t.key
-            move_recordStart(u)
-            printToAll(string.format("[Carica] %s carica %s", u.meta.nomeDisplay or u.key,
-                t.meta.nomeDisplay or t.key), main_sideMainColor(slot))
-            warningToColor("Porta le basi a contatto (massimo " .. main_formatD(move_unitLimit(slot, u) or 0) .. ")",
-                player, "Yellow", 5, false)
-            main_refreshBaseButtons()
+            move_chargePrepare(player, slot, u, t)
         end,
         onChiudi = function(p)
             main_mirinoStop()
@@ -413,6 +457,7 @@ end
 function move_clickAnnullaCarica(obj, player_color, alt_click)
     if not move_clickOk(player_color) then return end
     main_mirinoStop()
+    if MOVE_CHARGE_PREP then move_chargeChiudi(Player[player_color]) end
     main_refreshBaseButtons()
 end
 -- ============================================================

@@ -1,0 +1,297 @@
+-- ============================================================
+-- WARFORGE LDC — 7_maneuver/charge.ttslua
+-- Dichiarazione e movimento di carica, ricalcati su IEF
+-- 4_charge: mirino sul bersaglio, scheda della carica con
+-- Dichiara / Chiudi, poi movimento di carica automatico (in
+-- linea retta se così si tocca il bersaglio, altrimenti verso
+-- la base nemica più vicina) e allineamento base contro base
+-- sul lato contattato (IEF charge_alignToEnemy).
+-- In LDC le cariche sono nella fase Cariche e Manovre e non ci
+-- sono le reazioni di IEF (evasione, contro-carica, tiro di
+-- arresto): vedi i dubbi in LDC_PORTING_IEF.
+-- ============================================================
+
+MOVE_CHARGE_PREP = nil   -- { slot, key, target, player }
+
+-- ============================================================
+-- FUNZIONE: move_chargeSide(u, t)
+-- Lato di t contattato da u: "FRONTE" | "FIANCO" | "RETRO"
+-- (dalla posizione del centro di u rispetto al rettangolo di t:
+-- vince il lato più "fuori"). Ritorna anche la direzione in cui
+-- u deve guardare.
+-- ============================================================
+function move_chargeSide(u, t)
+    local f0 = main_baseForward(t.comando)
+    local tf = { x = f0.x, z = f0.z }
+    local tr = { x = -tf.z, z = tf.x }
+    local function dot(c, v) return c.x * v.x + c.z * v.z end
+    local fronte, retro, sx, dx = -math.huge, math.huge, math.huge, -math.huge
+    for _, b in ipairs(t.basi) do
+        for _, c in ipairs(move_rect(b).corners) do
+            local v, w = dot(c, tf), dot(c, tr)
+            if v > fronte then fronte = v end
+            if v < retro then retro = v end
+            if w < sx then sx = w end
+            if w > dx then dx = w end
+        end
+    end
+    local centro = main_unitCenter(u)
+    local v, w = dot(centro, tf), dot(centro, tr)
+    local fuori = {
+        { "FRONTE", v - fronte, { x = -tf.x, z = -tf.z } },
+        { "RETRO",  retro - v,  { x = tf.x, z = tf.z } },
+        { "FIANCO", sx - w,     { x = tr.x, z = tr.z } },
+        { "FIANCO", w - dx,     { x = -tr.x, z = -tr.z } },
+    }
+    local migliore = nil
+    for _, o in ipairs(fuori) do
+        if not migliore or o[2] > migliore[2] then migliore = o end
+    end
+    return migliore[1], migliore[3]
+end
+-- ============================================================
+-- FUNZIONE: move_chargeAlign(u, t)
+-- IEF charge_alignToEnemy: 1) lato contattato; 2) rotazione
+-- rigida verso quel lato; 3) fronte a contatto; 4) scorrimento
+-- laterale per mettere base contro base. Ritorna il lato.
+-- ============================================================
+function move_chargeAlign(u, t)
+    local function dot(c, v) return c.x * v.x + c.z * v.z end
+    local lato, dir = move_chargeSide(u, t)
+
+    -- 2) rotazione rigida attorno alla base più vicina al centro
+    local mf = main_baseForward(u.comando)
+    local ang = move_angolo(mf.x * dir.z - mf.z * dir.x, mf.x * dir.x + mf.z * dir.z)
+    if math.abs(ang) > 0.001 then
+        local c = main_unitCenter(u)
+        move_rotateUnit(u.basi, { x = c.x, z = c.z }, ang)
+    end
+
+    -- 3) fronte a contatto con il lato
+    local mieR, sueR = {}, {}
+    for _, b in ipairs(u.basi) do table.insert(mieR, move_rect(b)) end
+    for _, b in ipairs(t.basi) do table.insert(sueR, move_rect(b)) end
+    local mioFronte = -math.huge
+    for _, r in ipairs(mieR) do
+        for _, c in ipairs(r.corners) do mioFronte = math.max(mioFronte, dot(c, dir)) end
+    end
+    local suoLato = math.huge
+    for _, r in ipairs(sueR) do
+        for _, c in ipairs(r.corners) do suoLato = math.min(suoLato, dot(c, dir)) end
+    end
+    local avanti = suoLato - mioFronte
+
+    -- 4) base contro base
+    local lat = { x = -dir.z, z = dir.x }
+    local mieFronte, sueLato = {}, {}
+    for _, r in ipairs(mieR) do
+        local m = -math.huge
+        for _, c in ipairs(r.corners) do m = math.max(m, dot(c, dir)) end
+        if m >= mioFronte - MOVE.allineaTol then table.insert(mieFronte, r.x * lat.x + r.z * lat.z) end
+    end
+    for _, r in ipairs(sueR) do
+        local m = math.huge
+        for _, c in ipairs(r.corners) do m = math.min(m, dot(c, dir)) end
+        if m <= suoLato + MOVE.allineaTol then table.insert(sueLato, r.x * lat.x + r.z * lat.z) end
+    end
+    local scorri = nil
+    for _, a in ipairs(mieFronte) do
+        for _, b in ipairs(sueLato) do
+            local d = b - a
+            if not scorri or math.abs(d) < math.abs(scorri) then scorri = d end
+        end
+    end
+    scorri = scorri or 0
+    for _, o in ipairs(u.basi) do
+        local p = o.getPosition()
+        o.setPosition({ x = p.x + dir.x * avanti + lat.x * scorri, y = p.y, z = p.z + dir.z * avanti + lat.z * scorri })
+    end
+    return lato
+end
+-- ============================================================
+-- FUNZIONE: move_chargeStraightD(u, t)
+-- IEF charge_straightContactInches: D che l'unità percorre
+-- lungo il suo fronte prima di toccare t (nil se non la tocca).
+-- ============================================================
+function move_chargeStraightD(u, t)
+    local f = main_baseForward(u.comando)
+    local migliore = nil
+    for _, a in ipairs(u.basi) do
+        local ra = move_rect(a)
+        for _, b in ipairs(t.basi) do
+            local t1, t2 = move_rectSweepInterval(ra, f.x, f.z, move_rect(b), 0.01)
+            if t1 and t2 > 0 then
+                local d = math.max(0, t1)
+                if not migliore or d < migliore then migliore = d end
+            end
+        end
+    end
+    return migliore and main_inchToD(main_ttsToInch(migliore)) or nil, f
+end
+
+-- ============================================================
+--                SCHEDA E CONFERMA (come IEF)
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_chargePanelXml()
+-- Scheda della carica (stile shootinfo IEF) e Dichiara/Chiudi.
+-- ============================================================
+function move_chargePanelXml()
+    local P = MOVEPANEL
+    local function riga(id)
+        return string.format('<HorizontalLayout preferredHeight="20" childForceExpandWidth="true">' ..
+            '<Text id="%s_k" text="" font="%s" fontSize="13" color="%s" alignment="MiddleLeft"/>' ..
+            '<Text id="%s_v" text="" font="%s" fontSize="13" fontStyle="Bold" color="White" alignment="MiddleRight"/></HorizontalLayout>',
+            id, P.font, P.grey, id, P.font)
+    end
+    return string.format([[
+        <Panel id="charge_info_panel" rectAlignment="LowerCenter" offsetXY="0 150" width="420" height="190" color="%s" active="false" visibility="">
+            <VerticalLayout spacing="3" padding="14 14 10 10" childForceExpandHeight="false">
+                <Text id="charge_info_title" text="CARICA" font="%s" fontStyle="Bold" fontSize="18" color="%s" alignment="MiddleCenter" preferredHeight="24"/>
+                %s %s %s %s %s
+                <Text id="charge_info_stato" text="" font="%s" fontSize="13" color="%s" alignment="MiddleCenter" preferredHeight="22"/>
+            </VerticalLayout>
+        </Panel>
+        <Panel id="confirm_panel_charge" rectAlignment="LowerCenter" width="300" height="50" color="rgba(0,0,0,0)" offsetXY="0 100" active="false" visibility="">
+            <HorizontalLayout spacing="8" padding="10 10 10 10" childAlignment="MiddleCenter" childForceExpandWidth="false">
+                <Button id="btnCharge" text="Dichiara" font="%s" fontSize="13" color="%s" textColor="%s" preferredWidth="130" preferredHeight="34" onClick="move_chargeConfirm"/>
+                <Button id="btnChargeCancel" text="Chiudi" font="%s" fontSize="13" color="%s" textColor="%s" preferredWidth="130" preferredHeight="34" onClick="move_chargeChiudi"/>
+            </HorizontalLayout>
+        </Panel>
+        ]], P.bg, P.font, P.gold,
+        riga("charge_info_r1"), riga("charge_info_r2"), riga("charge_info_r3"), riga("charge_info_r4"), riga("charge_info_r5"),
+        P.font, P.gold,
+        P.font, CONFIRMPANEL.actionBg, CONFIRMPANEL.actionText, P.font, CONFIRMPANEL.closeBg, CONFIRMPANEL.closeText)
+end
+-- ============================================================
+-- FUNZIONE: move_chargePanelHide()
+-- ============================================================
+function move_chargePanelHide()
+    UI.setAttribute("charge_info_panel", "active", "false")
+    UI.setAttribute("confirm_panel_charge", "active", "false")
+end
+-- ============================================================
+-- FUNZIONE: move_chargePrepare(player, slot, u, t)
+-- Bersaglio valido nel mirino: scheda e conferma (IEF
+-- dichiarazione), il mirino si chiude.
+-- ============================================================
+function move_chargePrepare(player, slot, u, t)
+    main_mirinoStop()
+    MOVE_CHARGE_PREP = { slot = slot, key = u.key, target = t.key, player = player }
+    local v = LDC_VELOCITA[u.meta.tipo or ""] or {}
+    local lato = move_chargeSide(u, t)
+    local righe = {
+        { "Unita' in carica", u.meta.nomeDisplay or u.key },
+        { "Bersaglio", t.meta.nomeDisplay or t.key },
+        { "Distanza", main_formatD(main_unitDistanceD(u, t) or 0) },
+        { "Velocita' di carica", main_formatD(v.carica or 0) },
+        { "Lato contattato", lato:lower() },
+    }
+    for i, r in ipairs(righe) do
+        UI.setAttribute("charge_info_r" .. i .. "_k", "text", r[1])
+        UI.setAttribute("charge_info_r" .. i .. "_v", "text", r[2])
+    end
+    UI.setAttribute("charge_info_stato", "text", "Dichiara: le basi vanno a contatto")
+    UI.setAttribute("charge_info_panel", "visibility", "")
+    UI.setAttribute("charge_info_panel", "active", "true")
+    UI.setAttribute("confirm_panel_charge", "visibility", main_sideVisibility(slot))
+    UI.setAttribute("confirm_panel_charge", "active", "true")
+    for _, b in ipairs(t.basi) do pcall(function() b.highlightOn({ 1, 0.5, 0.1 }) end) end
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_chargeChiudi(player, value, id)
+-- ============================================================
+function move_chargeChiudi(player, value, id)
+    local prep = MOVE_CHARGE_PREP
+    if prep and player and not main_colorInSide(player.color, prep.slot) then return end
+    MOVE_CHARGE_PREP = nil
+    move_chargePanelHide()
+    if prep then
+        local t = main_unit(prep.target)
+        for _, b in ipairs(t and t.basi or {}) do pcall(function() b.highlightOff() end) end
+    end
+    main_setLines("carica", {})
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_chargeConfirm(player, value, id)
+-- Dichiara: carica registrata e movimento di carica.
+-- ============================================================
+function move_chargeConfirm(player, value, id)
+    local prep = MOVE_CHARGE_PREP
+    if not prep or not main_colorInSide(player.color, prep.slot) then return end
+    local u = main_unitsOfSide(prep.slot)[prep.key]
+    local t = main_unitsOfSide(main_otherSide(prep.slot))[prep.target]
+    move_chargeChiudi(player)
+    if not u or not t then return end
+    if MOVE_PANEL and MOVE_PANEL.key == u.key then move_panelClose() end
+    move_recordStart(u)
+    MOVE_STATE.cariche[u.key] = t.key
+    move_chargeExecute(player, prep.slot, u, t)
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_chargeExecute(player, slot, u, t)
+-- IEF charge_executeChargeMove (senza reazioni).
+-- ============================================================
+function move_chargeExecute(player, slot, u, t)
+    local dritto, f = move_chargeStraightD(u, t)
+    local percorso
+    if dritto then
+        percorso = dritto
+        local d = main_dToTts(dritto)
+        for _, b in ipairs(u.basi) do
+            local p = b.getPosition()
+            b.setPosition({ x = p.x + f.x * d, y = p.y, z = p.z + f.z * d })
+        end
+    else
+        -- verso la base nemica più vicina
+        local migliore, da, a = nil, nil, nil
+        for _, x in ipairs(u.basi) do
+            for _, y in ipairs(t.basi) do
+                local d = main_distanceInches(x, y)
+                if d and (not migliore or d < migliore) then migliore, da, a = d, x, y end
+            end
+        end
+        if da then
+            percorso = main_inchToD(migliore)
+            local p0, p1 = da.getPosition(), a.getPosition()
+            local dx, dz = p1.x - p0.x, p1.z - p0.z
+            local len = math.sqrt(dx * dx + dz * dz)
+            if len > 0.0001 then
+                local d = main_inchToTts(migliore)
+                for _, b in ipairs(u.basi) do
+                    local p = b.getPosition()
+                    b.setPosition({ x = p.x + dx / len * d, y = p.y, z = p.z + dz / len * d })
+                end
+            end
+        end
+    end
+    local lato = move_chargeAlign(u, t)
+    MOVE_STATE.lati = MOVE_STATE.lati or {}
+    MOVE_STATE.lati[u.key] = lato
+    MOVE_STATE.budget = MOVE_STATE.budget or {}
+    MOVE_STATE.budget[u.key] = 0
+    move_chargeRecordEnd(u)
+    printToAll(string.format("[Carica] %s carica %s sul %s (%s)", u.meta.nomeDisplay or u.key,
+        t.meta.nomeDisplay or t.key, lato:lower(), main_formatD(percorso or 0)), main_sideMainColor(slot))
+    if player then
+        warningToColor(string.format("%s a contatto sul %s: la mischia nella fase Mischie",
+            u.meta.nomeDisplay or u.key, lato:lower()), player, "White", 5, false)
+    end
+end
+-- ============================================================
+-- FUNZIONE: move_chargeRecordEnd(u)
+-- Posa a fine carica: se si prende una base in carica torna lì.
+-- ============================================================
+function move_chargeRecordEnd(u)
+    MOVE_STATE.dopoCarica = MOVE_STATE.dopoCarica or {}
+    local posa = {}
+    for _, b in ipairs(u.basi) do
+        local p, r = b.getPosition(), b.getRotation()
+        posa[b.getGUID()] = { x = p.x, y = p.y, z = p.z, ry = r.y }
+    end
+    MOVE_STATE.dopoCarica[u.key] = posa
+end
