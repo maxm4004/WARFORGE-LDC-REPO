@@ -50,14 +50,46 @@ function move_chargeSide(u, t)
     return migliore[1], migliore[3]
 end
 -- ============================================================
--- FUNZIONE: move_chargeAlign(u, t)
+-- FUNZIONE: move_chargeSideStart(u, t)
+-- Lato della carica dalla posizione di PARTENZA (regolamento
+-- 9.7): è sul fianco (o sul retro) se il centro del fronte di chi
+-- carica è dietro il prolungamento della linea di fronte del
+-- bersaglio. Il quadrato non ha fianchi né retro.
+-- Ritorna lato e direzione in cui u deve guardare al contatto.
+-- ============================================================
+function move_chargeSideStart(u, t)
+    local f0 = main_baseForward(t.comando)
+    local tf = { x = f0.x, z = f0.z }
+    local tr = { x = -tf.z, z = tf.x }
+    local function dot(c, v) return c.x * v.x + c.z * v.z end
+    local fronte, sx, dx = -math.huge, math.huge, -math.huge
+    for _, b in ipairs(t.basi) do
+        for _, c in ipairs(move_rect(b).corners) do
+            fronte = math.max(fronte, dot(c, tf))
+            local w = dot(c, tr)
+            if w < sx then sx = w end
+            if w > dx then dx = w end
+        end
+    end
+    local a, b = move_frontCorners(u)
+    local centro = a and { x = (a.x + b.x) / 2, z = (a.z + b.z) / 2 } or main_unitCenter(u)
+    local v, w = dot(centro, tf), dot(centro, tr)
+    if t.meta.formazione == "quadrato" or v >= fronte - 0.01 then
+        return "FRONTE", { x = -tf.x, z = -tf.z }
+    end
+    if w < sx then return "FIANCO", { x = tr.x, z = tr.z } end
+    if w > dx then return "FIANCO", { x = -tr.x, z = -tr.z } end
+    return "RETRO", { x = tf.x, z = tf.z }
+end
+-- ============================================================
+-- FUNZIONE: move_chargeAlign(u, t, lato, dir)
 -- IEF charge_alignToEnemy: 1) lato contattato; 2) rotazione
 -- rigida verso quel lato; 3) fronte a contatto; 4) scorrimento
 -- laterale per mettere base contro base. Ritorna il lato.
 -- ============================================================
-function move_chargeAlign(u, t)
+function move_chargeAlign(u, t, lato, dir)
     local function dot(c, v) return c.x * v.x + c.z * v.z end
-    local lato, dir = move_chargeSide(u, t)
+    if not lato then lato, dir = move_chargeSide(u, t) end
 
     -- 2) rotazione rigida attorno alla base più vicina al centro
     local mf = main_baseForward(u.comando)
@@ -180,7 +212,7 @@ function move_chargePrepare(player, slot, u, t)
     main_mirinoStop()
     MOVE_CHARGE_PREP = { slot = slot, key = u.key, target = t.key, player = player }
     local v = LDC_VELOCITA[u.meta.tipo or ""] or {}
-    local lato = move_chargeSide(u, t)
+    local lato = move_chargeSideStart(u, t)
     local righe = {
         { "Unita' in carica", u.meta.nomeDisplay or u.key },
         { "Bersaglio", t.meta.nomeDisplay or t.key },
@@ -238,6 +270,7 @@ end
 -- IEF charge_executeChargeMove (senza reazioni).
 -- ============================================================
 function move_chargeExecute(player, slot, u, t)
+    local latoPartenza, dirLato = move_chargeSideStart(u, t)
     local dritto, f = move_chargeStraightD(u, t)
     local percorso
     if dritto then
@@ -270,7 +303,7 @@ function move_chargeExecute(player, slot, u, t)
             end
         end
     end
-    local lato = move_chargeAlign(u, t)
+    local lato = move_chargeAlign(u, t, latoPartenza, dirLato)
     MOVE_STATE.lati = MOVE_STATE.lati or {}
     MOVE_STATE.lati[u.key] = lato
     MOVE_STATE.budget = MOVE_STATE.budget or {}

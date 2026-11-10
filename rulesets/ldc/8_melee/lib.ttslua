@@ -48,7 +48,7 @@ end
 -- Dadi, soglia e ritiri di u contro t, con le righe della
 -- scheda. Ritorna { dadi, soglia, ritira, righe }.
 -- ============================================================
-function melee_compute(u, t)
+function melee_compute(u, t, colpito)
     local M = LDC_MISCHIA
     local catU, catT = main_unitCategory(u.meta), main_unitCategory(t.meta)
     local tipoU, tipoT = u.meta.tipo or "", t.meta.tipo or ""
@@ -66,6 +66,11 @@ function melee_compute(u, t)
             dadi = dadi - 1
             table.insert(righe, { "Disordinata", "-1D6" })
         end
+    end
+    -- colpito sul fianco/retro (10): dadi dimezzati (per difetto)
+    if colpito == "FIANCO" or colpito == "RETRO" then
+        dadi = math.floor(dadi / 2)
+        table.insert(righe, { "Colpito sul " .. colpito:lower(), "dadi / 2" })
     end
     dadi = math.max(dadi, 0)
 
@@ -87,8 +92,11 @@ function melee_compute(u, t)
     if ritira then
         table.insert(righe, { "Morale piu' alto di " .. diff, "ritira " .. (ritira == 1 and "gli 1" or "1 e 2") })
     end
+    -- colpito sul fianco (10): ritira i 6, anche verso il fronte
+    local ritira6 = colpito == "FIANCO" or colpito == "RETRO"
+    if ritira6 then table.insert(righe, { "Colpito sul " .. colpito:lower(), "ritira i 6" }) end
     table.insert(righe, { "Disordini", main_unitDisorders(u.key) .. "/" .. main_unitDisorderLimit(u.meta) })
-    return { dadi = dadi, soglia = soglia, ritira = ritira, righe = righe }
+    return { dadi = dadi, soglia = soglia, ritira = ritira, ritira6 = ritira6, righe = righe }
 end
 
 -- ============================================================
@@ -103,7 +111,7 @@ end
 function melee_diceScheda(slot, u, t, c, attacca)
     local righe = { { "DADI", "", "sezione" } }
     for _, r in ipairs(c.righe) do
-        if r[1] ~= "Disordini" and not tostring(r[2]):find("^%+") and not tostring(r[1]):find("^Morale") then
+        if r[1] ~= "Disordini" and not tostring(r[2]):find("^%+") and not tostring(r[1]):find("^Morale") and r[2] ~= "ritira i 6" then
             table.insert(righe, { r[1], r[2] })
         end
     end
@@ -121,6 +129,7 @@ function melee_diceScheda(slot, u, t, c, attacca)
     if c.ritira then
         table.insert(righe, { "Morale piu' alto: ritira", (c.ritira == 1) and "gli 1" or "1 e 2" })
     end
+    if c.ritira6 then table.insert(righe, { "Colpito sul fianco: ritira", "i 6" }) end
     return {
         titolo      = "MISCHIA",
         sottotitolo = string.format("%s: %s %s %s", main_sideName(slot), u.meta.nomeDisplay or u.key,
@@ -146,13 +155,23 @@ function melee_start(slot)
     for att, dif in pairs(move_charges()) do
         local u, t = mie[att], loro[dif]
         if u and t and (main_unitDistanceD(u, t) or 99) <= MELEE.contattoD then
-            table.insert(MELEE_STATE.mischie, { att = att, dif = dif, fatta = false })
+            local lato = MOVE_STATE.lati and MOVE_STATE.lati[att] or "FRONTE"
+            table.insert(MELEE_STATE.mischie, { att = att, dif = dif, fatta = false, lato = lato })
         end
     end
     table.sort(MELEE_STATE.mischie, function(a, b) return a.att < b.att end)
     if #MELEE_STATE.mischie == 0 then
         main_warningToSide(slot, "Nessuna mischia: chiudi la fase", "Yellow", 4)
     end
+end
+-- ============================================================
+-- FUNZIONE: melee_colpito(m, key)
+-- Lato da cui è colpita l'unità key nella mischia m: "FIANCO" o
+-- "RETRO" per il difensore caricato di lato, altrimenti nil.
+-- ============================================================
+function melee_colpito(m, key)
+    if m and key == m.dif and (m.lato == "FIANCO" or m.lato == "RETRO") then return m.lato end
+    return nil
 end
 -- ============================================================
 -- FUNZIONE: melee_ofAttacker(unitKey)
@@ -375,8 +394,8 @@ function melee_resolveEnter(ctx, slot, rec)
     ctx.calc = {}
     for _, s in ipairs({ ctx.att, ctx.dif }) do
         local mio, altro = (s == ctx.att) and uA or uD, (s == ctx.att) and uD or uA
-        local c = melee_compute(mio, altro)
-        ctx.calc[s] = { dadi = c.dadi, soglia = c.soglia, ritira = c.ritira }
+        local c = melee_compute(mio, altro, melee_colpito(MELEE_STATE.mischie[ctx.i], mio.key))
+        ctx.calc[s] = { dadi = c.dadi, soglia = c.soglia, ritira = c.ritira, ritira6 = c.ritira6 }
         ctx["scheda" .. s] = melee_diceScheda(s, mio, altro, c, s == ctx.att)
         ctx["colpi" .. s] = 0
         ctx["rolled" .. s] = c.dadi <= 0
@@ -424,11 +443,15 @@ function melee_resolveRoll(ctx, slot, player, rec)
         ctx["tirando" .. slot] = nil
         ctx["colpi" .. slot] = ctx["colpi" .. slot] + (successi or 0)
 
-        local daRitirare = 0
-        if not ritiro and c.ritira then
+        local daRitirare, sei = 0, 0
+        if not ritiro then
             for _, v in ipairs(risultati or {}) do
-                if v < c.soglia and v <= c.ritira then daRitirare = daRitirare + 1 end
+                if c.ritira and v < c.soglia and v <= c.ritira then daRitirare = daRitirare + 1 end
+                if c.ritira6 and v == 6 then sei = sei + 1 end
             end
+            -- i 6 da ritirare non contano: si ritirano
+            ctx["colpi" .. slot] = ctx["colpi" .. slot] - sei
+            daRitirare = daRitirare + sei
         end
         engine_dicePanelOutcome(slot, string.format("%d hit", ctx["colpi" .. slot]),
             (ctx["colpi" .. slot] > 0) and DICEPANEL.okColor or DICEPANEL.koColor,
