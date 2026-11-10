@@ -12,9 +12,9 @@
 --   5-6  tiene
 -- Dopo il test (4, 5-6) il conto riparte dalle unità rimaste:
 -- nuovo test quando perde metà di quelle.
--- Il test si mette in coda e si tira dal vassoio prima di ogni
--- altro tiro della fase (main_divOnRoll); le fasi non si
--- chiudono con un test in sospeso (main_divBlocks).
+-- Il test si mette in coda e si tira nella sottofase DIV_MORALE
+-- (come IEF MORALE_TEST) prima di ogni altro tiro del giocatore;
+-- le fasi non si chiudono con un test in sospeso (main_divBlocks).
 -- Rimandati: riordino della Divisione in rotta da parte del CiC,
 -- ritirata automatica, rimozione delle unità che non possono
 -- ritirarsi.
@@ -123,27 +123,103 @@ function main_divModifiers(slot, divId)
     return mod, righe
 end
 -- ============================================================
--- FUNZIONE: main_divOpenPanel()
--- Scheda del primo test in coda nel pannello dadi del suo
--- schieramento.
+--        SOTTOFASE DIV_MORALE (come IEF MORALE_TEST)
+-- Sottofase privata del giocatore che tira, apribile in ogni
+-- fase: ROLL ("Controlla il Morale" = camera sui dadi e scheda
+-- nel pannello dadi), ESITO per MORALE_ESITO_SECONDS, poi si
+-- chiude e si apre il test seguente in coda. Sta in cima alla
+-- pila del giocatore: i suoi Roll vanno al test prima di ogni
+-- altro tiro.
 -- ============================================================
-function main_divOpenPanel()
-    local p = DIV_PENDING[1]
-    if not p then return end
+
+-- ============================================================
+-- FUNZIONE: main_divRec(slot)
+-- Record di DIV_MORALE aperto per lo slot (o per uno qualsiasi).
+-- ============================================================
+function main_divRec(slot)
+    for s = 1, 2 do
+        if not slot or s == slot then
+            local r = engine_subPrivate(s)
+            if r and r.name == "DIV_MORALE" then return r end
+        end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: main_divScheda(p)
+-- ============================================================
+function main_divScheda(p)
     local mod, righe = main_divModifiers(p.slot, p.div)
     table.insert(righe, 1, { "Dado", "1D6" })
-    engine_diceClearLastRoll(p.slot)
-    engine_dicePanelOpen(p.slot, {
+    return {
         titolo      = "MORALE DI DIVISIONE",
         sottotitolo = main_divName(p.slot, p.div),
         righe       = righe,
         serve       = string.format("1D6 %s%d: 1-3 rompe, 4 HOLDS, 5-6 tiene", mod >= 0 and "+" or "", mod),
-    })
+    }
+end
+-- ============================================================
+-- FUNZIONE: main_divOpenPanel()
+-- Apre il test in testa alla coda (se non ce n'è già uno).
+-- ============================================================
+function main_divOpenPanel()
+    local p = DIV_PENDING[1]
+    if not p then return nil end
+    local aperta = main_divRec()
+    if aperta then
+        -- l'esito del test precedente lascia il posto al nuovo
+        if aperta.step == "ESITO" then
+            engine_subClose("DIV_MORALE", aperta.slot, {})
+            return main_divRec(p.slot)
+        end
+        return aperta
+    end
+    engine_diceClearLastRoll(p.slot)
+    return engine_subOpen("DIV_MORALE", p.slot, { slot = p.slot, div = p.div, scheda = main_divScheda(p) }, "main_divDone")
+end
+function main_divEnter(ctx, slot, rec)
+    engine_dicePanelOpen(slot, ctx.scheda)
+    main_warningToSide(slot, "Test di morale di Divisione: " .. main_divName(slot, ctx.div), "Yellow", 5)
+end
+function main_divFocus(ctx, slot, player, rec)
+    ctx.aiDadi = true
+    if player then engine_diceCameraZoom(player) end
+    if not engine_dicePanelIsOpen(slot) then engine_dicePanelOpen(slot, ctx.scheda) end
+    engine_subRedraw()
+end
+-- ============================================================
+-- FUNZIONE: main_divRoll(ctx, slot, player, rec)
+-- Roll nello step ROLL.
+-- ============================================================
+function main_divRoll(ctx, slot, player, rec)
+    if DIV_ROLLING then return end
+    local p = DIV_PENDING[1]
+    if not p or p.slot ~= slot or p.div ~= ctx.div then return end
+    DIV_ROLLING = true
+    engine_diceClearLastRoll(slot)
+    engine_diceSetNext(slot, 1, nil)
+    engine_diceThrowFromBag(slot, nil, function(risultati)
+        DIV_ROLLING = false
+        ctx.esito = main_divResolve(p, risultati and risultati[1])
+        Wait.time(function() engine_diceCameraReturn(player, 0) end, 2)
+        main_refreshBaseButtons()
+        if main_divRec(slot) == rec then engine_subStep("DIV_MORALE", slot, "ESITO") end
+        callHandler("updateCenterPanel")
+    end, player.color)
+end
+function main_divEsitoEnter(ctx, slot, rec)
+    Wait.time(function()
+        if main_divRec(slot) == rec then engine_subClose("DIV_MORALE", slot, {}) end
+    end, MORALE_ESITO_SECONDS)
+end
+function main_divDone(ctx, result, slot)
+    engine_dicePanelCloseAfter(slot, 1)
+    main_divOpenPanel()
+    callHandler("updateCenterPanel")
 end
 -- ============================================================
 -- FUNZIONE: main_divBlocks(player)
--- Vero (e avviso) se c'è un test di Divisione da tirare: la
--- fase non si chiude.
+-- Vero (e avviso) se c'è un test di Divisione da tirare.
 -- ============================================================
 function main_divBlocks(player)
     local p = DIV_PENDING[1]
@@ -156,8 +232,8 @@ function main_divBlocks(player)
 end
 -- ============================================================
 -- FUNZIONE: main_divOnRoll(player, slot)
--- Chiamata all'inizio dell'onRoll delle fasi: se c'è un test in
--- coda lo gestisce e ritorna true (il Roll è "consumato").
+-- Roll della fase senza sottofase aperta: se c'è un test in coda
+-- lo apre (dopo un ripristino) e lo tira; vero se gestito.
 -- ============================================================
 function main_divOnRoll(player, slot)
     if DIV_ROLLING then return true end
@@ -167,17 +243,40 @@ function main_divOnRoll(player, slot)
         warningToColor("Prima il test di morale di Divisione di " .. main_sideName(p.slot), player, "Yellow", 4, false)
         return true
     end
-    DIV_ROLLING = true
-    engine_diceClearLastRoll(slot)
-    engine_diceSetNext(slot, 1, nil)
-    engine_diceThrowFromBag(slot, nil, function(risultati)
-        DIV_ROLLING = false
-        main_divResolve(p, risultati and risultati[1])
-        main_refreshBaseButtons()
-        callHandler("updateCenterPanel")
-    end, player.color)
+    local rec = main_divOpenPanel()
+    if rec then main_divRoll(rec.ctx, slot, player, rec) end
     return true
 end
+
+registerSubphases({
+    DIV_MORALE = {
+        scope    = "player",
+        anywhere = true,
+        title    = "MORALE DI DIVISIONE",
+        first    = "ROLL",
+        onEnter  = "main_divEnter",
+        steps = {
+            ROLL  = { render = "divRoll",  actor = "owner", icon = "morale", label = "Controlla il Morale", onClick = "main_divFocus", onRoll = "main_divRoll" },
+            ESITO = { render = "divEsito", actor = "owner", onEnter = "main_divEsitoEnter", onRestore = "main_divEsitoEnter" },
+        },
+    },
+})
+registerHandler("main_divEnter",      function(c, s, r)    return main_divEnter(c, s, r) end)
+registerHandler("main_divFocus",      function(c, s, p, r) return main_divFocus(c, s, p, r) end)
+registerHandler("main_divRoll",       function(c, s, p, r) return main_divRoll(c, s, p, r) end)
+registerHandler("main_divEsitoEnter", function(c, s, r)    return main_divEsitoEnter(c, s, r) end)
+registerHandler("main_divDone",       function(c, res, s)  return main_divDone(c, res, s) end)
+
+registerSubRenderer("divRoll", function(rec, def, step, slot, isActor)
+    local c = rec.ctx or {}
+    if not isActor then return { title = def.title, wait = "In attesa di " .. main_sideName(rec.slot) } end
+    if c.aiDadi then return { title = def.title, info = main_divName(rec.slot, c.div), wait = "Premi Roll" } end
+    return { title = def.title, info = main_divName(rec.slot, c.div), button = step.label, icon = step.icon }
+end)
+registerSubRenderer("divEsito", function(rec, def, step, slot, isActor)
+    local c = rec.ctx or {}
+    return { title = def.title, info = c.esito, wait = "TEST ESEGUITO" }
+end)
 -- ============================================================
 -- FUNZIONE: main_divResolve(p, dado)
 -- ============================================================
@@ -194,7 +293,9 @@ function main_divResolve(p, dado)
     s.base = #main_divUnits(p.slot, p.div)
     s.persePrima = main_divLost(p.slot, p.div)
 
+    local esito
     if tot <= 3 then
+        esito = string.format("%d: la Divisione ROMPE", tot)
         s.stato = "rotta"
         main_divForceHolds(p.slot, p.div, "Divisione in rotta")
         engine_dicePanelOutcome(p.slot, string.format("%d: ROMPE", tot), DICEPANEL.koColor,
@@ -202,16 +303,18 @@ function main_divResolve(p, dado)
         printToAll(string.format("[Morale] %s: %d, la Divisione ROMPE: tutte le sue unita' si ritirano verso il proprio bordo (a mano); chi non puo' ritirarsi va rimosso",
             nome, tot), colore)
     elseif tot == 4 then
+        esito = "4: HOLDS per la mossa successiva"
         s.stato = "holds"
         main_divForceHolds(p.slot, p.div, "Morale di Divisione")
         engine_dicePanelOutcome(p.slot, "4: HOLDS", DICEPANEL.koColor, "Per tutta la sua mossa successiva")
         printToAll(string.format("[Morale] %s: 4, HOLDS per tutta la sua mossa successiva", nome), colore)
     else
+        esito = string.format("%d: la Divisione tiene", tot)
         s.stato = "ok"
         engine_dicePanelOutcome(p.slot, string.format("%d: TIENE", tot), DICEPANEL.okColor)
         printToAll(string.format("[Morale] %s: %d, la Divisione tiene", nome, tot), colore)
     end
-    main_divOpenPanel()
+    return nome .. " - " .. esito
 end
 -- ============================================================
 -- FUNZIONE: main_divForceHolds(slot, divId, motivo)
