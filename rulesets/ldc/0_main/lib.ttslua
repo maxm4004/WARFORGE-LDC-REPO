@@ -411,6 +411,9 @@ function main_updateCenterPanel()
     -- Sottofasi: pannelli e blocco dei bottoni di fase
     engine_subRedraw()
     if main_unitInfoRefresh then main_unitInfoRefresh() end
+    -- liste di fase (IEF): cariche e mischie
+    if move_chargeListRefresh then move_chargeListRefresh() end
+    if melee_listRefresh then melee_listRefresh() end
 end
 -- ============================================================
 -- FUNZIONE: main_waitingText(phase, slot)

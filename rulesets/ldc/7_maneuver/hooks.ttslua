@@ -26,5 +26,7 @@ function after_maneuver(phaseName, phase)
     MOVE_DRAG = {}
     MOVE_CIRCLE = {}
     move_dragText(nil, nil)
+    UI.setAttribute("charge_list_army1", "active", "false")
+    UI.setAttribute("charge_list_army2", "active", "false")
     main_setLines("movimento", {})
 end

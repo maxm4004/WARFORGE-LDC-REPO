@@ -230,6 +230,7 @@ function move_chargeConfirm(player, value, id)
     move_recordStart(u)
     MOVE_STATE.cariche[u.key] = t.key
     move_chargeExecute(player, prep.slot, u, t)
+    move_chargeListRefresh()
     main_refreshBaseButtons()
 end
 -- ============================================================
@@ -294,4 +295,82 @@ function move_chargeRecordEnd(u)
         posa[b.getGUID()] = { x = p.x, y = p.y, z = p.z, ry = r.y }
     end
     MOVE_STATE.dopoCarica[u.key] = posa
+end
+
+-- ============================================================
+--            LISTA DELLE CARICHE (IEF liste attacco/difesa)
+-- Una lista per schieramento: chi muove vede le sue cariche,
+-- l'avversario le cariche subite. Click sulla riga: inquadra.
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_chargeListXml(slot)
+-- ============================================================
+function move_chargeListXml(slot)
+    local righe = {}
+    for i = 1, MOVE.listaMax do
+        table.insert(righe, { id = string.format("charge_row_%d_%d", slot, i), testo = "", onClick = "move_chargeRowClick" })
+    end
+    return ui_listPanelXml({
+        id = "charge_list_army" .. slot, titleId = "charge_list_title_army" .. slot,
+        titolo = "CARICHE", nota = "Clicca una riga: inquadra la carica",
+        visibility = main_sideVisibility(slot), attivo = "false", righe = righe,
+    })
+end
+-- ============================================================
+-- FUNZIONE: move_chargeList()
+-- Cariche in ordine: { { att, dif, lato } }.
+-- ============================================================
+function move_chargeList()
+    local out = {}
+    for att, dif in pairs(MOVE_STATE.cariche or {}) do
+        table.insert(out, { att = att, dif = dif, lato = MOVE_STATE.lati and MOVE_STATE.lati[att] })
+    end
+    table.sort(out, function(a, b) return a.att < b.att end)
+    return out
+end
+-- ============================================================
+-- FUNZIONE: move_chargeListRefresh()
+-- ============================================================
+function move_chargeListRefresh()
+    local S = LISTPANEL
+    local lista = move_chargeList()
+    local attivo = ENGINE and ENGINE.phase == PHASE.MANEUVER and #lista > 0
+    local n = math.min(#lista, MOVE.listaMax)
+    for slot = 1, 2 do
+        local pre = "charge_list_army" .. slot
+        UI.setAttribute(pre, "active", attivo and "true" or "false")
+        UI.setAttribute(pre, "visibility", main_sideVisibility(slot))
+        UI.setAttribute("charge_list_title_army" .. slot, "text",
+            (slot == MOVE_STATE.side) and "CARICHE" or "CARICHE SUBITE")
+        UI.setAttribute(pre, "height",
+            tostring(2 * S.padding + S.titleH + S.noteH + S.spacing + math.max(n, 1) * (S.rowH + S.spacing)))
+        for i = 1, MOVE.listaMax do
+            local c = lista[i]
+            local id = string.format("charge_row_%d_%d", slot, i)
+            if c and i <= n then
+                local u, t = main_unit(c.att), main_unit(c.dif)
+                UI.setAttribute(id, "active", "true")
+                UI.setAttribute(id, "text", string.format("%s carica %s%s",
+                    u and (u.meta.nomeDisplay or u.key) or c.att, t and (t.meta.nomeDisplay or t.key) or c.dif,
+                    c.lato and (" - " .. c.lato:lower()) or ""))
+                UI.setAttribute(id, "textColor", (slot == MOVE_STATE.side) and S.todo or S.gold)
+            else
+                UI.setAttribute(id, "active", "false")
+            end
+        end
+    end
+end
+-- ============================================================
+-- FUNZIONE: move_chargeRowClick(player, value, id)
+-- ============================================================
+function move_chargeRowClick(player, value, id)
+    local slotStr, iStr = id:match("^charge_row_(%d)_(%d+)$")
+    if not slotStr or not main_colorInSide(player.color, tonumber(slotStr)) then return end
+    local c = move_chargeList()[tonumber(iStr)]
+    local u = c and main_unit(c.att)
+    if not u then return end
+    local p = main_unitCenter(u)
+    player.lookAt({ position = { x = p.x, y = u.comando.getPosition().y + 2, z = p.z }, pitch = 40,
+        yaw = (tonumber(slotStr) == 1) and 0 or 180, distance = 18 })
 end

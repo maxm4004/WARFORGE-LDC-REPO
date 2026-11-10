@@ -441,6 +441,7 @@ function move_clickAnnulla(obj, player_color, alt_click)
     if not u or not mio then return end
     if MOVE_PANEL and MOVE_PANEL.key == u.key then move_panelClose() end
     move_restore(u)
+    move_chargeListRefresh()
     main_refreshBaseButtons()
 end
 -- ============================================================
