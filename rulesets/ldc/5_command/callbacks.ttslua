@@ -61,3 +61,14 @@ function command_clickHolds(player, value, id)
     local slot, key = command_rowClick(player, id, "cmdHolds")
     if slot then command_accept(player, slot, key) end
 end
+-- ============================================================
+-- FUNZIONE: command_clickNome(player, value, id)
+-- Nome della Brigata: la inquadra e ne illumina le basi.
+-- ============================================================
+function command_clickNome(player, value, id)
+    local slot, key = command_rowClick(player, id, "cmdNome")
+    if not slot then return end
+    command_focus(slot, key, false)
+    command_cameraToGroup(player, slot, key)
+    command_redrawPanel()
+end

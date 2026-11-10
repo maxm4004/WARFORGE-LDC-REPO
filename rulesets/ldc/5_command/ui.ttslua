@@ -1,6 +1,12 @@
 -- ============================================================
 -- WARFORGE LDC — 5_command/ui.ttslua
--- Pannello Comando: per ogni Divisione una riga di intestazione
+-- Pannello Comando (uno solo, in basso al centro, come chiesto
+-- da Max: niente scheda separata nel pannello dadi). In cima la
+-- riga del tiro scelto (Brigata, Generale, cosa serve) e poi
+-- l'esito; resta visibile anche con la camera sui dadi.
+-- Il nome della Brigata è un bottone: inquadra la Brigata e ne
+-- illumina le basi.
+-- Per ogni Divisione una riga di intestazione
 -- (nome e Generale di Divisione), poi una riga per Brigata (e
 -- una per le unità senza Brigata) con Generale, stato e bottoni
 -- Tira / CiC (ritiro) / HOLDS. Lo vedono tutti; i bottoni solo
@@ -14,8 +20,8 @@
 -- ============================================================
 function command_panelHeight(righe)
     local P = COMMAND_PANEL
-    return P.padding * 2 + P.headerHeight + P.footerHeight
-        + righe * P.rowHeight + (righe + 1) * P.spacing
+    return P.padding * 2 + P.headerHeight + P.footerHeight + P.sceltaHeight
+        + righe * P.rowHeight + (righe + 2) * P.spacing
 end
 -- ============================================================
 -- FUNZIONE: command_panelXml()
@@ -28,8 +34,8 @@ function command_panelXml()
         righe = righe .. string.format([[
             <HorizontalLayout id="cmdRow%d" active="false" spacing="4" childForceExpandWidth="false"
                               preferredHeight="%d" childAlignment="MiddleLeft">
-                <Text id="cmdNome%d" text="" fontSize="14" fontStyle="Bold" color="%s"
-                      alignment="MiddleLeft" preferredWidth="150"/>
+                <Button id="cmdNome%d" text="" fontSize="14" fontStyle="Bold" textColor="%s" color="rgba(1,1,1,0.06)"
+                      textAlignment="MiddleLeft" preferredWidth="220" onClick="command_clickNome"/>
                 <Text id="cmdGen%d" text="" fontSize="12" color="%s"
                       alignment="MiddleCenter" preferredWidth="40"/>
                 <Text id="cmdStato%d" text="" fontSize="13" fontStyle="Bold" color="%s"
@@ -52,7 +58,9 @@ function command_panelXml()
            width="%d" height="%d" color="%s">
         <VerticalLayout padding="%d %d %d %d" spacing="%d" childForceExpandHeight="false">
             <Text id="cmdTitolo" text="COMANDO" fontSize="16" fontStyle="Bold" color="%s"
-                  alignment="MiddleLeft" preferredHeight="%d"/>
+                  alignment="MiddleCenter" preferredHeight="%d"/>
+            <Text id="cmdScelta" text="" fontSize="15" fontStyle="Bold" color="White"
+                  alignment="MiddleCenter" preferredHeight="]] .. P.sceltaHeight .. [["/>
 %s
             <Text id="cmdNota" text="" fontSize="12" color="%s"
                   alignment="MiddleLeft" preferredHeight="%d"/>
@@ -131,7 +139,7 @@ function command_redrawPanel()
             local div = st.divisioni[r.divId]
             UI.setAttribute("cmdRow" .. i, "active", "true")
             UI.setAttribute("cmdNome" .. i, "text", div and div.nome or tostring(r.divId))
-            UI.setAttribute("cmdNome" .. i, "color", P.titleColor)
+            UI.setAttribute("cmdNome" .. i, "textColor", P.titleColor)
             UI.setAttribute("cmdGen" .. i, "text", div and ("Gen " .. tostring(div.valore)) or "")
             UI.setAttribute("cmdStato" .. i, "text", "")
             for _, nome in ipairs({ "cmdTira", "cmdRitira", "cmdHolds" }) do
@@ -143,7 +151,7 @@ function command_redrawPanel()
             COMMAND_ROWS[i] = key
             UI.setAttribute("cmdRow" .. i, "active", "true")
             UI.setAttribute("cmdNome" .. i, "text", "   " .. d.nome)
-            UI.setAttribute("cmdNome" .. i, "color", P.textColor)
+            UI.setAttribute("cmdNome" .. i, "textColor", (COMMAND_FOCUS and COMMAND_FOCUS.key == key) and P.titleColor or P.textColor)
             UI.setAttribute("cmdGen" .. i, "text", d.valore and ("Gen " .. tostring(d.valore)) or "-")
             UI.setAttribute("cmdStato" .. i, "text", command_rowText(d))
             UI.setAttribute("cmdStato" .. i, "color", P.statoColor[d.stato] or P.textColor)
@@ -176,4 +184,22 @@ function command_redrawPanel()
         nota = nota .. string.format(" (righe %d su %d)", P.righeMax, #elenco)
     end
     UI.setAttribute("cmdNota", "text", nota)
+    UI.setAttribute("cmdScelta", "text", command_sceltaText(slot))
+    UI.setAttribute("cmdScelta", "color", (COMMAND_ESITO and COMMAND_ESITO.colore) or "White")
+end
+-- ============================================================
+-- FUNZIONE: command_sceltaText(slot)
+-- Riga in cima: tiro scelto (cosa si attiva, chi tira, cosa
+-- serve) o l'esito dell'ultimo tiro.
+-- ============================================================
+function command_sceltaText(slot)
+    local pend = COMMAND_PENDING
+    if pend and pend.slot == slot then
+        local g = command_group(slot, pend.key)
+        local chi = pend.tipo == "ritiro" and "CiC" or (g and g.brigId and "Gen. di Brigata" or "Gen. di Divisione")
+        return string.format("%s: %s %d, serve %d o meno su 1D6\nPremi Roll sul vassoio",
+            g and g.nome or pend.key, chi, pend.valore, pend.valore)
+    end
+    if COMMAND_ESITO then return COMMAND_ESITO.testo end
+    return "Scegli una Brigata: Tira"
 end

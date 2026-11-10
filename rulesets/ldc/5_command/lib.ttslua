@@ -132,6 +132,7 @@ end
 -- HOLDS del Comando precedente tolti, HOLDS forzati applicati.
 -- ============================================================
 function command_start(slot)
+    COMMAND_ESITO = nil
     command_clearMarkers(slot)
     COMMAND_PENDING = nil
     COMMAND_ROLLING = false
@@ -332,21 +333,9 @@ function command_choose(player, slot, key, tipo)
     end
 
     COMMAND_PENDING = { slot = slot, key = key, tipo = tipo, valore = valore }
-
-    local righe = { { "Dadi", "1D6" } }
-    if tipo == "ritiro" then
-        table.insert(righe, { st.cic.nome, tostring(valore) })
-        table.insert(righe, { "Primo tiro", tostring(g.tiro) })
-    else
-        table.insert(righe, { g.brigId and "Generale di Brigata" or "Generale di Divisione", tostring(valore) })
-    end
+    COMMAND_ESITO = nil
     engine_diceClearLastRoll(slot)
-    engine_dicePanelOpen(slot, {
-        titolo      = titolo,
-        sottotitolo = command_groupLabel(slot, key),
-        righe       = righe,
-        serve       = "Serve " .. valore .. " o meno",
-    })
+    command_focus(slot, key, tipo == "ritiro")
 
     engine_diceCameraZoom(player)
     warningToColor("Premi Roll sul vassoio dei dadi", player, "Yellow", 4, false)
@@ -382,6 +371,7 @@ function command_onRoll(player, slot)
         COMMAND_PENDING = nil
         engine_diceCameraReturn(player)
         command_resolve(slot, pend, risultati[1])
+        main_setLines("comando", {})
         command_redrawPanel()
         callHandler("updateCenterPanel")
     end, player.color)
@@ -462,8 +452,71 @@ end
 -- Esito nel pannello dadi (visibile a entrambi).
 -- ============================================================
 function command_outcome(slot, testo, riuscito, nota)
-    if not engine_dicePanelIsOpen(slot) then return end
-    engine_dicePanelOutcome(slot, testo, riuscito and DICEPANEL.okColor or DICEPANEL.koColor, nota)
+    local g = COMMAND_FOCUS and command_group(slot, COMMAND_FOCUS.key)
+    COMMAND_ESITO = {
+        testo  = (g and (g.nome .. ": ") or "") .. testo .. (nota and ("\n" .. nota) or ""),
+        colore = riuscito and "#5BD35B" or "#FF6B6B",
+    }
+end
+-- ============================================================
+-- FUNZIONE: command_focus(slot, key, filo)
+-- Illumina le basi del gruppo (Generale compreso); con filo, il
+-- filo dal CiC alla base più vicina (ritiro). key nil: spegne.
+-- ============================================================
+COMMAND_FOCUS = nil
+
+function command_focus(slot, key, filo)
+    if COMMAND_FOCUS then
+        for _, guid in ipairs(COMMAND_FOCUS.basi or {}) do
+            local b = getObjectFromGUID(guid)
+            if b and not b.isDestroyed() then pcall(function() b.highlightOff() end) end
+        end
+    end
+    COMMAND_FOCUS = nil
+    main_setLines("comando", {})
+    local g = key and command_group(slot, key)
+    if not g then return end
+    COMMAND_FOCUS = { slot = slot, key = key, basi = g.basi or {} }
+    for _, guid in ipairs(g.basi or {}) do
+        local b = getObjectFromGUID(guid)
+        if b and not b.isDestroyed() then pcall(function() b.highlightOn(COMMAND_PANEL.evidenzia) end) end
+    end
+    local st = COMMAND_STATE[slot]
+    local cic = filo and st and st.cic and getObjectFromGUID(st.cic.guid)
+    if cic then
+        local best, bd = nil, nil
+        for _, guid in ipairs(g.basi or {}) do
+            local b = getObjectFromGUID(guid)
+            if b and not b.isDestroyed() then
+                local d = main_distanceD(cic, b)
+                if d and (not bd or d < bd) then best, bd = b, d end
+            end
+        end
+        if best then
+            local p, q = cic.getPosition(), best.getPosition()
+            main_setLines("comando", { { points = { { p.x, p.y + 0.1, p.z }, { q.x, q.y + 0.1, q.z } },
+                color = COMMAND_PANEL.filoCiC, thickness = 0.06 } })
+        end
+    end
+end
+-- ============================================================
+-- FUNZIONE: command_cameraToGroup(player, slot, key)
+-- Inquadra le basi del gruppo (come IEF le righe delle liste).
+-- ============================================================
+function command_cameraToGroup(player, slot, key)
+    local g = command_group(slot, key)
+    if not g or not player then return end
+    local cx, cz, y, n = 0, 0, 1, 0
+    for _, guid in ipairs(g.basi or {}) do
+        local b = getObjectFromGUID(guid)
+        if b and not b.isDestroyed() then
+            local p = b.getPosition()
+            cx, cz, y, n = cx + p.x, cz + p.z, p.y, n + 1
+        end
+    end
+    if n == 0 then return end
+    player.lookAt({ position = { x = cx / n, y = y + 2, z = cz / n }, pitch = 45,
+        yaw = (slot == 1) and 0 or 180, distance = 30 })
 end
 -- ============================================================
 -- FUNZIONE: command_announce(slot, testo)

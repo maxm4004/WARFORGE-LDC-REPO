@@ -23,6 +23,8 @@ end
 function after_command(phaseName, phase)
     COMMAND_PENDING = nil
     COMMAND_ROLLING = false
+    COMMAND_ESITO = nil
+    if TURN.activeSide then command_focus(TURN.activeSide, nil) end
     if TURN.activeSide then
         engine_dicePanelCloseAfter(TURN.activeSide, COMMAND_DICEPANEL_CLOSE)
     end
