@@ -25,7 +25,8 @@ function main_unitsOfSide(slot)
     local unita = {}
     for _, b in ipairs(main_basesOfSide(slot)) do
         local m = b.meta
-        if m.ruolo == DEPLOY_RUOLO.UNITA and m.unitKey then
+        -- le unità rotte sono distrutte a fine frame: si saltano subito
+        if m.ruolo == DEPLOY_RUOLO.UNITA and m.unitKey and not UNIT_BROKEN[m.unitKey] then
             local u = unita[m.unitKey]
             if not u then
                 u = { key = m.unitKey, meta = m, basi = {} }
@@ -215,6 +216,8 @@ function main_unitBreak(unitKey, motivo)
     local basi = {}
     for _, b in ipairs(u.basi) do table.insert(basi, b) end
     for _, b in ipairs(basi) do b.destruct() end
+    -- Morale di Divisione (12): conta l'unità appena rotta
+    main_divCheck(u.side, u.meta.divisione)
 end
 -- ============================================================
 -- FUNZIONE: main_unitsReset()

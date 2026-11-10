@@ -196,6 +196,7 @@ end
 -- Bottone 3D Roll durante le Mischie (phase.onRoll).
 -- ============================================================
 function melee_onRoll(player, slot)
+    if main_divOnRoll(player, slot) then return end
     local p = MELEE_PENDING
     if MELEE_ROLLING then return end
     if not p then

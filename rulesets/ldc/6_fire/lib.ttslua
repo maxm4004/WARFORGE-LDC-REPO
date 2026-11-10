@@ -281,6 +281,7 @@ end
 -- Bottone 3D Roll durante il Fuoco (phase.onRoll).
 -- ============================================================
 function fire_onRoll(player, slot)
+    if main_divOnRoll(player, slot) then return end
     if slot ~= TURN.activeSide then
         warningToColor("Non e' il tuo Fuoco", player, "Yellow", 3, false)
         return

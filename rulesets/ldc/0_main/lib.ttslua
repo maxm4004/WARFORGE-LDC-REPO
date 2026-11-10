@@ -218,6 +218,7 @@ function main_restart()
     command_reset()
     fire_clearSmoke()
     main_unitsReset()
+    main_divReset()
     deploy_clearAll()
 
     main_resetPlayers()

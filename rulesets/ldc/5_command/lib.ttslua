@@ -357,6 +357,7 @@ end
 -- Bottone 3D Roll durante il Comando (phase.onRoll).
 -- ============================================================
 function command_onRoll(player, slot)
+    if main_divOnRoll(player, slot) then return end
     if slot ~= TURN.activeSide then
         warningToColor("Non è il tuo Comando", player, "Yellow", 3, false)
         return

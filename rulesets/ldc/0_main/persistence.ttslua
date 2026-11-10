@@ -37,6 +37,8 @@ function main_onSave()
         fire          = FIRE_STATE,
         move          = MOVE_STATE,
         melee         = MELEE_STATE,
+        div_morale    = DIV_MORALE,
+        div_pending   = DIV_PENDING,
         command_forced = COMMAND_FORCED_HOLDS,
         side_chosen   = SIDE_CHOSEN,
         sub           = ENGINE and ENGINE.sub or nil,
@@ -147,6 +149,13 @@ function main_restoreState(save_state)
         MOVE_STATE.partenza = MOVE_STATE.partenza or {}
         MOVE_STATE.cariche  = MOVE_STATE.cariche or {}
     end
+
+    if data.div_morale then
+        DIV_MORALE = main_slotPair(data.div_morale)
+        DIV_MORALE[1] = DIV_MORALE[1] or {}
+        DIV_MORALE[2] = DIV_MORALE[2] or {}
+    end
+    if data.div_pending then DIV_PENDING = data.div_pending end
 
     if data.melee then
         MELEE_STATE = data.melee

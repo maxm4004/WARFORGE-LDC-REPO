@@ -9,6 +9,7 @@
 -- Non con un tiro in sospeso.
 -- ============================================================
 function fire_btn(player, value, id, buttonConfig)
+    if main_divBlocks(player) then return false end
     if FIRE_ROLLING then
         warningToColor("Aspetta che i dadi si fermino", player, "Yellow", 3, false)
         return false
