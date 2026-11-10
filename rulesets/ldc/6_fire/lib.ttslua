@@ -1,19 +1,33 @@
 -- ============================================================
 -- WARFORGE LDC — 6_fire/lib.ttslua
--- Fuoco, primo giro (regolamento 8).
+-- Fuoco (regolamento 8), flusso copiato da IEF 7_shoot:
 --
--- FUOCO sulla base della tua unità -> mirino da trascinare sul
--- bersaglio (come IEF) -> scheda nel pannello dadi -> Roll.
--- Lo script calcola distanza (D), gittata, dadi (1 per base del
--- primo rango, 2 per base per l'artiglieria a distanza corta) e
--- soglia; gli hit diventano disordini. Se gli hit manderebbero
--- il bersaglio in rotta, i dadi in eccesso si ritirano: basta un
--- risultato superiore al morale del bersaglio e l'unità rompe,
--- altrimenti quegli hit sono persi.
--- La fanteria tira al bersaglio più vicino, l'artiglieria
+--   1. FUOCO sulla base dell'unità: mirino davanti al fronte
+--      (0_main/mirino, copia del mirino di IEF F38-F40).
+--   2. Mirino rilasciato su un bersaglio valido: cono di tiro
+--      disegnato, basi che tirano (arancio) e basi raggiunte
+--      (azzurro) evidenziate, scheda del tiro (TIRATORE /
+--      BERSAGLIO, DADI / PER COLPIRE) e conferma Tiro / Chiudi
+--      al giocatore che tira. La camera NON si muove.
+--   3. Tiro: sottofase FIRE_ROLL (come IEF SHOOT_ROLL), camera
+--      sui dadi, "Premi Roll". Il pannello diventa visibile a
+--      tutti.
+--   4. Roll: facce ed esito nella scheda; gli hit diventano
+--      disordini; fumo davanti alle basi che hanno sparato.
+--   5. Se gli hit manderebbero in rotta il bersaglio: step
+--      ROTTURA, Roll dei dadi in eccesso, serve più del morale
+--      del bersaglio (regolamento 8).
+--   6. ESCI: esito per MORALE_ESITO_SECONDS, poi la sottofase si
+--      chiude da sola e la camera torna.
+--
+-- Regole di LDC: gittate in D (moschetto 1D, rigato 1D½,
+-- cannone 1D/2D/3D), dadi = basi del primo rango (2 per base
+-- per l'artiglieria a distanza corta), soglie 5+/6+/4+, la
+-- fanteria tira al bersaglio più vicino nel cono, l'artiglieria
 -- sceglie. Le unità in HOLDS possono sparare.
--- Rimandati: coperture, linea di vista, abitati, quadrato,
--- bombardamento del Generale.
+-- Rimandati: coperture e capisaldi, linea di vista (terreno),
+-- abitati, rigato, quadrato, tiro attraverso gli skirmish (8.1),
+-- bombardamento del Generale, artiglieria a cavallo.
 -- ============================================================
 
 -- ============================================================
@@ -44,19 +58,152 @@ function fire_maxRangeD(u)
     end
     return arma.effettiva or arma.corta or 0
 end
+
+-- ============================================================
+--                 CONO DI TIRO (copiato da IEF)
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: fire_rectIEF(obj)
+-- Rettangolo della base nel formato di IEF main_baseRectOfType:
+-- { x, z, fx, fz, rx, rz, hw, hd, corners }.
+-- ============================================================
+function fire_rectIEF(obj)
+    local meta = main_baseMeta(obj) or {}
+    local hw = main_cmToTts(meta.fronteCm or CALIBRAZIONE.baseFronteCm) / 2
+    local hd = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm) / 2
+    local p = obj.getPosition()
+    local f = main_baseForward(obj)
+    local r = { x = f.z, z = -f.x }          -- destra della base
+    local rect = { x = p.x, z = p.z, fx = f.x, fz = f.z, rx = r.x, rz = r.z, hw = hw, hd = hd, obj = obj, corners = {} }
+    for _, sw in ipairs({ -1, 1 }) do
+        for _, sd in ipairs({ -1, 1 }) do
+            table.insert(rect.corners, {
+                x = p.x + r.x * hw * sw + f.x * hd * sd,
+                z = p.z + r.z * hw * sw + f.z * hd * sd,
+            })
+        end
+    end
+    return rect
+end
+-- ============================================================
+-- FUNZIONE: shoot_coneOf(rects, angoloGradi)  (IEF, invariata)
+-- Cono di tiro dell'unità: parte dalla linea del fronte, fra gli
+-- angoli esterni sinistro e destro, e si allarga di angoloGradi
+-- per lato.
+-- ============================================================
+function shoot_coneOf(rects, angoloGradi)
+    local r0 = rects[1]
+    local c = { fx = r0.fx, fz = r0.fz, rx = r0.rx, rz = r0.rz,
+                s0 = -math.huge, tL = math.huge, tR = -math.huge,
+                tan = math.tan(math.rad(math.min(angoloGradi or 45, 89))),
+                tutto = (angoloGradi or 45) >= 180 }
+    for _, r in ipairs(rects) do
+        for _, k in ipairs(r.corners) do
+            local s = k.x * c.fx + k.z * c.fz
+            local t = k.x * c.rx + k.z * c.rz
+            if s > c.s0 then c.s0 = s end
+            if t < c.tL then c.tL = t end
+            if t > c.tR then c.tR = t end
+        end
+    end
+    return c
+end
+-- ============================================================
+-- FUNZIONE: shoot_pointInCone(c, x, z)  (IEF, invariata)
+-- ============================================================
+function shoot_pointInCone(c, x, z)
+    if c.tutto then return true end
+    local s = x * c.fx + z * c.fz - c.s0
+    if s < -0.001 then return false end
+    if s < 0 then s = 0 end
+    local t = x * c.rx + z * c.rz
+    return t >= c.tL - s * c.tan and t <= c.tR + s * c.tan
+end
+-- ============================================================
+-- FUNZIONE: shoot_rectInCone(c, rect)  (IEF, invariata)
+-- Vero se almeno un angolo (o il centro) della base è nel cono.
+-- ============================================================
+function shoot_rectInCone(c, rect)
+    if shoot_pointInCone(c, rect.x, rect.z) then return true end
+    for _, k in ipairs(rect.corners) do
+        if shoot_pointInCone(c, k.x, k.z) then return true end
+    end
+    return false
+end
+-- ============================================================
+-- FUNZIONE: fire_cone(u)
+-- Cono di tiro dell'unità dalle basi del primo rango.
+-- ============================================================
+function fire_cone(u)
+    local rects = {}
+    for _, b in ipairs(main_unitFirstRank(u)) do table.insert(rects, fire_rectIEF(b)) end
+    return shoot_coneOf(rects, FIRE_ARCO), rects
+end
+-- ============================================================
+-- FUNZIONE: fire_unitInCone(cono, t)
+-- ============================================================
+function fire_unitInCone(cono, t)
+    for _, b in ipairs(t.basi) do
+        if shoot_rectInCone(cono, fire_rectIEF(b)) then return true end
+    end
+    return false
+end
+-- ============================================================
+-- FUNZIONE: fire_coneLines(cono, rangeUnits)
+-- Linee del cono (lati e limite di gittata) come IEF
+-- shoot_range_and_target: lati a FIRE_ARCO, archi attorno agli
+-- angoli esterni e segmento davanti al fronte.
+-- ============================================================
+function fire_coneLines(cono, rangeUnits, y)
+    local function punto(sv, tv)
+        local x, z = cono.fx * sv + cono.rx * tv, cono.fz * sv + cono.rz * tv
+        return { x, y, z }
+    end
+    local angolo = math.rad(math.min(FIRE_ARCO, 89))
+    local segmenti = 30
+    local cosA, sinA = math.cos(angolo), math.sin(angolo)
+    local sx, dx, arco = {}, {}, {}
+    for i = 0, segmenti do
+        local k = (i / segmenti) * rangeUnits
+        table.insert(sx, punto(cono.s0 + k * cosA, cono.tL - k * sinA))
+        table.insert(dx, punto(cono.s0 + k * cosA, cono.tR + k * sinA))
+    end
+    local meta = math.floor(segmenti / 2)
+    for i = 0, meta do
+        local ang = -angolo + angolo * (i / meta)
+        table.insert(arco, punto(cono.s0 + rangeUnits * math.cos(ang), cono.tL + rangeUnits * math.sin(ang)))
+    end
+    for i = 0, meta do
+        local ang = angolo * (i / meta)
+        table.insert(arco, punto(cono.s0 + rangeUnits * math.cos(ang), cono.tR + rangeUnits * math.sin(ang)))
+    end
+    local col = FIRE_COLORI.cono
+    return {
+        { points = sx,   color = col, thickness = 0.1 },
+        { points = dx,   color = col, thickness = 0.1 },
+        { points = arco, color = col, thickness = 0.1 },
+    }
+end
+
+-- ============================================================
+--                         BERSAGLI
+-- ============================================================
+
 -- ============================================================
 -- FUNZIONE: fire_targets(slot, u)
--- Unità nemiche a portata e davanti: { [unitKey] = { dist } }.
+-- Unità nemiche a portata e nel cono: { [unitKey] = { dist } }.
 -- La fanteria solo la più vicina (8).
 -- ============================================================
 function fire_targets(slot, u)
     local max = fire_maxRangeD(u)
     local cat = main_unitCategory(u.meta)
+    local cono = fire_cone(u)
     local lista, minDist = {}, math.huge
 
     for key, t in pairs(main_unitsOfSide(main_otherSide(slot))) do
         local d = main_unitDistanceD(u, t)
-        if d and d <= max and main_unitInFront(u, t) then
+        if d and d <= max and fire_unitInCone(cono, t) then
             lista[key] = { dist = d }
             minDist = math.min(minDist, d)
         end
@@ -76,8 +223,10 @@ end
 
 -- ============================================================
 -- FUNZIONE: fire_compute(u, t, dist)
--- Dadi e soglia del tiro di u contro t a distanza dist (D).
--- Ritorna { dadi, soglia, banda, primoRango, righe }.
+-- Dadi e soglia del tiro di u contro t a distanza dist (D), con
+-- le voci della scheda come IEF (shoot_numDiceBreakdown /
+-- shoot_hitBreakdown). Ritorna { dadi, soglia, banda,
+-- primoRango, vociDadi, vociColpire, sogliaTesto }.
 -- ============================================================
 function fire_compute(u, t, dist)
     local F = LDC_FUOCO
@@ -97,14 +246,19 @@ function fire_compute(u, t, dist)
     if catU == CATEGORIA.ARTIGLIERIA and banda == "corta" then perBase = F.dadiArtCorta end
     local dadi = primo * perBase
 
+    local vociDadi = {
+        { "Basi in primo rango", tostring(primo) },
+        { "Dadi per base", tostring(perBase) .. ((perBase > 1) and " (artiglieria corta)" or "") },
+    }
+
     local soglia, motivo
     if catU == CATEGORIA.ARTIGLIERIA then
         if F.formazioniMasse[t.meta.formazione or ""] then
             soglia, motivo = F.artiglieriaVsMasse, "contro " .. tostring(t.meta.formazione)
         elseif banda ~= "lunga" and catT ~= CATEGORIA.SKIRMISH and catT ~= CATEGORIA.ARTIGLIERIA then
-            soglia, motivo = F.artiglieriaVicina, "distanza " .. banda
+            soglia, motivo = F.artiglieriaVicina, "artiglieria a distanza " .. banda
         else
-            soglia, motivo = F.altri, (banda == "lunga") and "distanza lunga" or "contro " .. tostring(catT):lower()
+            soglia, motivo = F.altri, (banda == "lunga") and "distanza lunga" or ("contro " .. tostring(catT):lower())
         end
     else
         if catT == CATEGORIA.SKIRMISH then
@@ -113,15 +267,133 @@ function fire_compute(u, t, dist)
             soglia, motivo = F.fanteria, "fanteria"
         end
     end
+    local vociColpire = { { motivo, soglia .. "+" } }
 
-    local righe = {
-        { "Distanza", main_formatD(dist) .. " (" .. banda .. ")" },
-        { "Basi in primo rango", tostring(primo) },
-        { "Dadi", primo .. " x " .. perBase .. " = " .. dadi .. "D6" },
-        { "Per colpire", soglia .. "+ (" .. motivo .. ")" },
-        { "Disordini del bersaglio", main_unitDisorders(t.key) .. "/" .. main_unitDisorderLimit(t.meta) },
+    return {
+        dadi = dadi, soglia = soglia, banda = banda, primoRango = primo,
+        vociDadi = vociDadi, vociColpire = vociColpire,
+        sogliaTesto = string.format("serve %d+", soglia),
     }
-    return { dadi = dadi, soglia = soglia, banda = banda, primoRango = primo, righe = righe }
+end
+
+-- ============================================================
+--                  SCHEDA DEL TIRO (stile IEF)
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: fire_infoShow(player, d)
+-- Contenuto della scheda come IEF shoot_infoShow, con i dati di
+-- LDC. d = { u, t, dist, c, raggiunte }.
+-- ============================================================
+function fire_infoShow(player, d)
+    local S = SHOOTINFO
+    local function set(id, testo, colore)
+        UI.setAttribute(id, "text", testo or "")
+        if colore then UI.setAttribute(id, "color", colore) end
+        UI.setAttribute(id, "active", (testo and testo ~= "") and "true" or "false")
+    end
+    local u, t, c = d.u, d.t, d.c
+    local nomeU = u.meta.nomeDisplay or u.key
+    local nomeT = t.meta.nomeDisplay or t.key
+    local tipoU = main_unitType(u.meta).nome or tostring(u.meta.tipo)
+    local tipoT = main_unitType(t.meta).nome or tostring(t.meta.tipo)
+    local arma  = tostring(u.meta.arma or "?")
+
+    set("shootinfo_title", string.format("%s con %s tira su %s", nomeU, arma, nomeT))
+    local cat = main_unitCategory(u.meta)
+    set("shootinfo_note", (cat == CATEGORIA.ARTIGLIERIA) and "L'artiglieria sceglie il bersaglio nel cono di tiro"
+        or "Bersaglio obbligato: il piu' vicino nel cono di tiro")
+
+    -- Colonna TIRATORE
+    local L = {
+        { "TIRATORE", S.gold },
+        { tipoU },
+        { string.format("Arma: %s  -  gittata %s", arma, main_formatD(fire_maxRangeD(u))) },
+        { string.format("Distanza: %s (%s)", main_formatD(d.dist), c.banda) },
+        { string.format("Basi in primo rango: %d/%d", c.primoRango, #u.basi) },
+        { "Morale: " .. tostring(u.meta.morale or "?") },
+    }
+    if command_unitInHolds(u.meta.side or TURN.activeSide, u.meta) then
+        table.insert(L, { "In HOLDS: puo' sparare", S.grey })
+    end
+
+    -- Colonna BERSAGLIO
+    local dis = main_unitDisorders(t.key)
+    local lim = main_unitDisorderLimit(t.meta)
+    local R = {
+        { "BERSAGLIO", S.gold },
+        { tipoT },
+        { "Formazione: " .. tostring(t.meta.formazione or "?") },
+        { "Morale: " .. tostring(t.meta.morale or "?") },
+        { string.format("Disordini: %d/%d", dis, lim), (dis > 0) and S.malus or nil },
+        { string.format("Basi in campo: %d", #t.basi) },
+        { string.format("Basi raggiunte: %d", d.raggiunte or 0) },
+    }
+    for i = 1, S.colRows do
+        local l, r = L[i], R[i]
+        set("shootinfo_L" .. i, l and l[1] or "", l and (l[2] or "White") or nil)
+        set("shootinfo_R" .. i, r and r[1] or "", r and (r[2] or "White") or nil)
+    end
+    local righeCol = math.max(math.min(#L, S.colRows), math.min(#R, S.colRows))
+
+    -- Parte bassa: DADI (D) e PER COLPIRE (C)
+    local D = { { "DADI", "", S.gold } }
+    for _, v in ipairs(c.vociDadi) do table.insert(D, { v[1], v[2] }) end
+    table.insert(D, { "Totale dadi", c.dadi .. "D6" })
+    local B = { { "PER COLPIRE", "", S.gold } }
+    for _, v in ipairs(c.vociColpire) do table.insert(B, { v[1], v[2] }) end
+    table.insert(B, { "Hit = disordini", "", S.grey })
+    if dis + 1 > lim then
+        table.insert(B, { "Ogni hit ora manda in rotta:", "", S.malus })
+        table.insert(B, { "ritiro, serve piu' di", tostring(t.meta.morale or 3), S.malus })
+    end
+
+    local function scriviColonna(lato, lista)
+        for i = 1, S.rows do
+            local b = lista[i]
+            local id = "shootinfo_" .. lato .. i
+            if b then
+                UI.setAttribute(id, "active", "true")
+                UI.setAttribute(id .. "_l", "text", b[1])
+                UI.setAttribute(id .. "_l", "color", (b[3] and b[2] == "") and b[3] or "White")
+                UI.setAttribute(id .. "_v", "text", b[2] or "")
+                UI.setAttribute(id .. "_v", "color", b[3] or "White")
+            else
+                UI.setAttribute(id, "active", "false")
+            end
+        end
+    end
+    scriviColonna("D", D)
+    scriviColonna("C", B)
+    local righeB = math.max(math.min(#D, S.rows), math.min(#B, S.rows))
+
+    UI.setAttribute("shootinfo_stato", "active", "false")
+    UI.setAttribute("shootinfo_faces", "active", "false")
+    UI.setAttribute("shootinfo_esito", "active", "false")
+
+    S.hBase = 2 * S.padding + S.titleH + S.noteH + righeCol * S.rowH + righeB * S.rowH + 2 * 5 + 8
+    UI.setAttribute("shoot_info_panel", "height", tostring(S.hBase))
+    UI.setAttribute("shoot_info_panel", "visibility", player.color)
+    UI.setAttribute("shoot_info_panel", "active", "true")
+end
+-- ============================================================
+-- FUNZIONE: fire_confirmPanelXml()
+-- Tiro / Chiudi sotto la scheda (come IEF confirm_panel_shoot).
+-- ============================================================
+function fire_confirmPanelXml()
+    return [[
+        <Panel id="confirm_panel_shoot"
+        rectAlignment="LowerCenter"
+        width="300" height="50"
+        color="rgba(0,0,0,0.00)"
+        offsetXY="0 100"
+        active="false">
+        <HorizontalLayout spacing="8" padding="10 10 10 10" childAlignment="MiddleCenter" childForceExpandWidth="false" position="0 -100 0">
+            <Button id="btnShoot" text="Tiro" font="warforge_font" fontSize="13" fontStyle="Normal" color="]] .. CONFIRMPANEL.actionBg .. [[" textColor="]] .. CONFIRMPANEL.actionText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Confirm"/>
+            <Button id="btnShootCancel" text="Chiudi" font="warforge_font" fontSize="13" fontStyle="Normal" color="]] .. CONFIRMPANEL.closeBg .. [[" textColor="]] .. CONFIRMPANEL.closeText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Chiudi"/>
+        </HorizontalLayout>
+        </Panel>
+    ]] .. shoot_infoPanelXml()
 end
 
 -- ============================================================
@@ -131,21 +403,18 @@ end
 -- ============================================================
 -- FUNZIONE: fire_baseButtons(obj, u, slot)
 -- Bottoni della fase sulla base di comando (0_main/buttons).
--- Solo sulle unità dello schieramento attivo: il bersaglio si
--- sceglie col mirino.
 -- ============================================================
 function fire_baseButtons(obj, u, slot)
     local B = BASE_BUTTONS
     if slot ~= TURN.activeSide then return {} end
-
-    if (FIRE_PENDING and FIRE_PENDING.tiratore == u.key) or (FIRE_SEL and FIRE_SEL.tiratore == u.key) then
+    if (FIRE_SEL and FIRE_SEL.tiratore == u.key) or (FIRE_PREP and FIRE_PREP.u.key == u.key) then
         return { { label = "ANNULLA", click = "fire_clickAnnulla", color = B.annullaColor,
-                   tooltip = "Annulla il tiro (prima del Roll)" } }
+                   tooltip = "Annulla il tiro" } }
     end
     if FIRE_STATE.sparato[u.key] then
         return {}   -- il fumo davanti alle basi segna chi ha sparato
     end
-    if fire_weapon(u) and not FIRE_SEL and not FIRE_PENDING then
+    if fire_weapon(u) and not FIRE_SEL and not FIRE_PREP and not fire_rollRec(slot) then
         return { { label = "FUOCO", click = "fire_clickFuoco",
                    tooltip = string.format("Spara (gittata %s)", main_formatD(fire_maxRangeD(u))) } }
     end
@@ -153,7 +422,6 @@ function fire_baseButtons(obj, u, slot)
 end
 -- ============================================================
 -- FUNZIONE: fire_clickOk(player_color)
--- Il click viene dallo schieramento attivo in fase di Fuoco?
 -- ============================================================
 function fire_clickOk(player_color)
     if not ENGINE or ENGINE.phase ~= PHASE.FIRE or ENGINE.transitionPending then return false end
@@ -161,21 +429,25 @@ function fire_clickOk(player_color)
         warningToColor("Non e' il tuo Fuoco", Player[player_color], "Yellow", 3, false)
         return false
     end
-    if FIRE_ROLLING then
-        warningToColor("Aspetta che i dadi si fermino", Player[player_color], "Yellow", 3, false)
+    if fire_rollRec(TURN.activeSide) then
+        warningToColor("Completa prima il tiro in corso", Player[player_color], "Yellow", 4, false)
         return false
     end
     return true
 end
 -- ============================================================
 -- FUNZIONE: fire_clickFuoco(obj, player_color, alt_click)
--- FUOCO: compare il mirino davanti all'unità.
+-- FUOCO: mirino davanti all'unità.
 -- ============================================================
 function fire_clickFuoco(obj, player_color, alt_click)
     if not fire_clickOk(player_color) then return end
     local u, slot, mio = main_baseOwnerClick(obj, player_color)
     if not u or not mio or slot ~= TURN.activeSide then return end
-    if FIRE_PENDING or FIRE_SEL or FIRE_STATE.sparato[u.key] then return end
+    if FIRE_STATE.sparato[u.key] then
+        warningToColor("Questa unita' ha gia' sparato in questo turno", Player[player_color], "Yellow", 5, true)
+        return
+    end
+    fire_Reset()
     fire_mirinoStart(Player[player_color], slot, u)
     main_refreshBaseButtons()
 end
@@ -184,50 +456,12 @@ end
 -- ============================================================
 function fire_clickAnnulla(obj, player_color, alt_click)
     if not fire_clickOk(player_color) then return end
-    fire_annulla(Player[player_color])
+    fire_Chiudi(Player[player_color])
 end
--- ============================================================
--- FUNZIONE: fire_annulla(player)
--- Toglie mirino e tiro in sospeso (non la rottura).
--- ============================================================
-function fire_annulla(player)
-    if FIRE_PENDING and FIRE_PENDING.fase == "rottura" then
-        if player then warningToColor("Il tiro della rottura non si annulla", player, "Yellow", 3, false) end
-        return
-    end
-    fire_mirinoStop()
-    FIRE_PENDING = nil
-    if TURN.activeSide then engine_dicePanelClose(TURN.activeSide) end
-    main_refreshBaseButtons()
-end
--- ============================================================
--- FUNZIONE: fire_chooseTarget(player, sel, t)
--- Bersaglio valido: scheda nel pannello dadi e Roll.
--- ============================================================
-function fire_chooseTarget(player, sel, t)
-    local u = main_unitsOfSide(sel.slot)[sel.tiratore]
-    if not u then return end
 
-    local dist = sel.bersagli[t.key].dist
-    local c = fire_compute(u, t, dist)
-    FIRE_PENDING = {
-        slot = sel.slot, tiratore = u.key, bersaglio = t.key, fase = "tiro",
-        dadi = c.dadi, soglia = c.soglia,
-        nome = (u.meta.nomeDisplay or u.key) .. " su " .. (t.meta.nomeDisplay or t.key),
-    }
-
-    engine_diceClearLastRoll(sel.slot)
-    engine_dicePanelOpen(sel.slot, {
-        titolo      = "FUOCO",
-        sottotitolo = FIRE_PENDING.nome,
-        righe       = c.righe,
-        serve       = "Serve " .. c.soglia .. "+ su " .. c.dadi .. "D6",
-        soglia      = c.soglia,
-    })
-    engine_diceCameraZoom(player)
-    warningToColor("Premi Roll sul vassoio dei dadi", player, "Yellow", 4, false)
-    main_refreshBaseButtons()
-end
+-- ============================================================
+--                 MIRINO (0_main/mirino, come IEF)
+-- ============================================================
 
 -- ============================================================
 -- FUNZIONE: fire_mirinoValuta(sel, t)
@@ -241,12 +475,11 @@ function fire_mirinoValuta(sel, t)
     end
     if sel.bersagli[t.key] then return esci("ok", nil) end
     if not u or d > fire_maxRangeD(u) then return esci("rosso", "fuori gittata") end
-    if not main_unitInFront(u, t) then return esci("arancio", "fuori dall'arco di tiro") end
+    if not fire_unitInCone(fire_cone(u), t) then return esci("arancio", "fuori dal cono di tiro") end
     return esci("arancio", "c'e' un bersaglio piu' vicino")
 end
 -- ============================================================
 -- FUNZIONE: fire_mirinoStart(player, slot, u)
--- FUOCO: mirino davanti all'unità (0_main/mirino).
 -- ============================================================
 function fire_mirinoStart(player, slot, u)
     local sel = { slot = slot, tiratore = u.key, bersagli = fire_targets(slot, u), player = player }
@@ -257,10 +490,10 @@ function fire_mirinoStart(player, slot, u)
         onValido = function(t)
             if FIRE_SEL ~= sel then return end
             FIRE_SEL = nil
-            fire_chooseTarget(player, sel, t)
+            fire_prepare(player, sel, t)
         end,
         onChiudi = function(p)
-            if fire_clickOk(p.color) then fire_annulla(p) end
+            if fire_clickOk(p.color) then fire_Chiudi(p) end
         end,
     })
 end
@@ -273,107 +506,244 @@ function fire_mirinoStop()
 end
 
 -- ============================================================
---                            TIRO
+--            PREPARAZIONE, CONFERMA E ANNULLO (IEF)
 -- ============================================================
 
 -- ============================================================
--- FUNZIONE: fire_onRoll(player, slot)
--- Bottone 3D Roll durante il Fuoco (phase.onRoll).
+-- FUNZIONE: fire_prepare(player, sel, t)
+-- Bersaglio valido (come IEF shoot_range_and_target): cono,
+-- evidenziazioni, scheda e Tiro / Chiudi. Camera ferma.
 -- ============================================================
-function fire_onRoll(player, slot)
-    if main_divOnRoll(player, slot) then return end
-    if slot ~= TURN.activeSide then
-        warningToColor("Non e' il tuo Fuoco", player, "Yellow", 3, false)
-        return
+function fire_prepare(player, sel, t)
+    local u = main_unitsOfSide(sel.slot)[sel.tiratore]
+    if not u then return end
+    local dist = sel.bersagli[t.key].dist
+    local c = fire_compute(u, t, dist)
+
+    local cono = fire_cone(u)
+    local raggiunte = 0
+    for _, b in ipairs(t.basi) do
+        if shoot_rectInCone(cono, fire_rectIEF(b)) then
+            b.highlightOn(FIRE_COLORI.raggiunte)
+            raggiunte = raggiunte + 1
+        end
     end
-    if FIRE_ROLLING then return end
-    local pend = FIRE_PENDING
-    if not pend or pend.slot ~= slot then
-        warningToColor("Scegli prima chi spara: FUOCO sulla base, poi il mirino sul bersaglio", player, "Yellow", 4, false)
+    local primo = main_unitFirstRank(u)
+    for _, b in ipairs(primo) do b.highlightOn(FIRE_COLORI.pronte) end
+
+    local y = u.comando.getPosition().y + 0.06
+    main_setLines("fuoco", fire_coneLines(cono, main_inchToTts(fire_maxRangeD(u) * POLLICI_PER_D), y))
+
+    FIRE_PREP = { slot = sel.slot, u = u, t = t, dist = dist, c = c, player = player, primo = primo }
+    fire_infoShow(player, { u = u, t = t, dist = dist, c = c, raggiunte = raggiunte })
+    UI.setAttribute("confirm_panel_shoot", "active", "true")
+    UI.setAttribute("confirm_panel_shoot", "visibility", player.color)
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: fire_ResetLines(tieniInfo)
+-- Toglie cono, evidenziazioni e conferma (come IEF
+-- shoot_ResetLines); con tieniInfo la scheda resta (diventa il
+-- pannello del tiro).
+-- ============================================================
+function fire_ResetLines(tieniInfo)
+    fire_mirinoStop()
+    main_setLines("fuoco", {})
+    if not tieniInfo then shoot_infoHide() end
+    local p = FIRE_PREP
+    if p then
+        for _, b in ipairs(p.t.basi or {}) do if not b.isDestroyed() then b.highlightOff() end end
+        for _, b in ipairs(p.primo or {}) do if not b.isDestroyed() then b.highlightOff() end end
+    end
+    UI.setAttribute("confirm_panel_shoot", "active", "false")
+end
+-- ============================================================
+-- FUNZIONE: fire_Reset()
+-- ============================================================
+function fire_Reset()
+    fire_ResetLines(false)
+    FIRE_PREP = nil
+end
+-- ============================================================
+-- FUNZIONE: fire_Chiudi(player, value, id)
+-- Chiudi della conferma (e ANNULLA sulla base): niente tiro.
+-- ============================================================
+function fire_Chiudi(player, value, id)
+    if player and not main_colorInSide(player.color, TURN.activeSide) then return end
+    if fire_rollRec(TURN.activeSide) then return end
+    fire_Reset()
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: fire_Confirm(player, value, id)
+-- Tiro (come IEF shoot_Confirm): apre la sottofase FIRE_ROLL,
+-- camera sui dadi, "Premi Roll".
+-- ============================================================
+function fire_Confirm(player, value, id)
+    local p = FIRE_PREP
+    if not p or not player or not main_colorInSide(player.color, p.slot) then return end
+    if fire_rollRec(p.slot) then
+        warningToColor("Completa prima il tiro in corso", player, "Yellow", 5, true)
         return
     end
 
-    FIRE_ROLLING = true
+    local ctx = {
+        shooterKey   = p.u.key,
+        targetKey    = p.t.key,
+        targetSlot   = main_otherSide(p.slot),
+        shooterLabel = p.u.meta.nomeDisplay or p.u.key,
+        targetLabel  = p.t.meta.nomeDisplay or p.t.key,
+        dadi         = p.c.dadi,
+        soglia       = p.c.soglia,
+        sogliaTesto  = p.c.sogliaTesto,
+        morale       = p.t.meta.morale or 3,
+        arma         = p.u.meta.arma,
+    }
+    fire_ResetLines(true)
+    FIRE_PREP = nil
+
+    if not engine_subOpen("FIRE_ROLL", p.slot, ctx, nil) then
+        shoot_infoHide()
+        return
+    end
+    if ctx.dadi <= 0 then
+        ctx.motivo = "Nessuna base in primo rango"
+        shoot_infoStato(ctx.motivo, SHOOTINFO.malus)
+        engine_subStep("FIRE_ROLL", p.slot, "ESCI")
+        return
+    end
+    engine_diceCameraZoom(player)
+    shoot_infoStato(string.format("Premi Roll: tira %dD6 (%s)", ctx.dadi, ctx.sogliaTesto), SHOOTINFO.gold)
+    main_refreshBaseButtons()
+end
+
+-- ============================================================
+--                 SOTTOFASE FIRE_ROLL (come IEF)
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: fire_rollRec(slot)
+-- FIRE_ROLL aperta per lo slot o nil.
+-- ============================================================
+function fire_rollRec(slot)
+    local rec = slot and engine_subPrivate(slot)
+    if rec and rec.name == "FIRE_ROLL" then return rec end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: fire_rollFocus(ctx, slot, player, rec)
+-- Bottone della sottofase: camera sui dadi.
+-- ============================================================
+function fire_rollFocus(ctx, slot, player, rec)
+    if player then engine_diceCameraZoom(player) end
+end
+-- ============================================================
+-- FUNZIONE: fire_rollDo(ctx, slot, player, rec)
+-- Roll nello step TIRO: hit in disordini, fumo, eventuale
+-- rottura.
+-- ============================================================
+function fire_rollDo(ctx, slot, player, rec)
+    if ctx.inVolo then return end
+    ctx.inVolo = true
+    printToAll(string.format("[FUOCO] %s tira %dD6 su %s: %s",
+        ctx.shooterLabel, ctx.dadi, ctx.targetLabel, ctx.sogliaTesto), main_sideMainColor(slot))
+    shoot_infoStato("Tiro in corso...", SHOOTINFO.gold)
     engine_diceClearLastRoll(slot)
-    engine_diceSetNext(slot, pend.dadi, nil)
-    engine_diceThrowFromBag(slot, nil, function(risultati)
-        FIRE_ROLLING = false
-        if ENGINE.phase ~= PHASE.FIRE then return end
-        engine_diceCameraReturn(player)
-        fire_resolve(slot, pend, risultati or {})
+    engine_diceSetNext(slot, ctx.dadi, ctx.soglia)
+
+    engine_diceThrowFromBag(slot, nil, function(risultati, successi)
+        ctx.inVolo = false
+        if fire_rollRec(slot) ~= rec or rec.step ~= "TIRO" then return end
+
+        FIRE_STATE.sparato[ctx.shooterKey] = true
+        fire_spawnSmoke(ctx.shooterKey)
+
+        local colpi = successi or 0
+        ctx.colpi = colpi
+        shoot_infoRisultati(risultati, ctx.soglia, colpi)
+
+        local t = main_unit(ctx.targetKey)
+        if not t then
+            engine_subStep("FIRE_ROLL", slot, "ESCI")
+            return
+        end
+        local limite = main_unitDisorderLimit(t.meta)
+        local aggiunti = main_unitAddDisorders(t.key, colpi, limite)
+        local eccesso = colpi - aggiunti
+        printToAll(string.format("[FUOCO] %d hit: %s a %d/%d disordini", colpi, ctx.targetLabel,
+            main_unitDisorders(t.key), limite), main_sideMainColor(slot))
         main_refreshBaseButtons()
-        callHandler("updateCenterPanel")
+
+        if eccesso > 0 then
+            ctx.rottura = eccesso
+            engine_subStep("FIRE_ROLL", slot, "ROTTURA")
+            UI.setAttribute("shootinfo_stato", "text", string.format("ROTTURA: premi Roll, %dD6, serve piu' di %d", eccesso, ctx.morale))
+            UI.setAttribute("shootinfo_stato", "color", SHOOTINFO.malus)
+            UI.setAttribute("shootinfo_stato", "active", "true")
+            shoot_infoAltezza(true, true, true)
+            printToAll(string.format("[FUOCO] %d hit possono mandare in rotta %s: ritiro, serve piu' di %d",
+                eccesso, ctx.targetLabel, ctx.morale), main_sideMainColor(slot))
+            return
+        end
+        Wait.time(function() engine_diceCameraReturn(player, 0) end, 2)
+        engine_subStep("FIRE_ROLL", slot, "ESCI")
     end, player.color)
 end
 -- ============================================================
--- FUNZIONE: fire_resolve(slot, pend, risultati)
+-- FUNZIONE: fire_rotturaDo(ctx, slot, player, rec)
+-- Roll nello step ROTTURA: basta un risultato superiore al
+-- morale del bersaglio e l'unità rompe (regolamento 8).
 -- ============================================================
-function fire_resolve(slot, pend, risultati)
-    local t = main_unit(pend.bersaglio)
-    if not t then FIRE_PENDING = nil; return end
-    local colore = main_sideMainColor(slot)
+function fire_rotturaDo(ctx, slot, player, rec)
+    if ctx.inVolo then return end
+    ctx.inVolo = true
+    shoot_infoStato("Tiro della rottura in corso...", SHOOTINFO.gold)
+    engine_diceClearLastRoll(slot)
+    engine_diceSetNext(slot, ctx.rottura, ctx.morale + 1)
 
-    if pend.fase == "rottura" then
-        FIRE_PENDING = nil
-        local rompe = false
-        for _, v in ipairs(risultati) do
-            if v > pend.morale then rompe = true end
-        end
+    engine_diceThrowFromBag(slot, nil, function(risultati, successi)
+        ctx.inVolo = false
+        if fire_rollRec(slot) ~= rec or rec.step ~= "ROTTURA" then return end
+        Wait.time(function() engine_diceCameraReturn(player, 0) end, 2)
+
+        local rompe = (successi or 0) > 0
+        shoot_infoRisultati(risultati, ctx.morale + 1, successi or 0)
+        UI.setAttribute("shootinfo_esito", "text", rompe and "ROTTA! L'UNITA' LASCIA IL CAMPO" or "TIENE: GLI HIT VANNO PERSI")
+        UI.setAttribute("shootinfo_esito", "color", rompe and SHOOTINFO.bonus or SHOOTINFO.malus)
         if rompe then
-            fire_outcome(slot, "ROTTA!", true)
-            main_unitBreak(pend.bersaglio, "fuoco")
+            ctx.motivo = ctx.targetLabel .. " rompe"
+            main_unitBreak(ctx.targetKey, "fuoco")
         else
-            fire_outcome(slot, "Tiene: hit persi", false)
-            printToAll("[Fuoco] " .. (t.meta.nomeDisplay or t.key) .. " tiene: gli hit della rottura vanno persi", colore)
+            ctx.motivo = ctx.targetLabel .. " tiene"
+            printToAll("[FUOCO] " .. ctx.targetLabel .. " tiene: gli hit della rottura vanno persi", main_sideMainColor(slot))
         end
-        return
-    end
-
-    -- Tiro normale
-    FIRE_STATE.sparato[pend.tiratore] = true
-    fire_spawnSmoke(pend.tiratore)
-    local colpiti = 0
-    for _, v in ipairs(risultati) do
-        if v >= pend.soglia then colpiti = colpiti + 1 end
-    end
-
-    local limite = main_unitDisorderLimit(t.meta)
-    local aggiunti = main_unitAddDisorders(t.key, colpiti, limite)
-    local eccesso = colpiti - aggiunti
-    printToAll(string.format("[Fuoco] %s: %d hit, %d disordini (%d/%d)", pend.nome, colpiti, aggiunti,
-        main_unitDisorders(t.key), limite), colore)
-
-    if eccesso <= 0 then
-        FIRE_PENDING = nil
-        fire_outcome(slot, colpiti .. " hit", colpiti > 0)
-        return
-    end
-
-    -- Hit che manderebbero in rotta: si ritirano contro il morale
-    local morale = t.meta.morale or 3
-    FIRE_PENDING = {
-        slot = slot, tiratore = pend.tiratore, bersaglio = pend.bersaglio, fase = "rottura",
-        dadi = eccesso, morale = morale, nome = pend.nome,
-    }
-    engine_dicePanelOpen(slot, {
-        titolo      = "ROTTURA",
-        sottotitolo = pend.nome,
-        righe       = {
-            { "Hit del tiro", tostring(colpiti) },
-            { "Disordini", main_unitDisorders(t.key) .. "/" .. limite },
-            { "Hit che mandano in rotta", tostring(eccesso) },
-            { "Morale del bersaglio", tostring(morale) },
-        },
-        serve       = "Ritira " .. eccesso .. "D6: serve piu' di " .. morale,
-    })
-    printToAll("[Fuoco] " .. eccesso .. " hit possono mandarlo in rotta: premi Roll (serve piu' di " .. morale .. ")", colore)
+        main_refreshBaseButtons()
+        engine_subStep("FIRE_ROLL", slot, "ESCI")
+    end, player.color)
 end
 -- ============================================================
--- FUNZIONE: fire_outcome(slot, testo, buono)
+-- FUNZIONE: fire_rollEsciEnter(ctx, slot, rec)
+-- Step ESCI: esito per MORALE_ESITO_SECONDS, poi chiusura.
 -- ============================================================
-function fire_outcome(slot, testo, buono)
-    if not engine_dicePanelIsOpen(slot) then return end
-    engine_dicePanelOutcome(slot, testo, buono and DICEPANEL.okColor or DICEPANEL.koColor)
+function fire_rollEsciEnter(ctx, slot, rec)
+    Wait.time(function()
+        local live = fire_rollRec(slot)
+        if live == rec and live.step == "ESCI" then
+            shoot_infoHide()
+            engine_subClose("FIRE_ROLL", slot, nil)
+            main_refreshBaseButtons()
+            callHandler("updateCenterPanel")
+        end
+    end, MORALE_ESITO_SECONDS)
+end
+-- ============================================================
+-- FUNZIONE: fire_onRoll(player, slot)
+-- Roll fuori dalla sottofase (phase.onRoll): test di Morale di
+-- Divisione in coda, altrimenti avviso.
+-- ============================================================
+function fire_onRoll(player, slot)
+    if main_divOnRoll(player, slot) then return end
+    warningToColor("Scegli prima chi spara: FUOCO sulla base, mirino sul bersaglio, poi Tiro", player, "Yellow", 4, false)
 end
 -- ============================================================
 -- FUNZIONE: fire_hasFired(unitKey)

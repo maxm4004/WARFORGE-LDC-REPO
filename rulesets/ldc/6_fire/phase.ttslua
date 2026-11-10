@@ -14,6 +14,7 @@ function fire_phase()
             after  = "after_fire",
             onRoll = "fire_onRoll",
             baseButtons = "fire_baseButtons",
+            subphases = { "FIRE_ROLL" },
             allowedActions = { ACTION.CONFIRM },
             render = "1BtnClick",
             enforceOwnership = true,

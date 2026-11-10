@@ -14,10 +14,6 @@ FIRE_STATE = FIRE_STATE or { side = nil, turno = nil, sparato = {} }
 --   bersagli = { [unitKey] = { dist } } }
 FIRE_SEL = nil
 
--- Tiro in attesa del Roll (non salvato):
--- { slot, tiratore, bersaglio, fase = "tiro"|"rottura", dadi,
---   soglia (tiro: >= soglia; rottura: > morale), morale, nome }
-FIRE_PENDING = nil
-
--- Dadi in volo (non salvato)
-FIRE_ROLLING = false
+-- Bersaglio scelto, scheda e conferma a schermo (non salvato):
+-- { slot, u, t, dist, c, player, primo }
+FIRE_PREP = nil

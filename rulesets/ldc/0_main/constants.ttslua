@@ -260,3 +260,18 @@ MIRINO_PANNELLO = {
     y      = 100,
     z      = -500,
 }
+
+-- ------------------------------------------------------------
+-- Pannelli di conferma (come IEF CONFIRMPANEL): bottone d'azione
+-- oro, Chiudi grigio chiaro
+-- ------------------------------------------------------------
+CONFIRMPANEL = {
+    actionBg   = "#B8902E",
+    closeBg    = "rgba(0.75,0.75,0.75,1)",
+    actionText = "Black",
+    closeText  = "Black",
+}
+
+-- Secondi in cui l'esito resta a schermo prima che la sottofase
+-- si chiuda da sola (come IEF MORALE_ESITO_SECONDS)
+MORALE_ESITO_SECONDS = 6

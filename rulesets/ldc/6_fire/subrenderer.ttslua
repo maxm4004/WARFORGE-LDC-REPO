@@ -1,0 +1,22 @@
+-- ============================================================
+-- WARFORGE LDC — 6_fire/subrenderer.ttslua
+-- Renderer delle sottofasi del Fuoco (come IEF). Solo ASCII.
+-- ============================================================
+
+-- TIRO e ROTTURA: camera sui dadi, tutto nella scheda del tiro
+registerSubRenderer("fireTiro", function(rec, def, step, slot, isActor)
+    return false
+end)
+registerSubRenderer("fireRottura", function(rec, def, step, slot, isActor)
+    return false
+end)
+
+-- ESCI: esito, si chiude da solo
+registerSubRenderer("fireEsci", function(rec, def, step, slot, isActor)
+    local c = rec.ctx or {}
+    return {
+        title = def.title,
+        info  = c.motivo,
+        wait  = c.colpi and (tostring(c.colpi) .. " HIT") or "",
+    }
+end)

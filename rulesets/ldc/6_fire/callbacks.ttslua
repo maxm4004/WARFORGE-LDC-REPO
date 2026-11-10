@@ -6,22 +6,17 @@
 -- FUNZIONE: fire_btn(player, value, id, buttonConfig)
 -- "Fuoco completato": lo schieramento attivo chiude la fase
 -- (solo lui arriva qui: main_canUseButton, modalità ACTIVE).
--- Non con un tiro in sospeso.
+-- Non con un tiro in corso (come IEF shoot_btn_army*: la camera
+-- torna sui dadi) né con un test di Divisione in sospeso.
 -- ============================================================
 function fire_btn(player, value, id, buttonConfig)
     if main_divBlocks(player) then return false end
-    if FIRE_ROLLING then
-        warningToColor("Aspetta che i dadi si fermino", player, "Yellow", 3, false)
+    local slot = TURN.activeSide
+    if fire_rollRec(slot) then
+        warningToColor("Completa prima il tiro in corso", player, "Yellow", 4, false)
+        engine_diceCameraZoom(player)
         return false
     end
-    if FIRE_PENDING and FIRE_PENDING.fase == "rottura" then
-        warningToColor("Prima tira i dadi della rottura", player, "Yellow", 4, false)
-        return false
-    end
-    if FIRE_SEL then fire_mirinoStop(); main_refreshBaseButtons() end
-    if FIRE_PENDING then
-        warningToColor("C'e' un tiro in sospeso: tira o annullalo", player, "Yellow", 4, false)
-        return false
-    end
+    if FIRE_SEL or FIRE_PREP then fire_Reset() end
     return true
 end

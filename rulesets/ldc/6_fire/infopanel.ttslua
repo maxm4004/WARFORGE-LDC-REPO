@@ -1,0 +1,121 @@
+-- ============================================================
+-- WARFORGE LDC — 6_fire/infopanel.ttslua
+-- Scheda del tiro: copiata da IEF 7_shoot (shoot_infoPanelXml,
+-- shoot_infoHide, shoot_infoAltezza, shoot_infoStato,
+-- shoot_infoRisultati) senza modifiche. Il contenuto lo scrive
+-- fire_infoShow (6_fire/lib) con i dati di LDC, nello stesso
+-- formato di IEF: titolo, nota, colonne TIRATORE / BERSAGLIO,
+-- parte bassa DADI / PER COLPIRE, poi stato, facce ed esito.
+-- ============================================================
+
+function shoot_infoPanelXml()
+    local S = SHOOTINFO
+    local function testo(id, h, size, color, bold, align)
+        return string.format('<Text id="%s" text="" font="warforge_font" fontSize="%d" color="%s" fontStyle="%s" alignment="%s" preferredHeight="%d" active="false"/>',
+            id, size, color, bold and "Bold" or "Normal", align or "MiddleLeft", h)
+    end
+    local function colonna(lato)
+        local x = string.format('<VerticalLayout spacing="0" childForceExpandHeight="false" childAlignment="UpperLeft" preferredWidth="%d">', S.colWidth)
+        for i = 1, S.colRows do x = x .. testo("shootinfo_" .. lato .. i, S.rowH, 11, "White", false) end
+        return x .. '</VerticalLayout>'
+    end
+    local facce = string.format('<HorizontalLayout id="shootinfo_faces" spacing="%d" childAlignment="MiddleCenter" childForceExpandWidth="false" preferredHeight="%d" active="false">',
+        S.faceGap, S.faceSize)
+    for i = 1, S.maxFaces do
+        facce = facce .. string.format('<Image id="shootinfo_f%d" image="d1" color="White" preserveAspect="true" preferredWidth="%d" preferredHeight="%d" active="false"/>',
+            i, S.faceSize, S.faceSize)
+    end
+    facce = facce .. '</HorizontalLayout>'
+    -- Parte bassa su due colonne: DADI (D) a sinistra, PER COLPIRE (C) a destra
+    local function colonnaVoci(lato)
+        local x = string.format('<VerticalLayout spacing="0" childForceExpandHeight="false" childAlignment="UpperLeft" preferredWidth="%d">', S.colWidth)
+        for i = 1, S.rows do
+            x = x .. string.format(
+                '<HorizontalLayout id="shootinfo_%s%d" preferredHeight="%d" childForceExpandWidth="false" active="false">%s%s</HorizontalLayout>',
+                lato, i, S.rowH,
+                string.format('<Text id="shootinfo_%s%d_l" text="" font="warforge_font" fontSize="11" color="White" alignment="MiddleLeft" preferredWidth="%d"/>', lato, i, S.colWidth - S.valWidth),
+                string.format('<Text id="shootinfo_%s%d_v" text="" font="warforge_font" fontSize="11" color="White" fontStyle="Bold" alignment="MiddleRight" preferredWidth="%d"/>', lato, i, S.valWidth))
+        end
+        return x .. '</VerticalLayout>'
+    end
+    local basso = '<HorizontalLayout spacing="12" childForceExpandWidth="false" childAlignment="UpperLeft">' ..
+        colonnaVoci("D") .. colonnaVoci("C") .. '</HorizontalLayout>'
+
+    return string.format(
+        '<Panel id="shoot_info_panel" rectAlignment="LowerCenter" offsetXY="0 50" width="%d" height="200" color="%s" active="false">' ..
+        '<VerticalLayout padding="%d %d %d %d" spacing="2" childForceExpandHeight="false" childAlignment="UpperCenter">' ..
+        '%s%s' ..
+        '<HorizontalLayout spacing="12" childForceExpandWidth="false" childAlignment="UpperLeft" id="shootinfo_cols">%s%s</HorizontalLayout>' ..
+        '%s%s%s%s' ..
+        '</VerticalLayout></Panel>',
+        S.width, S.bg, S.padding, S.padding, S.padding, S.padding,
+        testo("shootinfo_title", S.titleH, 15, S.gold, true, "MiddleCenter"),
+        testo("shootinfo_note", S.noteH, 10, S.grey, false, "MiddleCenter"),
+        colonna("L"), colonna("R"), basso,
+        testo("shootinfo_stato", S.statoH, 13, S.gold, true, "MiddleCenter"),
+        facce,
+        testo("shootinfo_esito", S.esitoH, 16, "White", true, "MiddleCenter"))
+end
+
+-- ============================================================
+-- FUNZIONE: shoot_infoHide()
+-- ============================================================
+function shoot_infoHide()
+    UI.setAttribute("shoot_info_panel", "active", "false")
+end
+
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: shoot_infoAltezza(stato, facce, esito)
+-- Altezza del pannello con le parti del tiro accese.
+-- ============================================================
+function shoot_infoAltezza(stato, facce, esito)
+    local S = SHOOTINFO
+    local h = (S.hBase or 200)
+    if stato then h = h + S.statoH + 2 end
+    if facce then h = h + S.faceSize + 6 end
+    if esito then h = h + S.esitoH + 2 end
+    UI.setAttribute("shoot_info_panel", "height", tostring(h))
+end
+
+-- ============================================================
+-- FUNZIONE: shoot_infoStato(testo, colore)
+-- Dopo la conferma: riga di stato del tiro (es. "Premi Roll").
+-- Il pannello diventa visibile a entrambi i giocatori, come il
+-- pannello dadi che sostituisce.
+-- ============================================================
+function shoot_infoStato(testo, colore)
+    UI.setAttribute("shootinfo_stato", "text", testo or "")
+    UI.setAttribute("shootinfo_stato", "color", colore or SHOOTINFO.gold)
+    UI.setAttribute("shootinfo_stato", "active", "true")
+    UI.setAttribute("shoot_info_panel", "visibility", "")
+    shoot_infoAltezza(true, false, false)
+end
+
+-- ============================================================
+-- FUNZIONE: shoot_infoRisultati(risultati, soglia, colpi)
+-- Facce uscite (verde = a segno, sbiadita = mancato) ed esito.
+-- soglia = valore minimo del dado già corretto dai modificatori.
+-- ============================================================
+function shoot_infoRisultati(risultati, soglia, colpi)
+    local S = SHOOTINFO
+    UI.setAttribute("shootinfo_stato", "active", "false")
+    for i = 1, S.maxFaces do
+        local v = risultati and risultati[i]
+        local id = "shootinfo_f" .. i
+        if v then
+            UI.setAttribute(id, "image", "d" .. v)
+            UI.setAttribute(id, "color", (v >= soglia) and S.bonus or S.faceKo)
+            UI.setAttribute(id, "active", "true")
+        else
+            UI.setAttribute(id, "active", "false")
+        end
+    end
+    UI.setAttribute("shootinfo_faces", "active", "true")
+    UI.setAttribute("shootinfo_esito", "text",
+        (colpi == 1) and "1 COLPO A SEGNO" or string.format("%d COLPI A SEGNO", colpi or 0))
+    UI.setAttribute("shootinfo_esito", "color", ((colpi or 0) > 0) and S.bonus or S.malus)
+    UI.setAttribute("shootinfo_esito", "active", "true")
+    shoot_infoAltezza(false, true, true)
+end

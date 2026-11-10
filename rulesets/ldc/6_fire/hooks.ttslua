@@ -5,25 +5,20 @@
 -- ============================================================
 -- FUNZIONE: before_fire(phaseName, phase)
 -- Nuovo Fuoco dello schieramento attivo: nessuno ha ancora
--- sparato.
+-- sparato; fumi precaricati.
 -- ============================================================
 function before_fire(phaseName, phase)
-    FIRE_STATE   = { side = TURN.activeSide, turno = ENGINE.turn, sparato = {} }
-    FIRE_SEL     = nil
-    FIRE_PENDING = nil
-    FIRE_ROLLING = false
+    FIRE_STATE = { side = TURN.activeSide, turno = ENGINE.turn, sparato = {} }
+    FIRE_SEL   = nil
+    FIRE_PREP  = nil
     fire_preloadSmoke()
     callHandler("updateCenterPanel")
 end
 -- ============================================================
 -- FUNZIONE: after_fire(phaseName, phase)
--- Chi ha sparato resta segnato per la Manovra.
+-- Chi ha sparato resta segnato (fumo) per la Manovra.
 -- ============================================================
 function after_fire(phaseName, phase)
-    fire_mirinoStop()
-    FIRE_PENDING = nil
-    FIRE_ROLLING = false
-    if TURN.activeSide then
-        engine_dicePanelCloseAfter(TURN.activeSide, FIRE_DICEPANEL_CLOSE)
-    end
+    fire_Reset()
+    shoot_infoHide()
 end

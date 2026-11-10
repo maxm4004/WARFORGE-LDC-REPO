@@ -1,0 +1,39 @@
+-- ============================================================
+-- WARFORGE LDC — 6_fire/subphase.ttslua
+-- Sottofasi del Fuoco (come IEF 7_shoot/subphase).
+--
+-- FIRE_ROLL (scope player): il tiro confermato di un'unità.
+-- Si apre da fire_Confirm per lo schieramento che tira. La fase
+-- resta FIRE.
+--   TIRO    : nessun pannello (camera già sui dadi), Roll fisico
+--   ROTTURA : gli hit manderebbero in rotta il bersaglio: Roll dei
+--             dadi in eccesso, serve più del morale (regolamento 8)
+--   ESCI    : esito per MORALE_ESITO_SECONDS, poi chiusura
+-- ctx = { shooterKey, targetKey, targetSlot, shooterLabel,
+--         targetLabel, dadi, soglia, sogliaTesto, morale, arma,
+--         colpi, rottura, motivo }
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: fire_subphases()
+-- ============================================================
+function fire_subphases()
+    return {
+        FIRE_ROLL = {
+            scope = "player",
+            title = "",
+            first = "TIRO",
+            steps = {
+                TIRO    = { render = "fireTiro",    actor = "owner", label = "Tira i dadi per colpire", onClick = "fire_rollFocus", onRoll = "fire_rollDo" },
+                ROTTURA = { render = "fireRottura", actor = "owner", label = "Tira per la rottura",      onClick = "fire_rollFocus", onRoll = "fire_rotturaDo" },
+                ESCI    = { render = "fireEsci",    actor = "owner", onEnter = "fire_rollEsciEnter", onRestore = "fire_rollEsciEnter" },
+            },
+        },
+    }
+end
+
+registerSubphases(fire_subphases())
+registerHandler("fire_rollFocus",     function(c,s,p,r) return fire_rollFocus(c,s,p,r)     end)
+registerHandler("fire_rollDo",        function(c,s,p,r) return fire_rollDo(c,s,p,r)        end)
+registerHandler("fire_rotturaDo",     function(c,s,p,r) return fire_rotturaDo(c,s,p,r)     end)
+registerHandler("fire_rollEsciEnter", function(c,s,r)   return fire_rollEsciEnter(c,s,r)   end)

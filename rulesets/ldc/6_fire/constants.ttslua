@@ -10,6 +10,50 @@ FIRE_TOLLERANZA_VICINO_D = 0.05
 -- Secondi prima di chiudere il pannello dadi a fine fase
 FIRE_DICEPANEL_CLOSE = 3
 
+-- Cono di tiro (come IEF IEF_SHOOTING.angle): dalla linea del
+-- fronte, fra gli angoli esterni delle basi del primo rango, si
+-- allarga di FIRE_ARCO gradi per lato. Il regolamento LDC non
+-- dà un arco di tiro: si tiene quello di IEF (vedi dubbi).
+FIRE_ARCO = 45
+
+-- Colori come IEF: basi che tirano (arancio), basi raggiunte del
+-- bersaglio (azzurro), linee del cono (giallo)
+FIRE_COLORI = {
+    pronte    = { 1, 0.549, 0 },
+    raggiunte = { 0.2, 0.6, 1 },
+    cono      = { 1, 0.8, 0.1 },
+}
+
+-- ============================================================
+-- PANNELLO INFO TIRO (copiato da IEF 7_shoot/constants)
+-- Visibile al giocatore che tira dal rilascio del mirino sul
+-- bersaglio fino al tiro o a Chiudi; dopo "Tiro" lo vedono
+-- tutti. Tiro / Chiudi stanno in confirm_panel_shoot.
+-- ============================================================
+SHOOTINFO = SHOOTINFO or {
+    width     = 560,
+    colWidth  = 262,
+    padding   = 12,
+    titleH    = 24,
+    noteH     = 16,
+    rowH      = 17,
+    gap       = 6,
+    colRows   = 7,     -- righe per colonna (Tiratore / Bersaglio)
+    rows      = 8,     -- righe per colonna della parte bassa (Dadi / Per colpire)
+    valWidth  = 80,    -- larghezza della colonna valori (Dadi / Per colpire)
+    bg        = "rgba(0,0,0,0.70)",
+    gold      = "#FFD833",
+    grey      = "#BBBBBB",
+    bonus     = "#5BD35B",
+    malus     = "#FF6B6B",
+    statoH    = 22,
+    esitoH    = 26,
+    maxFaces  = 16,
+    faceSize  = 28,
+    faceGap   = 4,
+    faceKo    = "rgba(1,1,1,0.3)",
+}
+
 -- ------------------------------------------------------------
 -- Fumo del tiro: segna chi ha sparato (Max, 9/11/2026). Un fumo
 -- (AssetBundle) davanti a ogni base del primo rango che ha
