@@ -581,3 +581,68 @@ function debug_fumo(nome)
     for _, s in ipairs(debug_selectedObjects()) do table.insert(basi, s.obj) end
     if #basi > 0 then fire_spawnSmokeAt(nome, basi) end
 end
+-- ============================================================
+-- FUNZIONE: debug_mostraFumo(nome)
+-- Mostra il fumo ("musket_smoke" di default) dove punta il
+-- primo giocatore seduto (o al centro del tavolo), senza basi
+-- selezionate. Stampa la fonte, l'URL e tutti gli asset della
+-- UI. Toglierlo: debug_fumo("via").
+-- Es.: /execute debug_mostraFumo()  /execute debug_mostraFumo("cannon_smoke")
+-- ============================================================
+function debug_mostraFumo(nome)
+    nome = nome or FIRE_SMOKE.moschetto
+
+    local ok, assets = pcall(function() return UI.getCustomAssets() end)
+    if ok and type(assets) == "table" then
+        print("[DEBUG] asset della UI: " .. #assets)
+        for _, a in ipairs(assets) do
+            print(string.format("  %s (tipo %s) %s", tostring(a.name), tostring(a.type), tostring(a.url)))
+        end
+    else
+        print("[DEBUG] asset della UI non leggibili")
+    end
+
+    local fonte = fire_smokeSource(nome)
+    if not fonte then
+        print("[DEBUG] fumo '" .. nome .. "' non trovato")
+        return
+    end
+    print("[DEBUG] fumo '" .. nome .. "' da: " .. fonte.da .. (fonte.url and (" - " .. fonte.url) or ""))
+
+    -- posizione: puntatore del primo giocatore seduto, o centro del tavolo
+    local pos = nil
+    for _, p in ipairs(Player.getPlayers()) do
+        if p.seated and p.getPointerPosition then
+            pos = p.getPointerPosition()
+            if pos then break end
+        end
+    end
+    local y = (TABLE_AREA and TABLE_AREA.y) or 1
+    pos = pos or { x = 0, y = y, z = 0 }
+    pos = { x = pos.x, y = math.max(pos.y or y, y) + 0.5, z = pos.z }
+
+    local function pronto(o)
+        o.addTag(FIRE_SMOKE.tag)
+        print("[DEBUG] fumo creato: " .. o.getGUID() .. " in " .. string.format("%.2f, %.2f, %.2f", pos.x, pos.y, pos.z))
+    end
+    if fonte.modello then
+        local data = fonte.modello.getData()
+        data.Tags, data.GUID = nil, nil
+        data.Transform.posX, data.Transform.posY, data.Transform.posZ = pos.x, pos.y, pos.z
+        spawnObjectData({ data = data, callback_function = pronto })
+    else
+        spawnObjectData({
+            data = {
+                Name = "Custom_AssetBundle",
+                Nickname = nome,
+                Transform = { posX = pos.x, posY = pos.y, posZ = pos.z, rotX = 0, rotY = 0, rotZ = 0,
+                              scaleX = fonte.scala, scaleY = fonte.scala, scaleZ = fonte.scala },
+                CustomAssetbundle = {
+                    AssetbundleURL = fonte.url, AssetbundleSecondaryURL = fonte.secondario or "",
+                    MaterialIndex = 0, TypeIndex = 0, LoopingEffectIndex = 0,
+                },
+            },
+            callback_function = pronto,
+        })
+    end
+end
