@@ -25,8 +25,8 @@ FIRE_SMOKE = {
     cannone   = "cannon_smoke",
     -- AssetBundle (se non c'è l'oggetto sul tavolo da copiare)
     bundle = {
-        musket_smoke = { url = "", secondario = "", scala = 1 },
-        cannon_smoke = { url = "", secondario = "", scala = 1 },
+        musket_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/10216868266385070597/6333980E1C48F5D0DF89886C3A0AC87379B2042F/", secondario = "", scala = 1 },
+        cannon_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/17443463942960264975/C45FFA02FEC54EF262C52C54262D8ABFEEFC7063/", secondario = "", scala = 1 },
     },
     davantiCm = 1.5,     -- dal bordo anteriore della base al centro del fumo
     altezza   = 0.05,    -- sopra la base
