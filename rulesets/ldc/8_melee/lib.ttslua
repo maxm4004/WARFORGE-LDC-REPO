@@ -11,9 +11,10 @@
 -- risultato superiore al morale). Perde chi ha inflitto meno
 -- hit: artiglieria distrutta, fanteria non in quadrato battuta
 -- dalla cavalleria distrutta, le altre fanno il test di morale
--- (fallito = un altro hit) e si ritirano. Pareggio: il
--- difensore resta, l'attaccante si ritira. Ritirate,
--- inseguimenti e sfondamenti si fanno a mano.
+-- (fallito = un altro hit) e si ritirano da sole di 1D/2D
+-- restando fronte al nemico (bloccate: un altro hit). Pareggio:
+-- il difensore resta, l'attaccante si ritira. Inseguimenti e
+-- sfondamenti si fanno a mano.
 -- ============================================================
 
 -- ============================================================
@@ -339,7 +340,8 @@ function melee_result()
     if p.colpi[att] == p.colpi[dif] then
         melee_message("Pareggio: " .. (uD.meta.nomeDisplay or uD.key) .. " resta, "
             .. (uA.meta.nomeDisplay or uA.key) .. " si ritira di " .. melee_retreatD(uA) .. "D")
-        melee_finish(nil, true)
+        melee_retreat(uA, uD)
+        melee_finish(nil, false)
         return
     end
     local perde = (p.colpi[att] < p.colpi[dif]) and att or dif
@@ -373,14 +375,67 @@ function melee_finish(slot, ritirata)
     local p = MELEE_PENDING
     if p and p.perde and ritirata then
         local u = main_unit(p.unita[p.perde])
+        local v = main_unit(p.unita[main_otherSide(p.perde)])
         if u then
             melee_message((u.meta.nomeDisplay or u.key) .. " perde la mischia: si ritira di "
-                .. melee_retreatD(u) .. "D restando fronte al nemico (a mano)")
+                .. melee_retreatD(u) .. "D restando fronte al nemico")
+            melee_retreat(u, v)
         end
     end
     if p then MELEE_STATE.mischie[p.i].fatta = true end
     MELEE_PENDING = nil
     main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: melee_retreat(u, nemico)
+-- Ritirata di 1D (fanteria) o 2D (cavalleria) restando fronte
+-- al nemico (10.1.1): tutte le basi indietro, lungo il proprio
+-- fronte, senza girarsi. Se a fine ritirata una base finirebbe
+-- su un'altra unità (terreno: nel raffinamento), l'unità resta
+-- dov'è e prende un altro hit (se è già al limite rompe).
+-- Ritorna true se si è ritirata.
+-- ============================================================
+function melee_retreat(u, nemico)
+    if not u then return false end
+    local f = main_baseForward(u.comando)
+    local d = main_dToTts(melee_retreatD(u))
+    local dx, dz = -f.x * d, -f.z * d
+
+    -- basi di tutte le altre unità e Generali sul tavolo
+    local altre = {}
+    for slot = 1, 2 do
+        for _, x in pairs(main_unitsOfSide(slot)) do
+            if x.key ~= u.key then for _, b in ipairs(x.basi) do table.insert(altre, b) end end
+        end
+    end
+    local bloccata = false
+    for _, b in ipairs(u.basi) do
+        local r = main_baseRect(b)
+        for _, c in ipairs(r) do c.x, c.z = c.x + dx, c.z + dz end
+        for _, o in ipairs(altre) do
+            if main_rectsDistance(r, main_baseRect(o)) <= 0 then bloccata = true; break end
+        end
+        if bloccata then break end
+    end
+
+    local nome = u.meta.nomeDisplay or u.key
+    if bloccata then
+        local limite = main_unitDisorderLimit(u.meta)
+        if main_unitDisorders(u.key) >= limite then
+            melee_message(nome .. " non puo' ritirarsi: rompe")
+            main_unitBreak(u.key, "ritirata impossibile")
+        else
+            main_unitAddDisorders(u.key, 1, limite)
+            melee_message(nome .. " non puo' ritirarsi: prende un altro hit")
+        end
+        return false
+    end
+
+    for _, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        b.setPositionSmooth({ x = p.x + dx, y = p.y, z = p.z + dz }, false, false)
+    end
+    return true
 end
 -- ============================================================
 -- FUNZIONE: melee_retreatD(u)
