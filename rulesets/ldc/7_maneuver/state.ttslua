@@ -12,3 +12,5 @@ MOVE_STATE = MOVE_STATE or { side = nil, turno = nil, partenza = {}, cariche = {
 
 -- Unità in mano al giocatore (non salvato): [unitKey] = waitId
 MOVE_DRAG = {}
+-- Posa alla presa delle basi delle unità mosse col pannello (non salvato)
+MOVE_PICK = {}

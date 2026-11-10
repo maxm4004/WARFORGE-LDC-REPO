@@ -191,8 +191,22 @@ end
 -- FUNZIONE: move_onPickUp(player_color, obj)
 -- ============================================================
 function move_onPickUp(player_color, obj)
-    if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_manualOnPickUp(player_color, obj) then return end
+    if not ENGINE or ENGINE.phase ~= PHASE.MANEUVER then return end
+    -- pannello aperto sull'unità: prendere una base = avanti elastico
+    local meta = main_baseMeta(obj)
+    if MOVE_PANEL and meta and meta.unitKey == MOVE_PANEL.key and not MOVE_MANUAL and not MOVE_PIVOT
+       and main_colorInSide(player_color, MOVE_PANEL.slot) then
+        local pu, ps = move_panelUnit()
+        if pu and move_budget(ps, pu) > 0.001 then move_manualOn() end
+    end
+    if move_manualOnPickUp(player_color, obj) then return end
     local u, slot = move_baseOfActive(player_color, obj)
+    -- unità mossa col pannello: la presa a mano non la sposta
+    if u and MOVE_STATE.pannello and MOVE_STATE.pannello[u.key] then
+        local p, r = obj.getPosition(), obj.getRotation()
+        MOVE_PICK[obj.getGUID()] = { x = p.x, y = p.y, z = p.z, ry = r.y }
+        return
+    end
     if not u then return end
     move_recordStart(u)
     local limite, motivo = move_unitLimit(slot, u)
@@ -229,9 +243,16 @@ function move_onDrop(player_color, obj)
         return
     end
     -- unità mossa con il pannello: conta il budget, non lo
-    -- spostamento netto
+    -- spostamento netto; a mano non si sposta (si usa MUOVI)
     if MOVE_STATE.pannello and MOVE_STATE.pannello[u.key] then
-        move_drawLines(slot)
+        local s = MOVE_PICK[obj.getGUID()]
+        MOVE_PICK[obj.getGUID()] = nil
+        if s then
+            obj.setPosition({ x = s.x, y = s.y, z = s.z })
+            obj.setRotation({ x = 0, y = s.ry, z = 0 })
+            warningToColor("Unita' mossa col pannello: usa MUOVI (o ANNULLA per muoverla a mano)",
+                Player[player_color], "Yellow", 4, false)
+        end
         if MOVE_PANEL and MOVE_PANEL.key == u.key then move_panelRedraw() end
         main_refreshBaseButtons()
         return

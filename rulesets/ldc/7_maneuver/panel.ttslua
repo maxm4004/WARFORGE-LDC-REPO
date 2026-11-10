@@ -443,6 +443,8 @@ function move_btnUndoAll(player, value, id)
     if MOVE_PIVOT then move_pivotOff() end
     move_restore(u)
     MOVE_STATE.budget[u.key] = nil
+    MOVE_STATE.pannello = MOVE_STATE.pannello or {}
+    MOVE_STATE.pannello[u.key] = true     -- il pannello resta aperto
     MOVE_PANEL.history = {}
     move_recordStart(u)
     move_panelRedraw()
