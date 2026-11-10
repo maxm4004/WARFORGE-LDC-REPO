@@ -647,3 +647,23 @@ function debug_mostraFumo(nome)
         })
     end
 end
+-- ============================================================
+-- FUNZIONE: debug_rompi()
+-- L'unità delle basi selezionate rompe (come se avesse superato
+-- i disordini): per provare il Morale di Divisione. Basta
+-- selezionare una base qualsiasi dell'unità.
+-- ============================================================
+function debug_rompi()
+    local fatte = {}
+    for _, s in ipairs(debug_selectedObjects()) do
+        local meta = main_baseMeta(s.obj)
+        if meta and meta.unitKey and meta.ruolo == DEPLOY_RUOLO.UNITA and not fatte[meta.unitKey] then
+            fatte[meta.unitKey] = true
+            main_unitBreak(meta.unitKey, "debug")
+        end
+    end
+    if next(fatte) == nil then
+        print("[DEBUG] seleziona almeno una base di un'unita'")
+    end
+    main_refreshBaseButtons()
+end
