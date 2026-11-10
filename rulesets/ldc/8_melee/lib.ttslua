@@ -390,9 +390,10 @@ end
 -- FUNZIONE: melee_retreat(u, nemico)
 -- Ritirata di 1D (fanteria) o 2D (cavalleria) restando fronte
 -- al nemico (10.1.1): tutte le basi indietro, lungo il proprio
--- fronte, senza girarsi. Se a fine ritirata una base finirebbe
--- su un'altra unità (terreno: nel raffinamento), l'unità resta
--- dov'è e prende un altro hit (se è già al limite rompe).
+-- fronte, senza girarsi. Se lungo il percorso una base passa
+-- su un'altra unità (in ritirata non si interpenetra; terreno:
+-- nel raffinamento), l'unità resta dov'è e prende un altro hit
+-- (se è già al limite rompe).
 -- Ritorna true se si è ritirata.
 -- ============================================================
 function melee_retreat(u, nemico)
@@ -408,12 +409,23 @@ function melee_retreat(u, nemico)
             if x.key ~= u.key then for _, b in ipairs(x.basi) do table.insert(altre, b) end end
         end
     end
+    -- lungo tutto il percorso (in ritirata non si interpenetra,
+    -- 9.4): campioni ogni mezza profondità di base
+    local passo = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm) / 2
+    local n = math.max(1, math.ceil(d / passo))
+    local rettAltre = {}
+    for i, o in ipairs(altre) do rettAltre[i] = main_baseRect(o) end
     local bloccata = false
     for _, b in ipairs(u.basi) do
-        local r = main_baseRect(b)
-        for _, c in ipairs(r) do c.x, c.z = c.x + dx, c.z + dz end
-        for _, o in ipairs(altre) do
-            if main_rectsDistance(r, main_baseRect(o)) <= 0 then bloccata = true; break end
+        local base = main_baseRect(b)
+        for k = 1, n do
+            local t = k / n
+            local r = {}
+            for i, c in ipairs(base) do r[i] = { x = c.x + dx * t, z = c.z + dz * t } end
+            for _, ro in ipairs(rettAltre) do
+                if main_rectsDistance(r, ro) <= 0 then bloccata = true; break end
+            end
+            if bloccata then break end
         end
         if bloccata then break end
     end
