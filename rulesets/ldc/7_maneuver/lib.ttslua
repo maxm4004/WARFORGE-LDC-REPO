@@ -486,10 +486,10 @@ function move_baseButtons(obj, u, slot)
 
     if not MOVE_STATE.cariche[u.key] and not main_mirinoActive() and not MOVE_CHARGE_PREP then
         if MOVE_PANEL and MOVE_PANEL.key == u.key then
-            table.insert(lista, { label = "IN MOVIMENTO", click = "main_baseButtonNoop", color = MOVE.muoviColor, width = 620 })
+            table.insert(lista, { label = "IN MANOVRA", click = "main_baseButtonNoop", color = MOVE.muoviColor, width = 620 })
         elseif move_unitLimit(slot, u) and not u.generale then
-            table.insert(lista, { label = "MUOVI", click = "move_clickMuovi", color = MOVE.muoviColor,
-                tooltip = "Pannello di movimento (avanti, perno)" })
+            table.insert(lista, { label = "MANOVRA", click = "move_clickMuovi", color = MOVE.muoviColor,
+                tooltip = "Pannello di manovra (avanti, perno, formazione)" })
         end
     end
     if u.generale then
