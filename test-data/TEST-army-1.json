@@ -161,7 +161,7 @@
         "modello": {
           "tipo_modello": "model",
           "mesh": "https://steamusercontent-a.akamaihd.net/ugc/16996776827405542465/8784944F929F953F79775122B2FF8807F4EEBDEC/",
-          "texture": "http://i.imgur.com/nnGP6AK.png",
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
           "normal": "http://i.imgur.com/RG2RKHX.png",
           "collider": "",
           "convex": true,
@@ -277,7 +277,7 @@
         "modello": {
           "tipo_modello": "model",
           "mesh": "https://steamusercontent-a.akamaihd.net/ugc/16996776827405542465/8784944F929F953F79775122B2FF8807F4EEBDEC/",
-          "texture": "http://i.imgur.com/nnGP6AK.png",
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
           "normal": "http://i.imgur.com/RG2RKHX.png",
           "collider": "",
           "convex": true,
@@ -393,7 +393,7 @@
         "modello": {
           "tipo_modello": "model",
           "mesh": "https://steamusercontent-a.akamaihd.net/ugc/16996776827405542465/8784944F929F953F79775122B2FF8807F4EEBDEC/",
-          "texture": "http://i.imgur.com/nnGP6AK.png",
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
           "normal": "http://i.imgur.com/RG2RKHX.png",
           "collider": "",
           "convex": true,
