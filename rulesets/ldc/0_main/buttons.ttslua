@@ -55,8 +55,8 @@ function main_drawBaseButtons(obj, u, slot, lista)
 
     -- Come IEF (main_drawUnitButtons): RIORDINA, INFO, poi i
     -- bottoni della fase; tutti sulla stessa riga, appena dietro
-    -- la base, da sinistra; colore del giocatore. Il cartellino
-    -- dei disordini chiude la riga.
+    -- la base, da sinistra; colore del giocatore. I disordini non
+    -- sono un bottone: una base arancione per ogni disordine.
     local tutti = {}
     if not u.generale then
         table.insert(tutti, { label = "RIORDINA", click = "main_riordinaClick",
@@ -65,11 +65,7 @@ function main_drawBaseButtons(obj, u, slot, lista)
     table.insert(tutti, { label = "INFO", click = "main_unitInfoOpen",
         tooltip = "Scheda dell'unita' (alt-click chiude)" })
     for _, btn in ipairs(lista) do table.insert(tutti, btn) end
-    local dis = main_unitDisorders(u.key)
-    if dis > 0 then
-        table.insert(tutti, { label = string.format("DIS %d/%d", dis, main_unitDisorderLimit(meta)),
-            click = "main_baseButtonNoop", dis = true, tooltip = "Disordini dell'unita'" })
-    end
+    main_drawDisorders(u)
 
     local colore = main_sideMainColor(slot)
     -- rotazione 180: la x locale positiva è a sinistra di chi
@@ -85,7 +81,7 @@ function main_drawBaseButtons(obj, u, slot, lista)
             position       = { x = cursore - mezza, y = B.y, z = -(metaProf / 2 + B.dietro) },
             rotation       = { x = 0, y = 180, z = 0 },
             width          = w, height = B.height, font_size = B.fontSize,
-            color          = btn.dis and B.disColor or colore, font_color = B.textColor,
+            color          = colore, font_color = B.textColor,
             tooltip        = btn.tooltip or "",
         })
         cursore = cursore - 2 * mezza - B.spazio
@@ -148,4 +144,27 @@ end
 function onObjectDrop(player_color, obj)
     main_mirinoOnDrop(player_color, obj)
     if move_onDrop then move_onDrop(player_color, obj) end
+end
+
+-- ============================================================
+-- FUNZIONE: main_drawDisorders(u)
+-- Disordini sul tavolo (Max 11/11/2026): per ogni disordine una
+-- base dell'unità si colora di arancione (regolamento 3.4.1:
+-- "girando una base o utilizzando un marker"). Si colorano le
+-- basi dall'ultima (numero di base più alto) verso la prima; la
+-- base di comando per ultima. Le altre tornano bianche.
+-- ============================================================
+function main_drawDisorders(u)
+    if not u or u.generale then return end
+    local dis = main_unitDisorders(u.key)
+    local basi = {}
+    for _, b in ipairs(u.basi) do table.insert(basi, b) end
+    table.sort(basi, function(x, y)
+        if x == u.comando then return false end
+        if y == u.comando then return true end
+        return ((main_baseMeta(x) or {}).baseSeq or 0) > ((main_baseMeta(y) or {}).baseSeq or 0)
+    end)
+    for i, b in ipairs(basi) do
+        pcall(function() b.setColorTint(i <= dis and BASE_BUTTONS.disTinta or BASE_BUTTONS.normaleTinta) end)
+    end
 end
