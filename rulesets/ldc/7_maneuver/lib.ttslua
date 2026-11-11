@@ -316,16 +316,17 @@ function move_drawLines(slot)
             for _, b in ipairs(u.basi) do massimo = math.max(massimo, move_baseDistanceD(u, b)) end
             move_dragText(slot, string.format("%s: %s / %s", u.meta.nomeDisplay or u.key, main_formatD(massimo),
                 main_formatD(limite)), massimo > limite + MOVE.tolleranzaD)
-            for _, b in ipairs(u.basi) do
-                local s = posa[b.getGUID()]
-                if s then
-                    local p = b.getPosition()
-                    local ok = move_baseDistanceD(u, b) <= limite + MOVE.tolleranzaD
-                    table.insert(linee, {
-                        points = { { s.x, s.y + 0.05, s.z }, { p.x, s.y + 0.05, p.z } },
-                        color = ok and MOVE.filoOk or MOVE.filoKo, thickness = MOVE.filoSpessore,
-                    })
-                end
+            -- un solo elastico per unità: dal centro del fronte alla
+            -- partenza al centro del fronte attuale; rosso se anche
+            -- una sola base supera la velocità (il controllo resta
+            -- per base, 9.1)
+            local da, a = move_frontCentre(u, posa), move_frontCentre(u)
+            if da and a then
+                local ok = massimo <= limite + MOVE.tolleranzaD
+                table.insert(linee, {
+                    points = { { da.x, da.y + 0.05, da.z }, { a.x, da.y + 0.05, a.z } },
+                    color = ok and MOVE.filoOk or MOVE.filoKo, thickness = MOVE.filoSpessore,
+                })
             end
         end
     end
@@ -522,6 +523,40 @@ function move_charges()
     return MOVE_STATE and MOVE_STATE.cariche or {}
 end
 
+-- ============================================================
+-- FUNZIONE: move_frontCentre(u, posa)
+-- Centro del fronte dell'unità: basi del primo rango (rispetto
+-- al fronte della base di comando), bordo anteriore. Con posa
+-- (MOVE_STATE.partenza) usa le pose di partenza. Per i Generali
+-- è la base stessa.
+-- ============================================================
+function move_frontCentre(u, posa)
+    local pose = {}
+    for _, b in ipairs(u.basi) do
+        local s = posa and posa[b.getGUID()]
+        if posa and not s then return nil end
+        if s then
+            table.insert(pose, { x = s.x, y = s.y, z = s.z, ry = s.ry or 0, obj = b })
+        else
+            local p, r = b.getPosition(), b.getRotation()
+            table.insert(pose, { x = p.x, y = p.y, z = p.z, ry = r.y, obj = b })
+        end
+    end
+    if #pose == 0 then return nil end
+    if u.generale then return pose[1] end
+    local ref = pose[1]
+    for _, q in ipairs(pose) do if q.obj == u.comando then ref = q end end
+    local a = math.rad(ref.ry)
+    local F = { x = math.sin(a), z = math.cos(a) }
+    local hd = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm) / 2
+    local fronte = -math.huge
+    for _, q in ipairs(pose) do q.v = q.x * F.x + q.z * F.z; fronte = math.max(fronte, q.v) end
+    local cx, cz, y, n = 0, 0, ref.y, 0
+    for _, q in ipairs(pose) do
+        if q.v >= fronte - hd then cx, cz, n = cx + q.x, cz + q.z, n + 1 end
+    end
+    return { x = cx / n + F.x * hd, y = y, z = cz / n + F.z * hd }
+end
 -- ============================================================
 --            DISTANZA E CERCHIO (IEF 0_main/general)
 -- ============================================================
