@@ -21,69 +21,73 @@
 function command_panelHeight(righe)
     local P = COMMAND_PANEL
     return P.padding * 2 + P.headerHeight + P.footerHeight + P.sceltaHeight
-        + righe * P.rowHeight + (righe + 2) * P.spacing
+        + righe * P.rowHeight + (righe + 3) * P.spacing
 end
 -- ============================================================
 -- FUNZIONE: command_panelXml()
--- XML del pannello (dentro getRulesetUiXml).
+-- XML del pannello (dentro getRulesetUiXml), grafica dei
+-- pannelli di IEF: sfondo 70%, titolo oro, font warforge_font,
+-- righe chiare, bottoni oro/grigio come la conferma di IEF.
+-- Riga: nome della Brigata (inquadra), Generale, stato, dado
+-- (e dado del ritiro), Attiva / Riprova / Fermo.
 -- ============================================================
 function command_panelXml()
     local P = COMMAND_PANEL
     local righe = ""
     for i = 1, P.righeMax do
         righe = righe .. string.format([[
-            <HorizontalLayout id="cmdRow%d" active="false" spacing="4" childForceExpandWidth="false"
+            <HorizontalLayout id="cmdRow%d" active="false" spacing="6" childForceExpandWidth="false"
                               preferredHeight="%d" childAlignment="MiddleLeft">
-                <Button id="cmdNome%d" text="" fontSize="14" fontStyle="Bold" textColor="%s" color="rgba(1,1,1,0.06)"
-                      textAlignment="MiddleLeft" preferredWidth="220" onClick="command_clickNome"/>
-                <Text id="cmdGen%d" text="" fontSize="12" color="%s"
-                      alignment="MiddleCenter" preferredWidth="40"/>
-                <Text id="cmdStato%d" text="" fontSize="13" fontStyle="Bold" color="%s"
-                      alignment="MiddleLeft" preferredWidth="110"/>
-                <Button id="cmdTira%d" text="Tira" fontSize="12" preferredWidth="50"
-                        color="#3A6EA5" textColor="White" onClick="command_clickTira" active="false"/>
-                <Button id="cmdRitira%d" text="CiC" fontSize="12" preferredWidth="50"
-                        color="#B8860B" textColor="White" onClick="command_clickRitira" active="false"
-                        tooltip="Ritiro del CiC" tooltipPosition="Above"/>
-                <Button id="cmdHolds%d" text="HOLDS" fontSize="12" preferredWidth="50"
-                        color="#A33A3A" textColor="White" onClick="command_clickHolds" active="false"
-                        tooltip="Accetta l'HOLDS" tooltipPosition="Above"/>
+                <Button id="cmdNome%d" text="" font="%s" fontSize="14" fontStyle="Bold" textColor="%s" color="%s"
+                        textAlignment="MiddleLeft" preferredWidth="250" onClick="command_clickNome"/>
+                <Text id="cmdGen%d" text="" font="%s" fontSize="12" color="%s" alignment="MiddleCenter" preferredWidth="48"/>
+                <Text id="cmdStato%d" text="" font="%s" fontSize="13" fontStyle="Bold" color="%s" alignment="MiddleLeft" preferredWidth="92"/>
+                <Image id="cmdDado%d" image="" preserveAspect="true" preferredWidth="%d" preferredHeight="%d" active="false"/>
+                <Image id="cmdDadoR%d" image="" preserveAspect="true" preferredWidth="%d" preferredHeight="%d" active="false"/>
+                <Button id="cmdTira%d" text="Attiva" font="%s" fontSize="13" preferredWidth="66"
+                        color="%s" textColor="Black" onClick="command_clickTira" active="false"/>
+                <Button id="cmdRitira%d" text="Riprova" font="%s" fontSize="13" preferredWidth="70"
+                        color="%s" textColor="Black" onClick="command_clickRitira" active="false"
+                        tooltip="Il CiC ritira il dado" tooltipPosition="Above"/>
+                <Button id="cmdHolds%d" text="Fermo" font="%s" fontSize="13" preferredWidth="60"
+                        color="%s" textColor="Black" onClick="command_clickHolds" active="false"
+                        tooltip="La Brigata resta ferma (HOLDS)" tooltipPosition="Above"/>
             </HorizontalLayout>
-]], i, P.rowHeight, i, P.textColor, i, P.noteColor, i, P.textColor, i, i, i)
+]], i, P.rowHeight,
+            i, P.font, P.textColor, P.rowBg,
+            i, P.font, P.noteColor,
+            i, P.font, P.textColor,
+            i, P.dadoLato, P.dadoLato, i, P.dadoLato, P.dadoLato,
+            i, P.font, P.actionBg,
+            i, P.font, P.actionBg,
+            i, P.font, P.closeBg)
     end
 
     return string.format([[
-    <Panel id="cmdPanel" active="false"
-           rectAlignment="%s" offsetXY="%s"
+    <Panel id="cmdPanel" active="false" rectAlignment="%s" offsetXY="%s"
            width="%d" height="%d" color="%s">
-        <VerticalLayout padding="%d %d %d %d" spacing="%d" childForceExpandHeight="false">
-            <Text id="cmdTitolo" text="COMANDO" fontSize="16" fontStyle="Bold" color="%s"
+        <VerticalLayout padding="%d %d %d %d" spacing="%d" childForceExpandHeight="false" childAlignment="UpperCenter">
+            <Text id="cmdTitolo" text="COMANDO" font="%s" fontSize="16" fontStyle="Bold" color="%s"
                   alignment="MiddleCenter" preferredHeight="%d"/>
-            <Text id="cmdScelta" text="" fontSize="15" fontStyle="Bold" color="White"
-                  alignment="MiddleCenter" preferredHeight="]] .. P.sceltaHeight .. [["/>
+            <Text id="cmdScelta" text="" font="%s" fontSize="14" color="White"
+                  alignment="MiddleCenter" preferredHeight="%d"/>
 %s
-            <Text id="cmdNota" text="" fontSize="12" color="%s"
-                  alignment="MiddleLeft" preferredHeight="%d"/>
+            <Text id="cmdNota" text="" font="%s" fontSize="11" color="%s"
+                  alignment="MiddleCenter" preferredHeight="%d"/>
         </VerticalLayout>
     </Panel>
 ]], P.rectAlignment, P.offsetXY, P.width, command_panelHeight(P.righeMax), P.bg,
         P.padding, P.padding, P.padding, P.padding, P.spacing,
-        P.titleColor, P.headerHeight, righe, P.noteColor, P.footerHeight)
+        P.font, P.titleColor, P.headerHeight,
+        P.font, P.sceltaHeight,
+        righe, P.font, P.noteColor, P.footerHeight)
 end
 -- ============================================================
 -- FUNZIONE: command_rowText(d)
--- Testo dello stato con i tiri fatti.
+-- Testo dello stato (i dadi si vedono come facce).
 -- ============================================================
 function command_rowText(d)
-    local P = COMMAND_PANEL
-    local testo = P.statoTesto[d.stato] or d.stato
-    local dadi = {}
-    if d.tiro then table.insert(dadi, tostring(d.tiro)) end
-    if d.ritiro then table.insert(dadi, "CiC " .. tostring(d.ritiro)) end
-    if #dadi > 0 then
-        testo = testo .. " (" .. table.concat(dadi, ", ") .. ")"
-    end
-    return testo
+    return COMMAND_PANEL.statoTesto[d.stato] or d.stato
 end
 -- ============================================================
 -- FUNZIONE: command_panelRows(slot)
@@ -92,13 +96,8 @@ end
 -- ============================================================
 function command_panelRows(slot)
     local st = COMMAND_STATE[slot]
-    local righe, ultimaDiv = {}, nil
+    local righe = {}
     for _, key in ipairs(st.ordine) do
-        local g = st.gruppi[key]
-        if g.divId ~= ultimaDiv then
-            table.insert(righe, { tipo = "div", divId = g.divId })
-            ultimaDiv = g.divId
-        end
         table.insert(righe, { tipo = "gruppo", key = key })
     end
     return righe
@@ -125,8 +124,7 @@ function command_redrawPanel()
     local righe = math.min(#elenco, P.righeMax)
     UI.setAttribute("cmdPanel", "active", "true")
     UI.setAttribute("cmdPanel", "height", tostring(command_panelHeight(math.max(righe, 1))))
-    UI.setAttribute("cmdTitolo", "text", "COMANDO - " .. main_sideName(slot))
-    UI.setAttribute("cmdTitolo", "color", main_sideMainColor(slot))
+    UI.setAttribute("cmdTitolo", "text", "COMANDO - " .. string.upper(main_sideName(slot)))
 
     local visibili = main_sideVisibility(slot)
     local inVolo = COMMAND_ROLLING or COMMAND_PENDING ~= nil
@@ -150,7 +148,7 @@ function command_redrawPanel()
             local d = st.gruppi[key]
             COMMAND_ROWS[i] = key
             UI.setAttribute("cmdRow" .. i, "active", "true")
-            UI.setAttribute("cmdNome" .. i, "text", "   " .. d.nome)
+            UI.setAttribute("cmdNome" .. i, "text", "  " .. d.nome)
             UI.setAttribute("cmdNome" .. i, "textColor", (COMMAND_FOCUS and COMMAND_FOCUS.key == key) and P.titleColor or P.textColor)
             UI.setAttribute("cmdGen" .. i, "text", d.valore and ("Gen " .. tostring(d.valore)) or "-")
             UI.setAttribute("cmdStato" .. i, "text", command_rowText(d))
@@ -165,18 +163,23 @@ function command_redrawPanel()
                 UI.setAttribute(nome .. i, "active", acceso and "true" or "false")
                 UI.setAttribute(nome .. i, "visibility", visibili)
             end
-            -- bottone del tiro scelto evidenziato
-            UI.setAttribute("cmdTira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "tiro") and "Roll!" or "Tira")
-            UI.setAttribute("cmdRitira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "ritiro") and "Roll!" or "CiC")
+            -- bottone del tiro scelto: si tira coi dadi del vassoio
+            UI.setAttribute("cmdTira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "tiro") and "Dadi" or "Attiva")
+            UI.setAttribute("cmdRitira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "ritiro") and "Dadi" or "Riprova")
+            -- facce dei dadi tirati (asset d1..d6)
+            UI.setAttribute("cmdDado" .. i, "active", d.tiro and "true" or "false")
+            if d.tiro then UI.setAttribute("cmdDado" .. i, "image", "d" .. tostring(d.tiro)) end
+            UI.setAttribute("cmdDadoR" .. i, "active", d.ritiro and "true" or "false")
+            if d.ritiro then UI.setAttribute("cmdDadoR" .. i, "image", "d" .. tostring(d.ritiro)) end
         end
     end
 
     -- Nota: CiC e ritiri
     local nota
     if not st.cic then
-        nota = "Nessun CiC: niente ritiri"
+        nota = "Nessun CiC: niente Riprova"
     else
-        nota = string.format("CiC %d - ritiri usati %d", st.cic.valore, st.ritiriUsati)
+        nota = string.format("CiC %d - Riprova usati %d", st.cic.valore, st.ritiriUsati)
         if COMMAND_RITIRI_MAX then nota = nota .. " su " .. COMMAND_RITIRI_MAX end
         nota = nota .. " - raggio " .. COMMAND_RITIRO_D .. " D"
     end
@@ -197,9 +200,9 @@ function command_sceltaText(slot)
     if pend and pend.slot == slot then
         local g = command_group(slot, pend.key)
         local chi = pend.tipo == "ritiro" and "CiC" or (g and g.brigId and "Gen. di Brigata" or "Gen. di Divisione")
-        return string.format("%s: %s %d, serve %d o meno su 1D6\nPremi Roll sul vassoio",
+        return string.format("%s: %s %d, serve %d o meno su 1D6 - premi Roll sul vassoio",
             g and g.nome or pend.key, chi, pend.valore, pend.valore)
     end
     if COMMAND_ESITO then return COMMAND_ESITO.testo end
-    return "Scegli una Brigata: Tira"
+    return "Scegli una Brigata: Attiva"
 end

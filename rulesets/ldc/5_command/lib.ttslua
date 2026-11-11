@@ -60,7 +60,8 @@ function command_readSide(slot)
         local g = gruppi[key]
         if not g then
             g = { divId = m.divisione, brigId = m.brigata, basi = {},
-                  nome = m.brigata and (m.brigataNome or m.brigata) or "Senza Brigata" }
+                  nome = m.brigata and (m.brigataNome or m.brigata)
+                         or ("Senza Brigata - " .. tostring(m.divisioneNome or m.divisione)) }
             gruppi[key] = g
         end
         ordGruppo[key] = { m.divisioneOrd or 99, m.brigata and (m.brigataOrd or 99) or 999 }
@@ -268,13 +269,13 @@ function command_canReroll(slot, key)
         return false, "nessun test fallito"
     end
     if g.ritiro ~= nil then
-        return false, "già ritirato"
+        return false, "Riprova gia' usato"
     end
     if not st.cic then
         return false, "nessun CiC"
     end
     if COMMAND_RITIRI_MAX and st.ritiriUsati >= COMMAND_RITIRI_MAX then
-        return false, "ritiri esauriti (" .. COMMAND_RITIRI_MAX .. ")"
+        return false, "Riprova esauriti (" .. COMMAND_RITIRI_MAX .. ")"
     end
     local dist = command_cicDistanceD(slot, key)
     if not dist then
@@ -325,7 +326,7 @@ function command_choose(player, slot, key, tipo)
             return
         end
         valore = st.cic.valore
-        titolo = "RITIRO DEL CiC"
+        titolo = "RIPROVA DEL CiC"
     else
         if g.stato ~= COMMAND_STATO.DA_TIRARE then return end
         valore = g.valore
@@ -394,11 +395,11 @@ function command_resolve(slot, pend, valoreDado)
         if riuscito then
             g.stato = COMMAND_STATO.ATTIVA
             command_outcome(slot, string.format("Ritiro %d su %d: ATTIVA", valoreDado, pend.valore), true)
-            command_announce(slot, nome .. ": ritiro del CiC riuscito, ATTIVA")
+            command_announce(slot, nome .. ": Riprova riuscito, ATTIVA")
         else
-            command_outcome(slot, string.format("Ritiro %d su %d: HOLDS", valoreDado, pend.valore), false)
+            command_outcome(slot, string.format("Riprova %d su %d: FERMO", valoreDado, pend.valore), false)
             command_setHolds(slot, pend.key, "ritiro fallito")
-            command_announce(slot, nome .. ": ritiro del CiC fallito, HOLDS")
+            command_announce(slot, nome .. ": Riprova fallito, FERMO")
         end
         return
     end
@@ -415,13 +416,13 @@ function command_resolve(slot, pend, valoreDado)
     local puo, motivo = command_canReroll(slot, pend.key)
     if puo then
         command_outcome(slot, string.format("%d su %d: fallito", valoreDado, pend.valore), false,
-            "Puoi far ritirare il CiC o accettare l'HOLDS")
+            "Riprova (CiC) o Fermo")
         command_announce(slot, nome .. ": test fallito")
     else
-        command_outcome(slot, string.format("%d su %d: HOLDS", valoreDado, pend.valore), false,
-            "Niente ritiro: " .. tostring(motivo))
+        command_outcome(slot, string.format("%d su %d: FERMO", valoreDado, pend.valore), false,
+            "Niente Riprova: " .. tostring(motivo))
         command_setHolds(slot, pend.key, "test fallito")
-        command_announce(slot, nome .. ": test fallito, HOLDS (" .. tostring(motivo) .. ")")
+        command_announce(slot, nome .. ": test fallito, FERMO (" .. tostring(motivo) .. ")")
     end
 end
 -- ============================================================
@@ -434,7 +435,7 @@ function command_accept(player, slot, key)
     if COMMAND_ROLLING then return end
     if COMMAND_PENDING and COMMAND_PENDING.key == key then COMMAND_PENDING = nil end
     command_setHolds(slot, key, "test fallito")
-    command_announce(slot, command_groupLabel(slot, key) .. ": HOLDS")
+    command_announce(slot, command_groupLabel(slot, key) .. ": FERMO")
     command_redrawPanel()
 end
 -- ============================================================

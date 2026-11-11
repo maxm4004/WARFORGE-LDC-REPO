@@ -26,13 +26,18 @@ COMMAND_DICEPANEL_CLOSE = 3
 
 -- Pannello Comando (Divisioni e loro Brigate)
 COMMAND_PANEL = {
-    righeMax      = 14,         -- righe al massimo (intestazioni di Divisione comprese)
-    width         = 560,
-    rowHeight     = 28,
-    headerHeight  = 34,
-    footerHeight  = 24,
-    padding       = 10,
-    spacing       = 4,
+    righeMax      = 12,         -- righe al massimo (una per Brigata)
+    width         = 640,
+    rowHeight     = 30,
+    headerHeight  = 26,
+    footerHeight  = 18,
+    padding       = 12,
+    spacing       = 3,
+    font          = "warforge_font",
+    rowBg         = "rgba(1,1,1,0.06)",
+    actionBg      = "#B8902E",                -- come la conferma di IEF
+    closeBg       = "rgba(0.45,0.45,0.45,1)",
+    dadoLato      = 26,                       -- faccia del dado (asset d1..d6)
     rectAlignment = "LowerCenter",   -- un solo pannello, in basso al centro (Max)
     offsetXY      = "0 90",
     sceltaHeight  = 44,              -- riga del tiro scelto e dell'esito
@@ -50,10 +55,10 @@ COMMAND_PANEL = {
         HOLDS     = "#FF6B6B",
     },
     statoTesto = {
-        DA_TIRARE = "da tirare",
+        DA_TIRARE = "da attivare",
         FALLITA   = "fallito",
         ATTIVA    = "ATTIVA",
-        HOLDS     = "HOLDS",
+        HOLDS     = "FERMO",
     },
 }
 
