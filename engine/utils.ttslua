@@ -17,6 +17,10 @@ function engine_handleChat(message, player)
     if message == "!clear"   then clear()                return false end
     return true
 end
+-- Il Global comune con IEF chiama ancora ief_handleChat: finché
+-- IEF non passa a engine_handleChat, LDC risponde anche a quel nome
+-- (senza, !restart non arrivava).
+ief_handleChat = engine_handleChat
 
 -- ============================================================
 -- FUNZIONE: warningToColor(warning, player, textColor, second, inConsole)
