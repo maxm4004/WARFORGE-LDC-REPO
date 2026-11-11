@@ -398,7 +398,7 @@ function deploy_metadata(slot, army, voce)
         numBasi     = u.num_basi or 1,
         arma        = u.arma,
         formazione  = u.formazione,
-        -- fotina della scheda INFO: URL dell'unità o del suo elemento
+        -- fotina della scheda INFO: nome dell'asset UI del mod (unità o elemento)
         foto        = u.foto or (army.elementi and u.elemento and army.elementi[u.elemento]
                         and army.elementi[u.elemento].foto) or nil,
         baseSeq     = voce.seq,

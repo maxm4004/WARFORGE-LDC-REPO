@@ -33,7 +33,7 @@ UNITINFO = {
     warnColor     = "#FFB347",
     koColor       = "#FF6B6B",
     valueWidth    = 190,
-    fotoHeight    = 150,   -- fotina dell'unità (campo foto del JSON)
+    fotoHeight    = 150,   -- fotina dell'unità (asset UI del mod)
 }
 
 -- unitKey mostrata per schieramento
@@ -174,6 +174,29 @@ function main_unitInfoRows(key)
     for i = 1, math.min(#righe, UNITINFO.maxRows) do out[i] = righe[i] end
     return out
 end
+-- ============================================================
+-- FUNZIONE: main_unitFotoAsset(meta)
+-- Fotina dell'unità: un asset UI del mod (in LH gli URL esterni
+-- nell'Image non funzionavano; le icone erano asset). Si cerca,
+-- nell'ordine, l'asset col nome del campo foto del JSON, col
+-- unit_name dell'unità, col nome dell'elemento. Ritorna il nome
+-- dell'asset trovato o nil (niente foto).
+-- ============================================================
+function main_unitFotoAsset(meta)
+    if not meta then return nil end
+    local ok, assets = pcall(function() return UI.getCustomAssets() end)
+    if not ok or type(assets) ~= "table" then return nil end
+    local nomi = {}
+    for _, a in ipairs(assets) do
+        if a.name then nomi[string.lower(a.name)] = a.name end
+    end
+    -- (niente ipairs: un campo nil interromperebbe la lista)
+    for _, campo in ipairs({ "foto", "unitName", "elemento" }) do
+        local n = meta[campo]
+        if type(n) == "string" and n ~= "" and nomi[string.lower(n)] then return nomi[string.lower(n)] end
+    end
+    return nil
+end
 local function uiHeight(righe, foto)
     local U = UNITINFO
     local h = U.padding * 2 + U.titleHeight + U.subHeight + U.spacing * 2
@@ -243,8 +266,7 @@ function main_unitInfoRedraw(slot)
     end
     local righe = main_unitInfoRows(key)
     local u = main_unitInfoUnit(key)
-    local foto = u and u.meta.foto
-    if foto == "" then foto = nil end
+    local foto = u and main_unitFotoAsset(u.meta)
     UI.setAttribute(pre, "height", tostring(uiHeight(righe, foto)))
     UI.setAttribute(pre .. "_foto", "active", foto and "true" or "false")
     if foto then UI.setAttribute(pre .. "_foto", "image", foto) end
