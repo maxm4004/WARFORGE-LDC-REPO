@@ -33,7 +33,7 @@ MOVE = {
 -- Pannello di movimento (IEF MOVEPANEL)
 MOVEPANEL = {
     width    = 720,
-    height   = 230,
+    height   = 300,
     bg       = "rgba(0,0,0,0.70)",
     font     = "warforge_font",
     gold     = "#FFD833",

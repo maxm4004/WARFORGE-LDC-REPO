@@ -342,7 +342,7 @@ function move_chargeExecute(player, slot, u, t)
     MOVE_STATE.budget[u.key] = 0
     move_chargeRecordEnd(u)
     printToAll(string.format("[Carica] %s carica %s sul %s (%s)", u.meta.nomeDisplay or u.key,
-        t.meta.nomeDisplay or t.key, lato:lower(), main_formatD(percorso or 0)), main_sideMainColor(slot))
+        t.meta.nomeDisplay or t.key, lato:lower(), main_formatD(percorso or 0)), LOG_COLORE)
     if player then
         warningToColor(string.format("%s a contatto sul %s: la mischia nella fase Mischie",
             u.meta.nomeDisplay or u.key, lato:lower()), player, "White", 5, false)

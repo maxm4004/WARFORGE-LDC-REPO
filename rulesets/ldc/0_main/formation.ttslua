@@ -1,0 +1,76 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/formation.ttslua
+-- Formazioni del regolamento (9.1), come la sezione FORMAZIONE
+-- del pannello di IEF: Linea, Colonna d'attacco, Colonna di
+-- marcia, Quadrato, Ordine aperto (solo fanteria leggera).
+--   linea           : un rango (fanteria, artiglieria), due ranghi
+--                     per la cavalleria
+--   colonna_attacco : doppio rango, fronte di 2 basi (fanteria)
+--   colonna_marcia  : fronte di una base (fanteria, cavalleria)
+--   quadrato        : 0_main/units (main_squareForm)
+--   ordine_aperto   : basi in linea intervallate di una base
+-- Il centro del primo rango e il fronte restano dove sono.
+-- ============================================================
+
+FORMAZIONI = {
+    { id = "linea",           nome = "Linea" },
+    { id = "colonna_attacco", nome = "Col. d'attacco" },
+    { id = "colonna_marcia",  nome = "Col. di marcia" },
+    { id = "quadrato",        nome = "Quadrato" },
+    { id = "ordine_aperto",   nome = "Ordine aperto" },
+}
+
+-- ============================================================
+-- FUNZIONE: main_formationsOf(u)
+-- Formazioni possibili per il tipo dell'unità ([id] = true).
+-- ============================================================
+function main_formationsOf(u)
+    if not u or u.generale then return {} end
+    local cat = main_unitCategory(u.meta)
+    if cat == CATEGORIA.FANTERIA then
+        local f = { linea = true, colonna_attacco = true, colonna_marcia = true, quadrato = true }
+        if u.meta.tipo == "FAN_LEGGERA" then f.ordine_aperto = true end
+        return f
+    elseif cat == CATEGORIA.CAVALLERIA then
+        return { linea = true, colonna_marcia = true }
+    elseif cat == CATEGORIA.SKIRMISH then
+        return { ordine_aperto = true }
+    end
+    return {}
+end
+-- ============================================================
+-- FUNZIONE: main_formationApply(u, id)
+-- Dispone le basi nella formazione e la registra.
+-- ============================================================
+function main_formationApply(u, id)
+    if not u or u.generale then return false end
+    if main_unitFormation(u) == "quadrato" then main_squareExit(u) end
+    UNIT_STATE[u.key] = UNIT_STATE[u.key] or { disordini = 0 }
+    if id == "quadrato" then
+        main_squareForm(u)
+        return true
+    end
+    local n = #u.basi
+    local larg = main_cmToTts(u.meta.fronteCm or CALIBRAZIONE.baseFronteCm)
+    local nf, passo = n, larg
+    local cav = main_unitCategory(u.meta) == CATEGORIA.CAVALLERIA
+    if id == "linea" then
+        nf = cav and math.ceil(n / 2) or n
+    elseif id == "colonna_attacco" then
+        nf = math.min(2, n)
+    elseif id == "colonna_marcia" then
+        nf = 1
+    elseif id == "ordine_aperto" then
+        nf, passo = n, 2 * larg
+    end
+    if n >= 2 then main_riordinaCore(u, nf, passo) end
+    UNIT_STATE[u.key].formazione = id
+    return true
+end
+-- ============================================================
+-- FUNZIONE: main_formationName(id)
+-- ============================================================
+function main_formationName(id)
+    for _, f in ipairs(FORMAZIONI) do if f.id == id then return f.nome end end
+    return tostring(id or "-")
+end

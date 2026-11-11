@@ -212,7 +212,7 @@ function main_unitBreak(unitKey, motivo)
     }
     UNIT_STATE[unitKey] = nil
     printToAll("[Rotta] " .. tostring(u.meta.nomeDisplay or unitKey) .. " rompe e lascia il campo"
-        .. (motivo and (" (" .. motivo .. ")") or ""), main_sideMainColor(u.side))
+        .. (motivo and (" (" .. motivo .. ")") or ""), LOG_COLORE)
     local basi = {}
     for _, b in ipairs(u.basi) do table.insert(basi, b) end
     for _, b in ipairs(basi) do b.destruct() end
@@ -239,6 +239,7 @@ end
 function main_unitFormation(u)
     local s = u and UNIT_STATE[u.key]
     if s and s.quadrato then return "quadrato" end
+    if s and s.formazione then return s.formazione end
     return u and u.meta and u.meta.formazione or nil
 end
 -- ============================================================

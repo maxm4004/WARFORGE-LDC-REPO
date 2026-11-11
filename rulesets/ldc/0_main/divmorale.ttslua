@@ -82,7 +82,7 @@ function main_divCheck(slot, divId)
         table.insert(DIV_PENDING, { slot = slot, div = divId })
         local nome = main_divName(slot, divId)
         printToAll(string.format("[Morale] %s ha perso %d unita' su %d: test di morale, tira %s dal suo vassoio",
-            nome, perse, s.base, main_sideName(slot)), main_sideMainColor(slot))
+            nome, perse, s.base, main_sideName(slot)), LOG_COLORE)
         main_divOpenPanel()
     end
 end
@@ -301,18 +301,18 @@ function main_divResolve(p, dado)
         engine_dicePanelOutcome(p.slot, string.format("%d: ROMPE", tot), DICEPANEL.koColor,
             "Ritirata verso il proprio bordo")
         printToAll(string.format("[Morale] %s: %d, la Divisione ROMPE: tutte le sue unita' si ritirano verso il proprio bordo (a mano); chi non puo' ritirarsi va rimosso",
-            nome, tot), colore)
+            nome, tot), LOG_COLORE)
     elseif tot == 4 then
         esito = "4: HOLDS per la mossa successiva"
         s.stato = "holds"
         main_divForceHolds(p.slot, p.div, "Morale di Divisione")
         engine_dicePanelOutcome(p.slot, "4: HOLDS", DICEPANEL.koColor, "Per tutta la sua mossa successiva")
-        printToAll(string.format("[Morale] %s: 4, HOLDS per tutta la sua mossa successiva", nome), colore)
+        printToAll(string.format("[Morale] %s: 4, HOLDS per tutta la sua mossa successiva", nome), LOG_COLORE)
     else
         esito = string.format("%d: la Divisione tiene", tot)
         s.stato = "ok"
         engine_dicePanelOutcome(p.slot, string.format("%d: TIENE", tot), DICEPANEL.okColor)
-        printToAll(string.format("[Morale] %s: %d, la Divisione tiene", nome, tot), colore)
+        printToAll(string.format("[Morale] %s: %d, la Divisione tiene", nome, tot), LOG_COLORE)
     end
     return nome .. " - " .. esito
 end

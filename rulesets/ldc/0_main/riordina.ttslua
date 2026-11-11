@@ -11,7 +11,7 @@
 -- FUNZIONE: main_riordinaCore(u)
 -- Ritorna true se ha riordinato.
 -- ============================================================
-function main_riordinaCore(u)
+function main_riordinaCore(u, nfVoluto, passoVoluto)
     if not u or u.generale or #u.basi < 2 then return false end
     local ref = u.comando
     local yaw = ref.getRotation().y
@@ -36,7 +36,8 @@ function main_riordinaCore(u)
     table.sort(primo, function(x, y) return w(x) < w(y) end)
     local sx, dx = primo[1].getPosition(), primo[#primo].getPosition()
     local centro = { x = (sx.x + dx.x) / 2, y = sx.y, z = (sx.z + dx.z) / 2 }
-    local nf = #primo
+    local nf = math.max(1, math.min(nfVoluto or #primo, #u.basi))
+    larg = passoVoluto or larg
 
     -- ordine: per numero di base (come IEF baseSeq)
     local basi = {}

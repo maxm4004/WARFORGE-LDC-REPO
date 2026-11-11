@@ -523,7 +523,7 @@ end
 -- Esito in chat a tutti, col colore dello schieramento.
 -- ============================================================
 function command_announce(slot, testo)
-    printToAll("[Comando] " .. testo, main_sideMainColor(slot))
+    printToAll("[Comando] " .. testo, LOG_COLORE)
 end
 
 -- ============================================================

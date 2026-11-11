@@ -646,7 +646,7 @@ function fire_rollDo(ctx, slot, player, rec)
     if ctx.inVolo then return end
     ctx.inVolo = true
     printToAll(string.format("[FUOCO] %s tira %dD6 su %s: %s",
-        ctx.shooterLabel, ctx.dadi, ctx.targetLabel, ctx.sogliaTesto), main_sideMainColor(slot))
+        ctx.shooterLabel, ctx.dadi, ctx.targetLabel, ctx.sogliaTesto), LOG_COLORE)
     shoot_infoStato("Tiro in corso...", SHOOTINFO.gold)
     engine_diceClearLastRoll(slot)
     engine_diceSetNext(slot, ctx.dadi, ctx.soglia)
@@ -671,7 +671,7 @@ function fire_rollDo(ctx, slot, player, rec)
         local aggiunti = main_unitAddDisorders(t.key, colpi, limite)
         local eccesso = colpi - aggiunti
         printToAll(string.format("[FUOCO] %d hit: %s a %d/%d disordini", colpi, ctx.targetLabel,
-            main_unitDisorders(t.key), limite), main_sideMainColor(slot))
+            main_unitDisorders(t.key), limite), LOG_COLORE)
         main_refreshBaseButtons()
 
         if eccesso > 0 then
@@ -682,7 +682,7 @@ function fire_rollDo(ctx, slot, player, rec)
             UI.setAttribute("shootinfo_stato", "active", "true")
             shoot_infoAltezza(true, true, true)
             printToAll(string.format("[FUOCO] %d hit possono mandare in rotta %s: ritiro, serve piu' di %d",
-                eccesso, ctx.targetLabel, ctx.morale), main_sideMainColor(slot))
+                eccesso, ctx.targetLabel, ctx.morale), LOG_COLORE)
             return
         end
         Wait.time(function() engine_diceCameraReturn(player, 0) end, 2)
@@ -715,7 +715,7 @@ function fire_rotturaDo(ctx, slot, player, rec)
             main_unitBreak(ctx.targetKey, "fuoco")
         else
             ctx.motivo = ctx.targetLabel .. " tiene"
-            printToAll("[FUOCO] " .. ctx.targetLabel .. " tiene: gli hit della rottura vanno persi", main_sideMainColor(slot))
+            printToAll("[FUOCO] " .. ctx.targetLabel .. " tiene: gli hit della rottura vanno persi", LOG_COLORE)
         end
         main_refreshBaseButtons()
         engine_subStep("FIRE_ROLL", slot, "ESCI")

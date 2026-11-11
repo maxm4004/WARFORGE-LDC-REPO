@@ -344,7 +344,7 @@ function melee_open(player, slot, i)
     local ctx = { i = i, att = slot, dif = main_otherSide(slot), unita = { [slot] = m.att, [main_otherSide(slot)] = m.dif } }
     ctx["entrato" .. slot] = true
     if engine_subOpen("MELEE_RESOLVE", nil, ctx, "melee_resolveDone") then
-        printToAll("[Mischia] " .. melee_label(m), main_sideMainColor(slot))
+        printToAll("[Mischia] " .. melee_label(m), LOG_COLORE)
         main_warningToSide(ctx.dif, "Mischia aperta: clicca la riga nella lista MISCHIE e combatti", "Yellow", 6)
         melee_listRefresh()
         main_refreshBaseButtons()
@@ -406,7 +406,7 @@ function melee_resolveEnter(ctx, slot, rec)
         ctx["rolled" .. s] = c.dadi <= 0
         engine_dicePanelOpen(s, ctx["scheda" .. s])
         printToAll(string.format("[Mischia] %s: %s, %dD6, serve %d+", main_sideName(s),
-            mio.meta.nomeDisplay or mio.key, c.dadi, c.soglia), main_sideMainColor(s))
+            mio.meta.nomeDisplay or mio.key, c.dadi, c.soglia), LOG_COLORE)
     end
     if ctx["rolled" .. ctx.att] and ctx["rolled" .. ctx.dif] then
         Wait.frames(function()
@@ -469,7 +469,7 @@ function melee_resolveRoll(ctx, slot, player, rec)
             return
         end
         ctx["rolled" .. slot] = true
-        printToAll(string.format("[Mischia] %s: %d hit", main_sideName(slot), ctx["colpi" .. slot]), main_sideMainColor(slot))
+        printToAll(string.format("[Mischia] %s: %d hit", main_sideName(slot), ctx["colpi" .. slot]), LOG_COLORE)
         Wait.time(function() engine_diceCameraReturn(player, 0) end, 2)
         if ctx["rolled" .. ctx.att] and ctx["rolled" .. ctx.dif] then
             melee_applyHits(ctx)
@@ -518,7 +518,7 @@ function melee_nextBreak(ctx)
             })
             printToAll(string.format("[Mischia] %d hit possono mandare in rotta %s: tira %s (serve piu' di %d)",
                 r.dadi, bersaglio.meta.nomeDisplay or bersaglio.key, main_sideName(r.roller), ctx.rotturaMorale),
-                main_sideMainColor(r.roller))
+                LOG_COLORE)
             engine_subStep("MELEE_RESOLVE", nil, "ROTTURA")
             return
         end
@@ -747,5 +747,5 @@ end
 -- FUNZIONE: melee_message(testo)
 -- ============================================================
 function melee_message(testo)
-    printToAll("[Mischia] " .. testo, "White")
+    printToAll("[Mischia] " .. testo, LOG_COLORE)
 end

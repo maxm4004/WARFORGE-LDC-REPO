@@ -84,20 +84,16 @@ end
 -- per schieramento, visibile solo ai suoi giocatori.
 -- ============================================================
 function main_waitPanelsXml()
+    local W = WAITPANEL
     local xml = ""
     for slot = 1, 2 do
         xml = xml .. string.format([[
-    <Panel id="panelWait%d"
-           rectAlignment="UpperCenter"
-           width="450" height="50"
-           color="%s"
-           offsetXY="0 -223"
-           visibility="%s"
-           active="false">
-        <Text id="textWait%d" text="" fontSize="14" fontStyle="Bold"
+    <Panel id="panelWait%d" rectAlignment="UpperCenter" width="%d" height="%d" color="%s"
+           offsetXY="0 -223" visibility="%s" active="false">
+        <Text id="textWait%d" text="" font="warforge_font" fontSize="%d" fontStyle="Bold"
               color="%s" alignment="MiddleCenter"/>
     </Panel>
-        ]], slot, WAITPANEL.bg, main_sideVisibility(slot), slot, WAITPANEL.textColor)
+        ]], slot, W.width, W.height, W.bg, main_sideVisibility(slot), slot, W.fontSize, W.textColor)
     end
     return xml
 end

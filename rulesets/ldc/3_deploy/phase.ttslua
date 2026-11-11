@@ -14,6 +14,7 @@ function deploy_phase()
             after  = "after_deploy",
             allowedActions = { ACTION.ARMY1_CLICK, ACTION.ARMY2_CLICK },
             render = "2BtnClick",
+            baseButtons = "deploy_baseButtons",
             enforceOwnership = true,
             inputMode = INPUT_MODE.OWNER,
             buttons = {

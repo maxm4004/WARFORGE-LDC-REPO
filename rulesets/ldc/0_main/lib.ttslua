@@ -176,7 +176,7 @@ function main_endHalfTurn()
         ENGINE.turn     = (ENGINE.turn or 1) + 1
         TURN.half       = 1
         TURN.activeSide = TURN.firstSide
-        printToAll("Turno " .. tostring(ENGINE.turn) .. " inizia", {r = 0.4, g = 0.9, b = 0.4})
+        printToAll("Turno " .. tostring(ENGINE.turn) .. " inizia", LOG_COLORE)
     end
     main_resetCompleted()
 end
@@ -220,6 +220,7 @@ function main_restart()
     main_unitsReset()
     main_divReset()
     deploy_clearAll()
+    main_drawDeployLines(false)
     LDC_UNIT_INFO = {}
 
     main_resetPlayers()
@@ -361,7 +362,7 @@ function main_updateCenterPanel()
     if renderer then
         renderer(phase)
     else
-        printToAll("[LDC] Renderer non trovato: " .. tostring(phase.render), "Red")
+        printToAll("[LDC] Renderer non trovato: " .. tostring(phase.render), LOG_AVVISO)
     end
 
     -- Turno, fase, descrizione
@@ -456,7 +457,7 @@ function main_updateWaiting(phase)
         local testo = main_waitingText(phase, slot)
         UI.setAttribute("panelWait" .. slot, "visibility", main_sideVisibility(slot))
         UI.setAttribute("panelWait" .. slot, "active", testo and "true" or "false")
-        UI.setAttribute("textWait" .. slot, "text", testo or "")
+        UI.setAttribute("textWait" .. slot, "text", string.upper(testo or ""))
         if not testo then
             table.insert(vedono, main_sideVisibility(slot))
         end

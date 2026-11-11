@@ -302,7 +302,7 @@ function main_measureTable()
     PLAY_AREA  = main_playArea()
 
     if not PLAY_AREA then
-        printToAll("[LDC] Piano verde non trovato (tag " .. PIANO_VERDE_TAG .. "): uso il tavolo intero", "Red")
+        printToAll("[LDC] Piano verde non trovato (tag " .. PIANO_VERDE_TAG .. "): uso il tavolo intero", LOG_AVVISO)
     end
     if not main_isScaleCalibrated() then
         print("[TAVOLO] Scala non calibrata: uso quella del righello di TTS")
@@ -474,4 +474,30 @@ function main_buildCameraZones()
     }
 
     CAMERA_ZONES = zones
+end
+-- ============================================================
+-- FUNZIONE: main_drawDeployLines(accese)
+-- Linee della zona di schieramento, come IEF (linee_deploy):
+-- per ogni schieramento la linea del fronte a DEPLOY_ZONA
+-- .profonditaD dal suo bordo del piano verde e i due lati a
+-- DEPLOY_ZONA.margineD dai bordi laterali, nel suo colore.
+-- ============================================================
+function main_drawDeployLines(accese)
+    local linee = {}
+    local area = main_gameArea()
+    if accese ~= false and area then
+        local prof = main_dToTts(DEPLOY_ZONA.profonditaD)
+        local marg = main_dToTts(DEPLOY_ZONA.margineD)
+        local y = (area.y or 1) + SPAWN.lineeAltezza
+        local x1, x2 = area.minX + marg, area.maxX - marg
+        for slot = 1, 2 do
+            local bordo = main_sideEdgeZ(slot)
+            local fronte = (slot == 1) and (bordo + prof) or (bordo - prof)
+            local c = Color.fromString(main_sideMainColor(slot))
+            table.insert(linee, { points = { { x1, y, fronte }, { x2, y, fronte } }, color = c, thickness = DEPLOY_ZONA.spessore })
+            table.insert(linee, { points = { { x1, y, bordo }, { x1, y, fronte } }, color = c, thickness = DEPLOY_ZONA.spessoreLati })
+            table.insert(linee, { points = { { x2, y, bordo }, { x2, y, fronte } }, color = c, thickness = DEPLOY_ZONA.spessoreLati })
+        end
+    end
+    main_setLines("deploy", linee)
 end

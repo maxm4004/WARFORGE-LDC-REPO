@@ -193,7 +193,7 @@ CAMERA_PARAMS = {
     [CAMERA_ZONE.ARMY_ROLL_DICES] = {
         pitch    = 30,
         yaw      = { [1] = 0, [2] = 180 },
-        distance = 12,
+        distance = 15,           -- un po' piu' lontana (Max 11/11)
     },
 }
 
@@ -205,8 +205,11 @@ CAMERA_ZONES = {}
 -- ------------------------------------------------------------
 -- Barra di attesa al posto dei bottoni di fase
 WAITPANEL = {
-    bg        = "rgba(0,0,0,0.35)",
-    textColor = "#BBBBBB",
+    bg        = "rgba(0,0,0,0.70)",
+    textColor = "#FFD833",    -- oro IEF, ben visibile (Max 11/11)
+    fontSize  = 24,
+    width     = 620,
+    height    = 56,
 }
 
 CENTERPANEL = {
@@ -219,13 +222,28 @@ CENTERPANEL = {
 -- Bottoni 3D sulle basi (0_main/buttons.ttslua), misure nello
 -- spazio della base (come IEF; da tarare in TTS)
 -- ------------------------------------------------------------
+-- Zona di schieramento (linee come IEF: 12" dal bordo, 6" dai
+-- lati = 2D e 1D; finché lo scenario non dirà altro)
+DEPLOY_ZONA = {
+    profonditaD  = 2,
+    margineD     = 1,
+    spessore     = 0.3,
+    spessoreLati = 0.2,
+}
+
+-- Colori dei messaggi in console (Max 11/11: niente rosso)
+LOG_COLORE   = { r = 0.92, g = 0.88, b = 0.75 }   -- messaggi di gioco
+LOG_AVVISO   = { r = 1, g = 0.75, b = 0.3 }       -- problemi e avvisi
+
 BASE_BUTTONS = {
+    -- come IEF: una riga, w 400 h 250 font 70, colore del giocatore
     y        = 0.1,      -- sopra la base
-    dietro   = 0.2,      -- dal bordo posteriore della base
-    passoX   = 0.85,     -- fra due bottoni affiancati
-    passoZ   = 0.55,     -- seconda fila (cartellino disordini)
-    width    = 400,
-    height   = 220,
+    dietro   = 0.35,     -- centro del bottone dal bordo posteriore (IEF ~0,4)
+    width    = 400,      -- larghezza minima
+    larghezzaPerLettera = 42,   -- per le etichette lunghe
+    unitaPerTts = 500,   -- 400 di larghezza = 0,8 in TTS (passo IEF)
+    spazio   = 0.03,     -- fra due bottoni
+    height   = 250,
     fontSize = 70,
     textColor = "White",
     disColor  = { r = 0.55, g = 0.1, b = 0.1 },

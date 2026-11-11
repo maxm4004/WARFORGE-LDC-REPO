@@ -275,7 +275,7 @@ function move_panelXml()
                 <Text id="move_panel_title" text="" font="%s" fontStyle="Bold" fontSize="20" color="%s" alignment="MiddleCenter" preferredHeight="26"/>
                 <Text id="move_panel_info" text="" font="%s" fontSize="14" color="%s" alignment="MiddleCenter" preferredHeight="20"/>
                 <Text id="move_panel_dist" text="" font="%s" fontStyle="Bold" fontSize="30" color="White" alignment="MiddleCenter" preferredHeight="36"/>
-                %s %s %s
+                %s %s %s %s %s
                 %s
             </VerticalLayout>
         </Panel>
@@ -284,6 +284,10 @@ function move_panelXml()
         sezione("MOVIMENTO"),
         riga(btn("move_btn_Avanti", "Avanti", "move_btnManual", 160) .. btn("move_btn_AvantiMax", "Avanti Max", "move_btnMoveMax", 160)
           .. btn("move_btn_PernoSn", "Perno Sn", "move_btnPivotSx", 160) .. btn("move_btn_PernoDs", "Perno Ds", "move_btnPivotDx", 160)),
+        sezione("FORMAZIONE"),
+        riga(btn("move_btn_F_linea", "Linea", "move_btnFormation", 128) .. btn("move_btn_F_colonna_attacco", "Col. d'attacco", "move_btnFormation", 128)
+          .. btn("move_btn_F_colonna_marcia", "Col. di marcia", "move_btnFormation", 128) .. btn("move_btn_F_quadrato", "Quadrato", "move_btnFormation", 128)
+          .. btn("move_btn_F_ordine_aperto", "Ordine aperto", "move_btnFormation", 128)),
         riga(btn("move_btn_UndoLast", "Annulla Ultimo", "move_btnUndoLast", 330, P.undo1) .. btn("move_btn_UndoAll", "Annulla Tutto", "move_btnUndoAll", 330, P.undo2)),
         riga(btn("move_btn_Close", "Chiudi", "move_btnClose", 676, P.close)))
 end
@@ -308,14 +312,20 @@ function move_panelRedraw()
         UI.setAttribute("move_panel", "active", "false")
         return
     end
-    local residuo = move_budget(slot, u)
+    local sch = MOVE_PANEL.schieramento
+    local residuo = sch and 0 or move_budget(slot, u)
     local carica = MOVE_STATE.cariche[u.key] ~= nil
     UI.setAttribute("move_panel", "visibility", main_sideVisibility(slot))
     UI.setAttribute("move_panel", "active", "true")
     UI.setAttribute("move_panel_title", "text", (u.meta.nomeDisplay or u.key):upper())
     local _, nota = move_unitLimit(slot, u)
-    UI.setAttribute("move_panel_info", "text", string.format("Movimento %s   Perno libero%s",
-        main_formatD(residuo), (carica and "   IN CARICA") or (nota and ("   " .. nota)) or ""))
+    if sch then
+        UI.setAttribute("move_panel_info", "text", "Schieramento - formazione: " .. main_formationName(main_unitFormation(u)))
+    else
+        UI.setAttribute("move_panel_info", "text", string.format("Movimento %s   Formazione: %s%s",
+            main_formatD(residuo), main_formationName(main_unitFormation(u)),
+            (carica and "   IN CARICA") or (nota and ("   " .. nota)) or ""))
+    end
     if not MOVE_MANUAL and not MOVE_PIVOT then UI.setAttribute("move_panel_dist", "text", "") end
 
     local function setBtn(id, ok, acceso)
@@ -326,9 +336,20 @@ function move_panelRedraw()
     local muove = residuo > 0.001 and not carica
     setBtn("move_btn_Avanti", muove, MOVE_MANUAL ~= nil)
     setBtn("move_btn_AvantiMax", muove and not MOVE_MANUAL and not MOVE_PIVOT)
-    local perno = #u.basi >= 2 and not carica and not u.generale
+    local perno = #u.basi >= 2 and not carica and not u.generale and not sch
+        and main_unitFormation(u) ~= "quadrato"
     setBtn("move_btn_PernoSn", perno, MOVE_PIVOT and MOVE_PIVOT.soloDir == "left")
     setBtn("move_btn_PernoDs", perno, MOVE_PIVOT and MOVE_PIVOT.soloDir == "right")
+    -- FORMAZIONE (9.1)
+    local possibili = main_formationsOf(u)
+    local cambia = sch or move_formationCanChange(slot, u)
+    local attuale = main_unitFormation(u)
+    for _, f in ipairs(FORMAZIONI) do
+        local id = "move_btn_F_" .. f.id
+        local esiste = possibili[f.id] == true
+        UI.setAttribute(id, "active", esiste and "true" or "false")
+        if esiste then setBtn(id, cambia and attuale ~= f.id, attuale == f.id) end
+    end
     local hist = #MOVE_PANEL.history > 0
     setBtn("move_btn_UndoLast", hist)
     setBtn("move_btn_UndoAll", hist or move_hasMoved(u.key))
@@ -376,23 +397,21 @@ end
 -- MUOVI: apre il pannello sull'unità (IEF
 -- main_movementOpenFromButton). Camera dietro l'unità.
 -- ============================================================
-function move_panelOpen(player, slot, u)
+function move_panelOpen(player, slot, u, schieramento)
     if MOVE_PANEL and MOVE_PANEL.key ~= u.key then move_panelClose() end
-    local limite, motivo = move_unitLimit(slot, u)
-    if not limite then
-        warningToColor((u.meta.nomeDisplay or u.key) .. " non puo' muovere: " .. tostring(motivo), player, "Yellow", 5, true)
-        return false
-    end
-    move_recordStart(u)
-    move_budget(slot, u)
-    local pin = move_pinInfo(slot, u)
-    if (MOVE_STATE.budget[u.key] or 0) <= 0.001 and not move_hasMoved(u.key) and not pin then
-        warningToColor("Movimento gia' eseguito in questo turno", player, "Yellow", 5, true)
-        return false
+    if not schieramento then
+        local limite, motivo = move_unitLimit(slot, u)
+        local formazione = move_formationCanChange(slot, u)
+        if not limite and not formazione then
+            warningToColor((u.meta.nomeDisplay or u.key) .. " non puo' muovere: " .. tostring(motivo), player, "Yellow", 5, true)
+            return false
+        end
+        move_recordStart(u)
+        move_budget(slot, u)
     end
     MOVE_STATE.pannello = MOVE_STATE.pannello or {}
     MOVE_STATE.pannello[u.key] = true
-    MOVE_PANEL = MOVE_PANEL or { key = u.key, slot = slot, history = {} }
+    MOVE_PANEL = MOVE_PANEL or { key = u.key, slot = slot, history = {}, schieramento = schieramento }
     MOVE_PANEL.player = player
     local c = main_unitCenter(u)
     local yaw = u.comando.getRotation().y
@@ -417,7 +436,8 @@ end
 -- FUNZIONE: move_panelPlayerOk(player)
 -- ============================================================
 function move_panelPlayerOk(player)
-    if not MOVE_PANEL or not ENGINE or ENGINE.phase ~= PHASE.MANEUVER then return false end
+    if not MOVE_PANEL or not ENGINE then return false end
+    if ENGINE.phase ~= PHASE.MANEUVER and not (MOVE_PANEL.schieramento and ENGINE.phase == PHASE.DEPLOY) then return false end
     if not main_colorInSide(player.color, MOVE_PANEL.slot) then return false end
     MOVE_PANEL.player = player
     return true

@@ -36,13 +36,13 @@ function deploy_loadAndSpawn(slot)
         DEPLOY_LOADING[slot] = false
 
         if req.is_error or not req.text or req.text == "" then
-            printToAll("[DEPLOY] Download fallito per " .. main_sideName(slot) .. ": " .. tostring(req.error), "Red")
+            printToAll("[DEPLOY] Download fallito per " .. main_sideName(slot) .. ": " .. tostring(req.error), LOG_AVVISO)
             return
         end
 
         local ok, army = pcall(JSON.decode, req.text)
         if not ok or type(army) ~= "table" then
-            printToAll("[DEPLOY] File esercito non leggibile: " .. file, "Red")
+            printToAll("[DEPLOY] File esercito non leggibile: " .. file, LOG_AVVISO)
             return
         end
 
@@ -121,7 +121,7 @@ end
 function deploy_planLayout(slot, army)
     local fascia = main_spawnStrip(slot)
     if not fascia then
-        printToAll("[DEPLOY] Nessuna fascia di spawn per " .. main_sideName(slot), "Red")
+        printToAll("[DEPLOY] Nessuna fascia di spawn per " .. main_sideName(slot), LOG_AVVISO)
         return nil
     end
 

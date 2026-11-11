@@ -53,49 +53,42 @@ function main_drawBaseButtons(obj, u, slot, lista)
     local metaProf  = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
     local metaFront = main_cmToTts(meta.fronteCm or CALIBRAZIONE.baseFronteCm)
 
-    -- Seconda fila, sempre (Max 11/11): RIORDINA, INFO e il
-    -- cartellino dei disordini
-    local fissi = {}
+    -- Come IEF (main_drawUnitButtons): RIORDINA, INFO, poi i
+    -- bottoni della fase; tutti sulla stessa riga, appena dietro
+    -- la base, da sinistra; colore del giocatore. Il cartellino
+    -- dei disordini chiude la riga.
+    local tutti = {}
     if not u.generale then
-        table.insert(fissi, { label = "RIORDINA", click = "main_riordinaClick", color = B.riordinaColor,
-            width = 480, tooltip = "Riordina le basi dell'unita' in formazione compatta" })
+        table.insert(tutti, { label = "RIORDINA", click = "main_riordinaClick",
+            tooltip = "Riordina le basi dell'unita' in formazione compatta" })
     end
-    table.insert(fissi, { label = "INFO", click = "main_unitInfoOpen", color = B.infoColor,
-        width = B.infoWidth, tooltip = "Scheda dell'unita' (alt-click chiude)" })
+    table.insert(tutti, { label = "INFO", click = "main_unitInfoOpen",
+        tooltip = "Scheda dell'unita' (alt-click chiude)" })
+    for _, btn in ipairs(lista) do table.insert(tutti, btn) end
     local dis = main_unitDisorders(u.key)
     if dis > 0 then
-        table.insert(fissi, { label = string.format("DIS %d/%d", dis, main_unitDisorderLimit(meta)),
-            click = "main_baseButtonNoop", color = B.disColor, tooltip = "Disordini dell'unita'" })
-    end
-    local nf = #fissi
-    for i, btn in ipairs(fissi) do
-        local x = (i - (nf + 1) / 2) * B.passoX
-        obj.createButton({
-            click_function = btn.click,
-            function_owner = Global,
-            label          = btn.label,
-            position       = { x = -x, y = B.y, z = -(metaProf / 2 + B.dietro + B.passoZ) },
-            rotation       = { x = 0, y = 180, z = 0 },
-            width          = btn.width or B.width, height = B.height, font_size = B.fontSize,
-            color          = btn.color, font_color = B.textColor,
-            tooltip        = btn.tooltip,
-        })
+        table.insert(tutti, { label = string.format("DIS %d/%d", dis, main_unitDisorderLimit(meta)),
+            click = "main_baseButtonNoop", dis = true, tooltip = "Disordini dell'unita'" })
     end
 
-    -- Bottoni della fase, centrati dietro la base
-    local n = #lista
-    for i, btn in ipairs(lista) do
-        local x = (i - (n + 1) / 2) * B.passoX
+    local colore = main_sideMainColor(slot)
+    -- rotazione 180: la x locale positiva è a sinistra di chi
+    -- guarda la base da dietro; si parte dal bordo sinistro
+    local cursore = metaFront / 2
+    for _, btn in ipairs(tutti) do
+        local w = math.max(B.width, #btn.label * B.larghezzaPerLettera)
+        local mezza = w / B.unitaPerTts / 2
         obj.createButton({
             click_function = btn.click,
             function_owner = Global,
             label          = btn.label,
-            position       = { x = -x, y = B.y, z = -(metaProf / 2 + B.dietro) },
+            position       = { x = cursore - mezza, y = B.y, z = -(metaProf / 2 + B.dietro) },
             rotation       = { x = 0, y = 180, z = 0 },
-            width          = btn.width or B.width, height = B.height, font_size = B.fontSize,
-            color          = btn.color or main_sideMainColor(slot), font_color = B.textColor,
+            width          = w, height = B.height, font_size = B.fontSize,
+            color          = btn.dis and B.disColor or colore, font_color = B.textColor,
             tooltip        = btn.tooltip or "",
         })
+        cursore = cursore - 2 * mezza - B.spazio
     end
 end
 -- ============================================================

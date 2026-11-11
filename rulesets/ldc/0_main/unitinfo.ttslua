@@ -86,7 +86,6 @@ function main_unitInfoFixedRows(u, slot)
     table.insert(righe, { "Tipo", tipo.nome or tostring(m.tipo) })
     table.insert(righe, { "Basi", string.format("%d", #u.basi) .. (m.numBasi and m.numBasi ~= #u.basi and (" su " .. m.numBasi) or "") })
     table.insert(righe, { "Morale", tostring(m.morale or "-") })
-    if m.taglia then table.insert(righe, { "Taglia", tostring(m.taglia) }) end
     if m.arma then
         local a = LDC_ARMI[m.arma] or {}
         table.insert(righe, { "Arma", (a.nome or m.arma) .. (fire_maxRangeD and ("  (" .. main_formatD(fire_maxRangeD(u)) .. ")") or "") })

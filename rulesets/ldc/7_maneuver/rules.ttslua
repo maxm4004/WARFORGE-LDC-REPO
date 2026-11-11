@@ -140,46 +140,76 @@ function main_squareCavalryNear(u)
     return nil
 end
 -- ============================================================
--- FUNZIONE: move_canFormSquare(slot, u)
+-- FUNZIONE: move_formationCanChange(slot, u)
+-- Cambio di formazione nella Manovra (9.1): a inizio o fine
+-- movimento, non in carica, non per la marmaglia, non dopo i
+-- Generali; il quadrato non si scioglie con cavalleria nemica
+-- entro 1D. Anche in HOLDS e da pinnata (sul posto).
 -- ============================================================
-function move_canFormSquare(slot, u)
-    if u.generale or main_unitCategory(u.meta) ~= CATEGORIA.FANTERIA then return false, "solo fanteria" end
+function move_formationCanChange(slot, u)
+    if u.generale then return false, "Generale" end
+    if not next(main_formationsOf(u)) then return false, "nessuna formazione" end
     if u.meta.morale and u.meta.morale <= 1 then return false, "marmaglia" end
     if MOVE_STATE.cariche[u.key] then return false, "in carica" end
-    if move_hasMoved(u.key) then return false, "ha gia' mosso (la formazione si cambia a inizio movimento)" end
+    if move_generalsStarted(slot) then return false, "i Generali hanno gia' mosso" end
+    if main_unitFormation(u) == "quadrato" then
+        local cav = main_squareCavalryNear(u)
+        if cav then return false, "cavalleria nemica entro 1D" end
+    end
     return true
 end
 -- ============================================================
--- FUNZIONE: move_clickQuadrato(obj, player_color, alt_click)
--- QUADRATO / SCIOGLI: forma o scioglie il quadrato (9.1).
+-- FUNZIONE: move_btnFormation(player, value, id)
+-- Bottoni della sezione FORMAZIONE del pannello.
 -- ============================================================
-function move_clickQuadrato(obj, player_color, alt_click)
-    if not move_clickOk(player_color) then return end
-    local u, slot, mio = main_baseOwnerClick(obj, player_color)
-    if not u or not mio or slot ~= TURN.activeSide then return end
-    local player = Player[player_color]
-    if main_unitFormation(u) == "quadrato" then
-        local cav = main_squareCavalryNear(u)
-        if cav then
-            warningToColor("Cavalleria nemica entro 1D (" .. (cav.meta.nomeDisplay or cav.key) .. "): il quadrato resta",
-                player, "Yellow", 5, false)
-            return
-        end
-        main_squareExit(u)
-    else
-        local ok, motivo = move_canFormSquare(slot, u)
+function move_btnFormation(player, value, id)
+    if not move_panelPlayerOk(player) then return end
+    local fid = id:match("^move_btn_F_(.+)$")
+    local u, slot = move_panelUnit()
+    if not u or not fid or not main_formationsOf(u)[fid] then return end
+    if main_unitFormation(u) == fid then return end
+    local sch = MOVE_PANEL.schieramento
+    if not sch then
+        local ok, motivo = move_formationCanChange(slot, u)
         if not ok then
-            warningToColor("Non forma il quadrato: " .. tostring(motivo), player, "Yellow", 4, false)
+            warningToColor("Formazione: " .. tostring(motivo), player, "Yellow", 4, true)
             return
         end
-        main_squareForm(u)
     end
-    -- cambio di formazione: niente carica e niente altro movimento
-    MOVE_STATE.formazione = MOVE_STATE.formazione or {}
-    MOVE_STATE.formazione[u.key] = true
-    printToAll(string.format("[Formazione] %s %s", u.meta.nomeDisplay or u.key,
-        main_unitFormation(u) == "quadrato" and "forma il quadrato" or "scioglie il quadrato"), main_sideMainColor(slot))
+    if MOVE_MANUAL then move_manualOff() end
+    if MOVE_PIVOT then move_pivotOff() end
+    table.insert(MOVE_PANEL.history, move_snapshot(u))
+    main_formationApply(u, fid)
+    if not sch then
+        -- 9.1: chi cambia formazione non carica e muove solo alla
+        -- velocità di pinnata
+        MOVE_STATE.formazione = MOVE_STATE.formazione or {}
+        MOVE_STATE.formazione[u.key] = true
+        local v = LDC_VELOCITA[u.meta.tipo or ""] or {}
+        MOVE_STATE.budget[u.key] = math.min(MOVE_STATE.budget[u.key] or 0, v.pinnata or 0)
+    end
+    printToAll(string.format("[Formazione] %s: %s", u.meta.nomeDisplay or u.key,
+        main_formationName(main_unitFormation(u))), LOG_COLORE)
+    move_panelRedraw()
     main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: move_clickFormazione(obj, player_color, alt_click)
+-- FORMAZIONE sulla base nello Schieramento (come IEF): pannello
+-- con la sola sezione FORMAZIONE attiva.
+-- ============================================================
+function move_clickFormazione(obj, player_color, alt_click)
+    if not ENGINE or ENGINE.phase ~= PHASE.DEPLOY then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio or u.generale then return end
+    move_panelOpen(Player[player_color], slot, u, true)
+end
+-- ============================================================
+-- FUNZIONE: deploy_baseButtons(obj, u, slot)
+-- ============================================================
+function deploy_baseButtons(obj, u, slot)
+    if u.generale or not next(main_formationsOf(u)) then return {} end
+    return { { label = "FORMAZIONE", click = "move_clickFormazione", tooltip = "Cambia la formazione dell'unita'" } }
 end
 
 -- ============================================================
@@ -216,7 +246,7 @@ function move_squareStart(player, slot, u, t, onFatto)
     if dis == 0 then
         main_squareForm(t)
         printToAll(string.format("[Quadrato] %s, senza disordini, forma il quadrato d'emergenza",
-            t.meta.nomeDisplay or t.key), main_sideMainColor(t.side))
+            t.meta.nomeDisplay or t.key), LOG_COLORE)
         onFatto()
         return
     end
@@ -262,7 +292,7 @@ function move_squareRoll(ctx, slot, player, rec)
             .. (resta and " resta in formazione" or " forma il quadrato d'emergenza")
         engine_dicePanelOutcome(slot, resta and "Resta in formazione" or "Quadrato!",
             resta and DICEPANEL.okColor or DICEPANEL.koColor)
-        printToAll("[Quadrato] " .. ctx.esito, main_sideMainColor(slot))
+        printToAll("[Quadrato] " .. ctx.esito, LOG_COLORE)
         Wait.time(function() engine_diceCameraReturn(player, 0) end, 2)
         engine_subStep("SQUARE_TEST", slot, "ESITO")
     end, player.color)

@@ -146,6 +146,10 @@ function move_recordStart(u)
         posa[b.getGUID()] = { x = p.x, y = p.y, z = p.z, ry = r.y }
     end
     MOVE_STATE.partenza[u.key] = posa
+    -- formazione di partenza (ANNULLA la rimette)
+    local s = UNIT_STATE[u.key] or {}
+    MOVE_STATE.partenzaFz = MOVE_STATE.partenzaFz or {}
+    MOVE_STATE.partenzaFz[u.key] = { formazione = s.formazione, quadrato = s.quadrato }
     move_pinRecord(u.side, u)
 end
 -- ============================================================
@@ -189,9 +193,15 @@ function move_restore(u)
             end
         end
     end
+    local fz = MOVE_STATE.partenzaFz and MOVE_STATE.partenzaFz[u.key]
+    if fz then
+        UNIT_STATE[u.key] = UNIT_STATE[u.key] or { disordini = 0 }
+        UNIT_STATE[u.key].formazione = fz.formazione
+        UNIT_STATE[u.key].quadrato = fz.quadrato
+    end
     MOVE_STATE.partenza[u.key] = nil
     MOVE_STATE.cariche[u.key] = nil
-    for _, t in ipairs({ "budget", "lati", "dopoCarica", "pannello", "perno", "latiFini", "pinnate" }) do
+    for _, t in ipairs({ "budget", "lati", "dopoCarica", "pannello", "perno", "latiFini", "pinnate", "formazione", "partenzaFz" }) do
         if MOVE_STATE[t] then MOVE_STATE[t][u.key] = nil end
     end
 end
@@ -483,17 +493,8 @@ function move_baseButtons(obj, u, slot)
                 tooltip = "Pannello di movimento (avanti, perno)" })
         end
     end
-    if not u.generale and main_unitCategory(u.meta) == CATEGORIA.FANTERIA and not MOVE_STATE.cariche[u.key]
-       and not main_mirinoActive() and not MOVE_CHARGE_PREP then
-        local inQ = main_unitFormation(u) == "quadrato"
-        if inQ or move_canFormSquare(slot, u) then
-            table.insert(lista, { label = inQ and "SCIOGLI" or "QUADRATO", click = "move_clickQuadrato",
-                color = MOVE.quadratoColor, width = 520,
-                tooltip = inQ and "Scioglie il quadrato (non a 1D da cavalleria nemica)" or "Forma il quadrato (9.1)" })
-        end
-    end
     if u.generale then
-        table.insert(lista, { label = MOVE_CIRCLE[u.key] and "CERCHIO X" or "CERCHIO", click = "move_clickCerchio",
+        table.insert(lista, { label = "MUOVI", click = "move_clickCerchio",
             color = MOVE.muoviColor, width = 480,
             tooltip = "Cerchio del movimento (" .. main_formatD(move_unitLimit(slot, u) or 0) .. "); alt-click: torna alla partenza" })
     end

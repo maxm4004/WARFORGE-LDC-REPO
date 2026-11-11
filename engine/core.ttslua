@@ -5,22 +5,22 @@ function engine_init()
     if DEBUG then print("engine_init") end
 
     if not callHandler then
-        printToAll("ERRORE: callHandler non caricato", "Red")
+        printToAll("ERRORE: callHandler non caricato", LOG_AVVISO or { r = 1, g = 0.75, b = 0.3 })
         return
     end
 
     if not ENGINE or not ENGINE.phases then
-        printToAll("ERRORE: ENGINE.phases non inizializzato", "Red")
+        printToAll("ERRORE: ENGINE.phases non inizializzato", LOG_AVVISO or { r = 1, g = 0.75, b = 0.3 })
         return
     end
 
     if not ENGINE.phase then
-        printToAll("ERRORE: ENGINE.phase non inizializzata", "Red")
+        printToAll("ERRORE: ENGINE.phase non inizializzata", LOG_AVVISO or { r = 1, g = 0.75, b = 0.3 })
         return
     end
 
     if not ENGINE.phases[ENGINE.phase] then
-        printToAll("ERRORE: fase non trovata: " .. tostring(ENGINE.phase), "Red")
+        printToAll("ERRORE: fase non trovata: " .. tostring(ENGINE.phase), LOG_AVVISO or { r = 1, g = 0.75, b = 0.3 })
         return
     end
 
@@ -37,7 +37,7 @@ end
 -- ============================================================
 function engine_validatePhases()
     local function fail(msg)
-        printToAll("[ENGINE] " .. msg, "Red")
+        printToAll("[ENGINE] " .. msg, LOG_AVVISO or { r = 1, g = 0.75, b = 0.3 })
         error(msg)
     end
 
