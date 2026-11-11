@@ -330,7 +330,7 @@ registerHandler("move_squareDone",       function(c, res, s)  return move_square
 
 registerSubRenderer("squareRoll", function(rec, def, step, slot, isActor)
     local c = rec.ctx or {}
-    if not isActor then return { title = def.title, wait = "In attesa di " .. main_sideName(rec.slot) } end
+    if not isActor then return { title = def.title, wait = "In attesa dell'altro giocatore" } end
     if c.aiDadi then return { title = def.title, info = c.scheda and c.scheda.sottotitolo, wait = "Premi Roll" } end
     return { title = def.title, info = c.scheda and c.scheda.sottotitolo, button = step.label, icon = step.icon }
 end)

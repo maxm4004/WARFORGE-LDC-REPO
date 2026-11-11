@@ -428,16 +428,14 @@ function main_waitingText(phase, slot)
 
     if phase.inputMode == INPUT_MODE.ACTIVE then
         if TURN.activeSide and TURN.activeSide ~= slot then
-            local titolo = phase.title or ""
-            titolo = titolo:sub(1, 1) .. titolo:sub(2):lower()
-            return "In attesa di " .. main_sideName(TURN.activeSide) .. " - " .. titolo
+            return "In attesa dell'altro giocatore"
         end
         return nil
     end
 
     if phase.inputMode == INPUT_MODE.OWNER then
         if TURN.completed[slot] and not TURN.completed[altro] then
-            return "In attesa di " .. main_sideName(altro)
+            return "In attesa dell'altro giocatore"
         end
         return nil
     end

@@ -445,7 +445,7 @@ registerSubRenderer("subAction", function(rec, def, step, slot, isActor)
         title  = def.title,
         info   = step.info,
         button = isActor and (step.label or "Avanti") or nil,
-        wait   = (not isActor) and ("In attesa di " .. nomeAltro(slot)) or nil,
+        wait   = (not isActor) and "In attesa dell'altro giocatore" or nil,
     }
 end)
 

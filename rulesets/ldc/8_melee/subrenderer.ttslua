@@ -11,7 +11,7 @@ registerSubRenderer("meleeTiro", function(rec, def, step, slot, isActor)
     local c = rec.ctx or {}
     if not c["entrato" .. slot] then return false end
     if c["rolled" .. slot] then
-        return { title = def.title, wait = "In attesa di " .. main_sideName(main_otherSide(slot)) }
+        return { title = def.title, wait = "In attesa dell'altro giocatore" }
     end
     if c["ritiro" .. slot] then
         return { title = def.title, wait = string.format("Ritira %d dadi: premi Roll", c["ritiro" .. slot]) }
@@ -26,7 +26,7 @@ end)
 registerSubRenderer("meleeRoller", function(rec, def, step, slot, isActor)
     local c = rec.ctx or {}
     if c.roller ~= slot then
-        return { title = def.title, wait = "In attesa di " .. main_sideName(c.roller or main_otherSide(slot)) }
+        return { title = def.title, wait = "In attesa dell'altro giocatore" }
     end
     if c["aiDadi" .. slot] then
         return { title = def.title, wait = step.label .. ": premi Roll" }

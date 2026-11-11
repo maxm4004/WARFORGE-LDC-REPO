@@ -269,7 +269,7 @@ registerHandler("main_divDone",       function(c, res, s)  return main_divDone(c
 
 registerSubRenderer("divRoll", function(rec, def, step, slot, isActor)
     local c = rec.ctx or {}
-    if not isActor then return { title = def.title, wait = "In attesa di " .. main_sideName(rec.slot) } end
+    if not isActor then return { title = def.title, wait = "In attesa dell'altro giocatore" } end
     if c.aiDadi then return { title = def.title, info = main_divName(rec.slot, c.div), wait = "Premi Roll" } end
     return { title = def.title, info = main_divName(rec.slot, c.div), button = step.label, icon = step.icon }
 end)

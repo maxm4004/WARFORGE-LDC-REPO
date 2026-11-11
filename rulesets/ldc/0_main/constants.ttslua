@@ -205,11 +205,13 @@ CAMERA_ZONES = {}
 -- ------------------------------------------------------------
 -- Barra di attesa al posto dei bottoni di fase
 WAITPANEL = {
-    bg        = "rgba(0,0,0,0.70)",
-    textColor = "#FFD833",    -- oro IEF, ben visibile (Max 11/11)
-    fontSize  = 24,
-    width     = 620,
-    height    = 56,
+    -- uguale alla barra dei bottoni di fase che sostituisce
+    -- (panelBtnDown: 450 x 50, nero al 35%) (Max 12/11)
+    bg        = "rgba(0,0,0,0.35)",
+    textColor = "Yellow",
+    fontSize  = 16,
+    width     = 450,
+    height    = 50,
 }
 
 CENTERPANEL = {
