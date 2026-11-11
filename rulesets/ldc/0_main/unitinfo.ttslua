@@ -91,7 +91,8 @@ function main_unitInfoFixedRows(u, slot)
         local a = LDC_ARMI[m.arma] or {}
         table.insert(righe, { "Arma", (a.nome or m.arma) .. (fire_maxRangeD and ("  (" .. main_formatD(fire_maxRangeD(u)) .. ")") or "") })
     end
-    if m.formazione then table.insert(righe, { "Formazione", tostring(m.formazione) }) end
+    local fz = main_unitFormation(u)
+    if fz then table.insert(righe, { "Formazione", tostring(fz) }) end
     local dis, lim = main_unitDisorders(u.key), main_unitDisorderLimit(m)
     table.insert(righe, { "Disordini", string.format("%d / %d", dis, lim),
         dis == 0 and U.okColor or (dis >= lim and U.koColor or U.warnColor) })

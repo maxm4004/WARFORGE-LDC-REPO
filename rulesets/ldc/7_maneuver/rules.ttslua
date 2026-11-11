@@ -1,0 +1,321 @@
+-- ============================================================
+-- WARFORGE LDC — 7_maneuver/rules.ttslua
+-- Regole di manovra del regolamento LDC (cap. 9):
+--   9.3 unità pinnate
+--   9.4 interpenetrazioni (stessa Divisione, mai fermarsi sopra)
+--   9.1 / 11 i Generali muovono dopo tutte le altre unità
+--   9.1 quadrato: si forma / si scioglie a inizio movimento,
+--       non muove; vicino alla cavalleria non si scioglie
+--   9.8 quadrato d'emergenza (test nella sottofase SQUARE_TEST)
+--   9.6 una sola unità per lato
+-- ============================================================
+
+-- ============================================================
+--                         9.3 PINNATE
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_pinnersLive(slot, u)
+-- Nemici che pinnano u adesso: u è nell'arco frontale (cono di
+-- LDC_CARICA_ARCO gradi dal primo rango) di un'unità nemica entro
+-- MOVE.pinD. Gli skirmish pinnano e sono pinnati solo da skirmish.
+-- Ritorna la lista delle chiavi (vuota se nessuno).
+-- ============================================================
+function move_pinnersLive(slot, u)
+    local out = {}
+    if u.generale then return out end
+    local mioSk = main_unitCategory(u.meta) == CATEGORIA.SKIRMISH
+    for key, t in pairs(main_unitsOfSide(main_otherSide(slot))) do
+        local suoSk = main_unitCategory(t.meta) == CATEGORIA.SKIRMISH
+        if mioSk == suoSk and main_unitFormation(t) ~= "quadrato" then
+            local d = main_unitDistanceD(t, u)
+            if d and d <= MOVE.pinD + MOVE.tolleranzaD then
+                local rects = {}
+                for _, b in ipairs(main_unitFirstRank(t)) do table.insert(rects, fire_rectIEF(b)) end
+                local cono = shoot_coneOf(rects, LDC_CARICA_ARCO)
+                if fire_unitInCone(cono, u) then table.insert(out, key) end
+            end
+        end
+    end
+    table.sort(out)
+    return out
+end
+-- ============================================================
+-- FUNZIONE: move_pinInfo(slot, u)
+-- Stato di pinnata deciso alla PARTENZA del movimento (si
+-- fissa la prima volta che l'unità muove, move_recordStart).
+-- Ritorna nil oppure { chi = {chiavi}, libera = bool }:
+-- libera = cavalleria pinnata solo da fanteria/artiglieria, che
+-- muove alla velocità di pinnata; le altre possono solo caricare
+-- chi le pinna, cambiare formazione o fare perno di 45°.
+-- ============================================================
+function move_pinInfo(slot, u)
+    if u.generale then return nil end
+    MOVE_STATE.pinnate = MOVE_STATE.pinnate or {}
+    local chi = MOVE_STATE.pinnate[u.key]
+    if chi == nil then chi = move_pinnersLive(slot, u) end
+    if not chi or #chi == 0 then return nil end
+    local libera = main_unitCategory(u.meta) == CATEGORIA.CAVALLERIA
+    if libera then
+        for _, k in ipairs(chi) do
+            local t = main_unit(k)
+            if t and main_unitCategory(t.meta) == CATEGORIA.CAVALLERIA then libera = false end
+        end
+    end
+    return { chi = chi, libera = libera }
+end
+-- Fissa lo stato di pinnata alla partenza
+function move_pinRecord(slot, u)
+    MOVE_STATE.pinnate = MOVE_STATE.pinnate or {}
+    if MOVE_STATE.pinnate[u.key] == nil and not u.generale then
+        MOVE_STATE.pinnate[u.key] = move_pinnersLive(slot, u)
+    end
+end
+-- Nomi dei nemici che pinnano
+function move_pinNames(info)
+    local nomi = {}
+    for _, k in ipairs(info.chi) do
+        local t = main_unit(k)
+        table.insert(nomi, t and (t.meta.nomeDisplay or k) or k)
+    end
+    return table.concat(nomi, ", ")
+end
+-- Gradi di perno ancora concessi all'unità pinnata (45 in tutto)
+function move_pinPivotLeft(u)
+    MOVE_STATE.perno = MOVE_STATE.perno or {}
+    return math.max(0, MOVE.pinPernoGradi - (MOVE_STATE.perno[u.key] or 0))
+end
+
+-- ============================================================
+--                  9.1 / 11  GENERALI PER ULTIMI
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_generalsStarted(slot)
+-- Vero se un Generale dello schieramento ha già mosso: da quel
+-- momento le unità non muovono più.
+-- ============================================================
+function move_generalsStarted(slot)
+    for key, g in pairs(main_generalsOfSide(slot)) do
+        if move_hasMoved(key) then return true, g end
+    end
+    return false
+end
+
+-- ============================================================
+--                    9.4 INTERPENETRAZIONI
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_canInterpenetrate(u, t)
+-- u può attraversare t: amica della stessa Divisione.
+-- ============================================================
+function move_canInterpenetrate(u, t)
+    return t and u.side == t.side and u.meta.divisione ~= nil and u.meta.divisione == t.meta.divisione
+end
+-- ============================================================
+-- FUNZIONE: move_overlapAny(slot, u)
+-- Chiave dell'unità (qualsiasi) sotto le basi di u, o nil.
+-- ============================================================
+function move_overlapAny(slot, u)
+    return move_overlapKey(u, slot)
+end
+
+-- ============================================================
+--                         QUADRATO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_squareCavalryNear(u)
+-- Cavalleria nemica entro 1D (9.1: il quadrato non cambia
+-- formazione se è a 1D da cavalleria in grado di caricarlo).
+-- ============================================================
+function main_squareCavalryNear(u)
+    for _, t in pairs(main_unitsOfSide(main_otherSide(u.side))) do
+        if main_unitCategory(t.meta) == CATEGORIA.CAVALLERIA then
+            local d = main_unitDistanceD(u, t)
+            if d and d <= MOVE.pinD + MOVE.tolleranzaD then return t end
+        end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: move_canFormSquare(slot, u)
+-- ============================================================
+function move_canFormSquare(slot, u)
+    if u.generale or main_unitCategory(u.meta) ~= CATEGORIA.FANTERIA then return false, "solo fanteria" end
+    if u.meta.morale and u.meta.morale <= 1 then return false, "marmaglia" end
+    if MOVE_STATE.cariche[u.key] then return false, "in carica" end
+    if move_hasMoved(u.key) then return false, "ha gia' mosso (la formazione si cambia a inizio movimento)" end
+    return true
+end
+-- ============================================================
+-- FUNZIONE: move_clickQuadrato(obj, player_color, alt_click)
+-- QUADRATO / SCIOGLI: forma o scioglie il quadrato (9.1).
+-- ============================================================
+function move_clickQuadrato(obj, player_color, alt_click)
+    if not move_clickOk(player_color) then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio or slot ~= TURN.activeSide then return end
+    local player = Player[player_color]
+    if main_unitFormation(u) == "quadrato" then
+        local cav = main_squareCavalryNear(u)
+        if cav then
+            warningToColor("Cavalleria nemica entro 1D (" .. (cav.meta.nomeDisplay or cav.key) .. "): il quadrato resta",
+                player, "Yellow", 5, false)
+            return
+        end
+        main_squareExit(u)
+    else
+        local ok, motivo = move_canFormSquare(slot, u)
+        if not ok then
+            warningToColor("Non forma il quadrato: " .. tostring(motivo), player, "Yellow", 4, false)
+            return
+        end
+        main_squareForm(u)
+    end
+    -- cambio di formazione: niente carica e niente altro movimento
+    MOVE_STATE.formazione = MOVE_STATE.formazione or {}
+    MOVE_STATE.formazione[u.key] = true
+    printToAll(string.format("[Formazione] %s %s", u.meta.nomeDisplay or u.key,
+        main_unitFormation(u) == "quadrato" and "forma il quadrato" or "scioglie il quadrato"), main_sideMainColor(slot))
+    main_refreshBaseButtons()
+end
+
+-- ============================================================
+--              9.8 QUADRATO D'EMERGENZA (SQUARE_TEST)
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: move_squareNeeded(u, t)
+-- Cavalleria che carica fanteria non in quadrato.
+-- ============================================================
+function move_squareNeeded(u, t)
+    return main_unitCategory(u.meta) == CATEGORIA.CAVALLERIA
+       and main_unitCategory(t.meta) == CATEGORIA.FANTERIA
+       and main_unitFormation(t) ~= "quadrato"
+end
+-- ============================================================
+-- FUNZIONE: move_squareSoglia(t)
+-- Il dado deve superare morale +1 (+2 in colonna d'assalto);
+-- il 6 riesce sempre.
+-- ============================================================
+function move_squareSoglia(t)
+    local extra = (main_unitFormation(t) == "colonna_attacco") and 2 or 1
+    return math.min((t.meta.morale or 3) + extra + 1, 6)
+end
+-- ============================================================
+-- FUNZIONE: move_squareStart(player, slot, u, t, onFatto)
+-- Prima del movimento di carica. Fanteria senza disordini:
+-- quadrato automatico. Altrimenti chi carica tira 1D6 per ogni
+-- disordine: se un dado riesce la fanteria resta com'è, se no
+-- forma il quadrato. onFatto() poi muove la carica.
+-- ============================================================
+function move_squareStart(player, slot, u, t, onFatto)
+    local dis = main_unitDisorders(t.key)
+    if dis == 0 then
+        main_squareForm(t)
+        printToAll(string.format("[Quadrato] %s, senza disordini, forma il quadrato d'emergenza",
+            t.meta.nomeDisplay or t.key), main_sideMainColor(t.side))
+        onFatto()
+        return
+    end
+    MOVE_SQUARE_DONE = onFatto
+    engine_diceClearLastRoll(slot)
+    local soglia = move_squareSoglia(t)
+    local ctx = { slot = slot, att = u.key, dif = t.key, dadi = dis, soglia = soglia }
+    ctx.scheda = {
+        titolo      = "QUADRATO D'EMERGENZA",
+        sottotitolo = string.format("%s carica %s", u.meta.nomeDisplay or u.key, t.meta.nomeDisplay or t.key),
+        righe       = {
+            { "Dadi (uno per disordine)", dis .. "D6" },
+            { "Morale della fanteria", tostring(t.meta.morale or 3) },
+            { "Colonna d'assalto", main_unitFormation(t) == "colonna_attacco" and "+2" or "no" },
+            { "Un dado riuscito", "resta in formazione" },
+            { "Nessuno", "forma il quadrato" },
+        },
+        serve       = string.format("Serve %d+ (o 6) su %dD6", soglia, dis),
+        soglia      = soglia,
+    }
+    engine_subOpen("SQUARE_TEST", slot, ctx, "move_squareDone")
+end
+function move_squareEnter(ctx, slot, rec)
+    engine_dicePanelOpen(slot, ctx.scheda)
+end
+function move_squareFocus(ctx, slot, player, rec)
+    ctx.aiDadi = true
+    if player then engine_diceCameraZoom(player) end
+    if not engine_dicePanelIsOpen(slot) then engine_dicePanelOpen(slot, ctx.scheda) end
+    engine_subRedraw()
+end
+function move_squareRoll(ctx, slot, player, rec)
+    if ctx.tirando or ctx.esito then return end
+    ctx.tirando = true
+    engine_diceClearLastRoll(slot)
+    engine_diceSetNext(slot, ctx.dadi, ctx.soglia)
+    engine_diceThrowFromBag(slot, nil, function(risultati, successi)
+        ctx.tirando = nil
+        local t = main_unit(ctx.dif)
+        local resta = (successi or 0) > 0
+        if t and not resta then main_squareForm(t) end
+        ctx.esito = (t and (t.meta.nomeDisplay or t.key) or ctx.dif)
+            .. (resta and " resta in formazione" or " forma il quadrato d'emergenza")
+        engine_dicePanelOutcome(slot, resta and "Resta in formazione" or "Quadrato!",
+            resta and DICEPANEL.okColor or DICEPANEL.koColor)
+        printToAll("[Quadrato] " .. ctx.esito, main_sideMainColor(slot))
+        Wait.time(function() engine_diceCameraReturn(player, 0) end, 2)
+        engine_subStep("SQUARE_TEST", slot, "ESITO")
+    end, player.color)
+end
+function move_squareEsitoEnter(ctx, slot, rec)
+    Wait.time(function()
+        local r = engine_subPrivate(slot)
+        if r == rec then engine_subClose("SQUARE_TEST", slot, {}) end
+    end, MORALE_ESITO_SECONDS)
+end
+function move_squareDone(ctx, result, slot)
+    engine_dicePanelCloseAfter(slot, 1)
+    local f = MOVE_SQUARE_DONE
+    MOVE_SQUARE_DONE = nil
+    if f then f() end
+end
+
+registerSubphases({
+    SQUARE_TEST = {
+        scope   = "player",
+        title   = "QUADRATO D'EMERGENZA",
+        first   = "ROLL",
+        onEnter = "move_squareEnter",
+        steps = {
+            ROLL  = { render = "squareRoll",  actor = "owner", icon = "morale", label = "Tira per il quadrato", onClick = "move_squareFocus", onRoll = "move_squareRoll" },
+            ESITO = { render = "squareEsito", actor = "owner", onEnter = "move_squareEsitoEnter", onRestore = "move_squareEsitoEnter" },
+        },
+    },
+})
+registerHandler("move_squareEnter",      function(c, s, r)    return move_squareEnter(c, s, r) end)
+registerHandler("move_squareFocus",      function(c, s, p, r) return move_squareFocus(c, s, p, r) end)
+registerHandler("move_squareRoll",       function(c, s, p, r) return move_squareRoll(c, s, p, r) end)
+registerHandler("move_squareEsitoEnter", function(c, s, r)    return move_squareEsitoEnter(c, s, r) end)
+registerHandler("move_squareDone",       function(c, res, s)  return move_squareDone(c, res, s) end)
+
+registerSubRenderer("squareRoll", function(rec, def, step, slot, isActor)
+    local c = rec.ctx or {}
+    if not isActor then return { title = def.title, wait = "In attesa di " .. main_sideName(rec.slot) } end
+    if c.aiDadi then return { title = def.title, info = c.scheda and c.scheda.sottotitolo, wait = "Premi Roll" } end
+    return { title = def.title, info = c.scheda and c.scheda.sottotitolo, button = step.label, icon = step.icon }
+end)
+registerSubRenderer("squareEsito", function(rec, def, step, slot, isActor)
+    local c = rec.ctx or {}
+    return { title = def.title, info = c.esito, wait = "TEST ESEGUITO" }
+end)
+
+-- ============================================================
+-- FUNZIONE: move_onRoll(player, slot)
+-- Roll della fase senza sottofase aperta: test di Divisione in
+-- coda, altrimenti avviso.
+-- ============================================================
+function move_onRoll(player, slot)
+    if main_divOnRoll(player, slot) then return end
+    warningToColor("Nessun tiro da fare in questa fase", player, "Yellow", 3, false)
+end
+registerHandler("move_onRoll", function(p, s) return move_onRoll(p, s) end)

@@ -27,7 +27,7 @@
 -- Basi che combattono: primo e secondo rango (quadrato: tutte).
 -- ============================================================
 function melee_ranks(u)
-    if u.meta.formazione == "quadrato" then return #u.basi end
+    if main_unitFormation(u) == "quadrato" then return #u.basi end
     local f = main_baseForward(u.comando)
     local prof = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
     local max = -math.huge
@@ -67,6 +67,11 @@ function melee_compute(u, t, colpito)
             table.insert(righe, { "Disordinata", "-1D6" })
         end
     end
+    -- cavalleria contro quadrato (10): dadi dimezzati (per difetto)
+    if catU == CATEGORIA.CAVALLERIA and main_unitFormation(t) == "quadrato" then
+        dadi = math.floor(dadi / 2)
+        table.insert(righe, { "Cavalleria contro quadrato", "dadi / 2" })
+    end
     -- colpito sul fianco/retro (10): dadi dimezzati (per difetto)
     if colpito == "FIANCO" or colpito == "RETRO" then
         dadi = math.floor(dadi / 2)
@@ -79,10 +84,10 @@ function melee_compute(u, t, colpito)
     mod(tipoU == "CAV_CORAZZIERI", "Corazzieri")
     mod(tipoU == "CAV_LANCIERI" and catT == CATEGORIA.CAVALLERIA, "Lancieri contro cavalleria")
     mod((tipoU == "CAV_CORAZZIERI" or tipoU == "CAV_DRAGONI") and tipoT == "CAV_LEGGERA", "Contro cavalleria leggera")
-    mod(catU == CATEGORIA.CAVALLERIA and catT == CATEGORIA.FANTERIA and t.meta.formazione ~= "quadrato", "Cavalleria contro fanteria")
+    mod(catU == CATEGORIA.CAVALLERIA and catT == CATEGORIA.FANTERIA and main_unitFormation(t) ~= "quadrato", "Cavalleria contro fanteria")
     mod(catT == CATEGORIA.ARTIGLIERIA, "Contro artiglieria sganciata")
-    mod(u.meta.formazione == "colonna_attacco" and t.meta.formazione == "linea", "Colonna d'assalto contro linea")
-    mod(u.meta.formazione == "quadrato" and catT == CATEGORIA.CAVALLERIA, "Quadrato contro cavalleria")
+    mod(main_unitFormation(u) == "colonna_attacco" and main_unitFormation(t) == "linea", "Colonna d'assalto contro linea")
+    mod(main_unitFormation(u) == "quadrato" and catT == CATEGORIA.CAVALLERIA, "Quadrato contro cavalleria")
     for _, testo in ipairs(mods) do table.insert(righe, { testo, "+1" }) end
     local soglia = math.max(M.soglia - #mods, M.sogliaMin)
 
@@ -575,7 +580,7 @@ function melee_result(ctx)
         engine_subStep("MELEE_RESOLVE", nil, "ESCI")
         return
     end
-    if catP == CATEGORIA.FANTERIA and catV == CATEGORIA.CAVALLERIA and uP.meta.formazione ~= "quadrato" then
+    if catP == CATEGORIA.FANTERIA and catV == CATEGORIA.CAVALLERIA and main_unitFormation(uP) ~= "quadrato" then
         ctx.esito = (uP.meta.nomeDisplay or uP.key) .. " distrutta dalla cavalleria"
         main_unitBreak(uP.key, "fanteria battuta dalla cavalleria")
         engine_subStep("MELEE_RESOLVE", nil, "ESCI")

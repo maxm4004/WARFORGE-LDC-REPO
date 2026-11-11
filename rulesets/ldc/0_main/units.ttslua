@@ -29,7 +29,7 @@ function main_unitsOfSide(slot)
         if m.ruolo == DEPLOY_RUOLO.UNITA and m.unitKey and not UNIT_BROKEN[m.unitKey] then
             local u = unita[m.unitKey]
             if not u then
-                u = { key = m.unitKey, meta = m, basi = {} }
+                u = { key = m.unitKey, meta = m, basi = {}, side = slot }
                 unita[m.unitKey] = u
             end
             table.insert(u.basi, b.obj)
@@ -54,7 +54,7 @@ function main_generalsOfSide(slot)
     for _, b in ipairs(main_basesOfSide(slot)) do
         local m = b.meta
         if m.ruolo ~= DEPLOY_RUOLO.UNITA and m.unitKey then
-            gen[m.unitKey] = { key = m.unitKey, meta = m, basi = { b.obj }, comando = b.obj, generale = true }
+            gen[m.unitKey] = { key = m.unitKey, meta = m, basi = { b.obj }, comando = b.obj, generale = true, side = slot }
         end
     end
     return gen
@@ -225,4 +225,102 @@ end
 function main_unitsReset()
     UNIT_STATE  = {}
     UNIT_BROKEN = {}
+end
+
+-- ============================================================
+--                  FORMAZIONE E QUADRATO
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_unitFormation(u)
+-- Formazione in gioco: "quadrato" se l'unità ha formato il
+-- quadrato (UNIT_STATE), altrimenti quella del JSON.
+-- ============================================================
+function main_unitFormation(u)
+    local s = u and UNIT_STATE[u.key]
+    if s and s.quadrato then return "quadrato" end
+    return u and u.meta and u.meta.formazione or nil
+end
+-- ============================================================
+-- FUNZIONE: main_squareForm(u)
+-- Dispone le basi in quadrato (9.1) attorno al centro
+-- dell'unità: una base per lato rivolta all'esterno (la base di
+-- comando sul fronte), le altre al centro. Salva la disposizione
+-- di prima (relativa al centro) per scioglierlo.
+-- ============================================================
+function main_squareForm(u)
+    if not u or u.generale then return end
+    local ref = u.comando
+    local yaw = ref.getRotation().y
+    local a = math.rad(yaw)
+    local f = { x = math.sin(a), z = math.cos(a) }
+    local r = { x = f.z, z = -f.x }
+    local rp = main_unitCenter(u)
+    -- disposizione di prima, attorno al centro dell'unità
+    local prima = {}
+    for _, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        local dx, dz = p.x - rp.x, p.z - rp.z
+        prima[b.getGUID()] = { f = dx * f.x + dz * f.z, r = dx * r.x + dz * r.z, ry = b.getRotation().y - yaw }
+    end
+    local s = UNIT_STATE[u.key] or { disordini = 0 }
+    UNIT_STATE[u.key] = s
+    s.quadrato = { prima = prima }
+
+    local c = main_unitCenter(u)
+    local larg = main_cmToTts(u.meta.fronteCm or CALIBRAZIONE.baseFronteCm)
+    local prof = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
+    local off = math.max(larg / 2, prof) + prof / 2
+    -- ordine: comando, poi le altre per numero di base
+    local basi = { ref }
+    local altre = {}
+    for _, b in ipairs(u.basi) do if b ~= ref then table.insert(altre, b) end end
+    table.sort(altre, function(x, y)
+        return ((main_baseMeta(x) or {}).baseSeq or 0) < ((main_baseMeta(y) or {}).baseSeq or 0)
+    end)
+    for _, b in ipairs(altre) do table.insert(basi, b) end
+    -- fronte, retro, destra, sinistra, poi al centro
+    local lati = {
+        { df = off,  dr = 0,    rot = 0 },
+        { df = -off, dr = 0,    rot = 180 },
+        { df = 0,    dr = off,  rot = 90 },
+        { df = 0,    dr = -off, rot = 270 },
+    }
+    local centro = 0
+    local nCentro = math.max(#basi - 4, 0)
+    for i, b in ipairs(basi) do
+        local l = lati[i]
+        if not l then
+            centro = centro + 1
+            l = { df = (nCentro == 1) and 0 or ((centro == 1) and prof / 2 or -prof / 2), dr = 0, rot = 0 }
+        end
+        local p = b.getPosition()
+        b.setRotation({ x = 0, y = yaw + l.rot, z = 0 })
+        b.setPosition({ x = c.x + f.x * l.df + r.x * l.dr, y = p.y, z = c.z + f.z * l.df + r.z * l.dr })
+    end
+end
+-- ============================================================
+-- FUNZIONE: main_squareExit(u)
+-- Scioglie il quadrato: torna la disposizione di prima, attorno
+-- al centro del quadrato e col fronte della base di comando.
+-- ============================================================
+function main_squareExit(u)
+    local s = u and UNIT_STATE[u.key]
+    if not s or not s.quadrato then return end
+    local prima = s.quadrato.prima or {}
+    s.quadrato = nil
+    local ref = u.comando
+    local yaw = ref.getRotation().y
+    local a = math.rad(yaw)
+    local f = { x = math.sin(a), z = math.cos(a) }
+    local r = { x = f.z, z = -f.x }
+    local rp = main_unitCenter(u)
+    for _, b in ipairs(u.basi) do
+        local q = prima[b.getGUID()]
+        if q then
+            local p = b.getPosition()
+            b.setPosition({ x = rp.x + f.x * q.f + r.x * q.r, y = p.y, z = rp.z + f.z * q.f + r.z * q.r })
+            b.setRotation({ x = 0, y = yaw + q.ry, z = 0 })
+        end
+    end
 end

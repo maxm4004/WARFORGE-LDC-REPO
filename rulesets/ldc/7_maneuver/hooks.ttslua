@@ -8,7 +8,8 @@
 -- ============================================================
 function before_maneuver(phaseName, phase)
     MOVE_STATE = { side = TURN.activeSide, turno = ENGINE.turn, partenza = {}, cariche = {},
-                   budget = {}, lati = {}, dopoCarica = {}, pannello = {} }
+                   budget = {}, lati = {}, dopoCarica = {}, pannello = {},
+                   pinnate = {}, perno = {}, formazione = {}, latiFini = {} }
     MOVE_PANEL, MOVE_MANUAL, MOVE_PIVOT, MOVE_CHARGE_PREP = nil, nil, nil, nil
     MOVE_CIRCLE = {}
     MOVE_DRAG = {}

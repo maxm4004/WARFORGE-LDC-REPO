@@ -89,14 +89,31 @@ function move_pathLimitD(u, slot, dir, maxD)
     local migliore, chi, nemico = main_dToTts(maxD), nil, false
     local mie = {}
     for _, b in ipairs(u.basi) do table.insert(mie, move_rect(b)) end
+    local attraverso = {}   -- 9.4: amiche della stessa Divisione
     for _, o in ipairs(move_otherBases(u, slot)) do
         local rb = move_rect(o.obj)
+        local passa = not o.nemico and move_canInterpenetrate(u, main_unit(o.key))
         for _, ra in ipairs(mie) do
             local t1, t2 = move_rectSweepInterval(ra, dir.x, dir.z, rb, 0.01)
             if t1 and t2 > 0 then
-                local d = math.max(0, t1)
-                if o.nemico then d = math.max(0, d - main_dToTts(MOVE.margineNemicoD)) end
-                if d < migliore then migliore, chi, nemico = d, o.key, o.nemico end
+                if passa then
+                    table.insert(attraverso, { t1 = t1, t2 = t2, key = o.key })
+                else
+                    local d = math.max(0, t1)
+                    if o.nemico then d = math.max(0, d - main_dToTts(MOVE.margineNemicoD)) end
+                    if d < migliore then migliore, chi, nemico = d, o.key, o.nemico end
+                end
+            end
+        end
+    end
+    -- si attraversano ma non ci si ferma sopra: si arretra fino
+    -- al primo punto libero
+    local cambiato = true
+    while cambiato do
+        cambiato = false
+        for _, a in ipairs(attraverso) do
+            if migliore > a.t1 + 1e-6 and migliore < a.t2 - 1e-6 then
+                migliore, chi, nemico, cambiato = math.max(0, a.t1), a.key, false, true
             end
         end
     end
@@ -212,7 +229,8 @@ function move_snapshot(u)
         pos[b.getGUID()] = { x = p.x, y = p.y, z = p.z }
         rot[b.getGUID()] = { x = r.x, y = r.y, z = r.z }
     end
-    return { pos = pos, rot = rot, budget = MOVE_STATE.budget and MOVE_STATE.budget[u.key] }
+    return { pos = pos, rot = rot, budget = MOVE_STATE.budget and MOVE_STATE.budget[u.key],
+             perno = MOVE_STATE.perno and MOVE_STATE.perno[u.key] }
 end
 -- ============================================================
 -- FUNZIONE: move_restoreSnapshot(u, snap)
@@ -226,6 +244,8 @@ function move_restoreSnapshot(u, snap)
     end
     MOVE_STATE.budget = MOVE_STATE.budget or {}
     MOVE_STATE.budget[u.key] = snap.budget
+    MOVE_STATE.perno = MOVE_STATE.perno or {}
+    MOVE_STATE.perno[u.key] = snap.perno
 end
 
 -- ============================================================
@@ -365,7 +385,8 @@ function move_panelOpen(player, slot, u)
     end
     move_recordStart(u)
     move_budget(slot, u)
-    if (MOVE_STATE.budget[u.key] or 0) <= 0.001 and not move_hasMoved(u.key) then
+    local pin = move_pinInfo(slot, u)
+    if (MOVE_STATE.budget[u.key] or 0) <= 0.001 and not move_hasMoved(u.key) and not pin then
         warningToColor("Movimento gia' eseguito in questo turno", player, "Yellow", 5, true)
         return false
     end
@@ -725,8 +746,17 @@ function move_pivotOn(dir)
     local larghezza = math.sqrt((dx.x - sx.x) ^ 2 + (dx.z - sx.z) ^ 2)
     if larghezza < 0.01 then return end
     local player = MOVE_PANEL.player
+    local maxGradi = MOVE.pernoMaxGradi
+    local pin = move_pinInfo(slot, u)
+    if pin and not pin.libera then
+        maxGradi = math.min(maxGradi, move_pinPivotLeft(u))
+        if maxGradi < 0.5 then
+            if MOVE_PANEL.player then warningToColor("Pinnata: perno di 45 gradi gia' usato", MOVE_PANEL.player, "Yellow", 4, true) end
+            return
+        end
+    end
     local m = { key = u.key, sx = sx, dx = dx, fwd = f, larghezza = larghezza,
-                maxAng = math.rad(MOVE.pernoMaxGradi), start = {}, rot = {}, colore = player and player.color,
+                maxAng = math.rad(maxGradi), start = {}, rot = {}, colore = player and player.color,
                 ang = 0, maniglie = {}, hStart = {}, bloccate = {}, soloDir = dir or "left" }
     for _, b in ipairs(u.basi) do
         local p, r = b.getPosition(), b.getRotation()
@@ -858,6 +888,8 @@ function move_pivotFinalizza(ang)
         return
     end
     table.insert(MOVE_PANEL.history, snap)
+    MOVE_STATE.perno = MOVE_STATE.perno or {}
+    MOVE_STATE.perno[u.key] = (MOVE_STATE.perno[u.key] or 0) + math.abs(math.deg(ang))
     if MOVE_PANEL.player then
         warningToColor(string.format("Perno %s di %d gradi", dir == "left" and "Sn" or "Ds",
             math.floor(math.abs(math.deg(ang)) + 0.5)), MOVE_PANEL.player, "White", 4, false)

@@ -74,12 +74,12 @@ function move_chargeSideStart(u, t)
     local a, b = move_frontCorners(u)
     local centro = a and { x = (a.x + b.x) / 2, z = (a.z + b.z) / 2 } or main_unitCenter(u)
     local v, w = dot(centro, tf), dot(centro, tr)
-    if t.meta.formazione == "quadrato" or v >= fronte - 0.01 then
-        return "FRONTE", { x = -tf.x, z = -tf.z }
+    if main_unitFormation(t) == "quadrato" or v >= fronte - 0.01 then
+        return "FRONTE", { x = -tf.x, z = -tf.z }, "FRONTE"
     end
-    if w < sx then return "FIANCO", { x = tr.x, z = tr.z } end
-    if w > dx then return "FIANCO", { x = -tr.x, z = -tr.z } end
-    return "RETRO", { x = tf.x, z = tf.z }
+    if w < sx then return "FIANCO", { x = tr.x, z = tr.z }, "FIANCO_A" end
+    if w > dx then return "FIANCO", { x = -tr.x, z = -tr.z }, "FIANCO_B" end
+    return "RETRO", { x = tf.x, z = tf.z }, "RETRO"
 end
 -- ============================================================
 -- FUNZIONE: move_chargeAlign(u, t, lato, dir)
@@ -261,9 +261,23 @@ function move_chargeConfirm(player, value, id)
     if MOVE_PANEL and MOVE_PANEL.key == u.key then move_panelClose() end
     move_recordStart(u)
     MOVE_STATE.cariche[u.key] = t.key
-    move_chargeExecute(player, prep.slot, u, t)
-    move_chargeListRefresh()
-    main_refreshBaseButtons()
+    local _, _, latoFine = move_chargeSideStart(u, t)
+    MOVE_STATE.latiFini = MOVE_STATE.latiFini or {}
+    MOVE_STATE.latiFini[u.key] = latoFine
+    local function muovi()
+        local u2 = main_unitsOfSide(prep.slot)[prep.key]
+        local t2 = main_unitsOfSide(main_otherSide(prep.slot))[prep.target]
+        if u2 and t2 then move_chargeExecute(player, prep.slot, u2, t2) end
+        move_chargeListRefresh()
+        main_refreshBaseButtons()
+    end
+    -- 9.8: cavalleria contro fanteria non in quadrato
+    if move_squareNeeded(u, t) then
+        move_squareStart(player, prep.slot, u, t, muovi)
+        main_refreshBaseButtons()
+        return
+    end
+    muovi()
 end
 -- ============================================================
 -- FUNZIONE: move_chargeExecute(player, slot, u, t)
@@ -272,6 +286,24 @@ end
 function move_chargeExecute(player, slot, u, t)
     local latoPartenza, dirLato = move_chargeSideStart(u, t)
     local dritto, f = move_chargeStraightD(u, t)
+    -- 9.6: dritto verso il bersaglio con un perno iniziale di 45°
+    if not dritto then
+        local fc = move_frontCentre(u)
+        local migliore, dove = nil, nil
+        for _, b in ipairs(t.basi) do
+            local p = b.getPosition()
+            local d = (p.x - fc.x) ^ 2 + (p.z - fc.z) ^ 2
+            if not migliore or d < migliore then migliore, dove = d, p end
+        end
+        if dove then
+            local vx, vz = dove.x - fc.x, dove.z - fc.z
+            local ang = move_angolo(f.x * vz - f.z * vx, f.x * vx + f.z * vz)
+            local lim = math.rad(MOVE.caricaPernoGradi)
+            if ang > lim then ang = lim elseif ang < -lim then ang = -lim end
+            move_rotateUnit(u.basi, { x = fc.x, z = fc.z }, ang)
+            dritto, f = move_chargeStraightD(u, t)
+        end
+    end
     local percorso
     if dritto then
         percorso = dritto

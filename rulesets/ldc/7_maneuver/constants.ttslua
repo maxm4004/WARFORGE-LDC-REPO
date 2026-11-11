@@ -23,7 +23,11 @@ MOVE = {
     pernoMaxGradi  = 90,                -- perno libero: massimo per presa (ripetibile)
     margineNemicoD = 0.1,               -- l'Avanti si ferma così davanti al nemico
     allineaTol     = 0.1,
-    listaMax       = 10,                -- righe della lista CARICHE               -- CHARGE_ALIGN_TOL di IEF
+    listaMax       = 10,
+    caricaPernoGradi = 45,              -- 9.6: perno iniziale della carica
+    pinD           = 1,                 -- 9.3: arco frontale nemico entro 1D
+    pinPernoGradi  = 45,                -- 9.3: perno massimo della pinnata
+    quadratoColor  = { r = 0.45, g = 0.30, b = 0.30 },                -- righe della lista CARICHE               -- CHARGE_ALIGN_TOL di IEF
 }
 
 -- Pannello di movimento (IEF MOVEPANEL)

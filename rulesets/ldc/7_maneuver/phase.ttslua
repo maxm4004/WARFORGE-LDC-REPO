@@ -13,6 +13,8 @@ function maneuver_phase()
             before = "before_maneuver",
             after  = "after_maneuver",
             baseButtons = "move_baseButtons",
+            onRoll = "move_onRoll",
+            subphases = { "SQUARE_TEST" },
             allowedActions = { ACTION.CONFIRM },
             render = "1BtnClick",
             enforceOwnership = true,

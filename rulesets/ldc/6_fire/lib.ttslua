@@ -253,8 +253,8 @@ function fire_compute(u, t, dist)
 
     local soglia, motivo
     if catU == CATEGORIA.ARTIGLIERIA then
-        if F.formazioniMasse[t.meta.formazione or ""] then
-            soglia, motivo = F.artiglieriaVsMasse, "contro " .. tostring(t.meta.formazione)
+        if F.formazioniMasse[main_unitFormation(t) or ""] then
+            soglia, motivo = F.artiglieriaVsMasse, "contro " .. tostring(main_unitFormation(t))
         elseif banda ~= "lunga" and catT ~= CATEGORIA.SKIRMISH and catT ~= CATEGORIA.ARTIGLIERIA then
             soglia, motivo = F.artiglieriaVicina, "artiglieria a distanza " .. banda
         else
@@ -323,7 +323,7 @@ function fire_infoShow(player, d)
     local R = {
         { "BERSAGLIO", S.gold },
         { tipoT },
-        { "Formazione: " .. tostring(t.meta.formazione or "?") },
+        { "Formazione: " .. tostring(main_unitFormation(t) or "?") },
         { "Morale: " .. tostring(t.meta.morale or "?") },
         { string.format("Disordini: %d/%d", dis, lim), (dis > 0) and S.malus or nil },
         { string.format("Basi in campo: %d", #t.basi) },

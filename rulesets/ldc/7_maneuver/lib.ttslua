@@ -67,9 +67,23 @@ function move_unitLimit(slot, u)
         return (LDC_VELOCITA.GEN or {}).velocita or 4, "Generale"
     end
 
+    -- 9.1 / 11: i Generali muovono dopo tutte le altre unità
+    if move_generalsStarted(slot) then
+        return nil, "i Generali hanno gia' mosso"
+    end
+    -- 9.2: la fanteria in quadrato non muove
+    if main_unitFormation(u) == "quadrato" then
+        return nil, "in quadrato"
+    end
+
     local sparato = fire_hasFired(u.key)
     if sparato and not LDC_MUOVE_DOPO_TIRO[tipo] then
         return nil, "ha sparato"
+    end
+    -- 9.1: chi ha cambiato formazione muove alla velocità di pinnata
+    if MOVE_STATE.formazione and MOVE_STATE.formazione[u.key] then
+        if v.pinnata then return v.pinnata, "ha cambiato formazione: velocita' di pinnata" end
+        return nil, "ha cambiato formazione"
     end
 
     local holds = command_unitInHolds(slot, u.meta)
@@ -84,6 +98,14 @@ function move_unitLimit(slot, u)
 
     if MOVE_STATE.cariche[u.key] and v.carica then
         return v.carica, "in carica"
+    end
+    -- 9.3: pinnata
+    local pin = move_pinInfo(slot, u)
+    if pin then
+        if pin.libera and v.pinnata then
+            return v.pinnata, "pinnata da " .. move_pinNames(pin) .. ": velocita' di pinnata"
+        end
+        return 0, "pinnata da " .. move_pinNames(pin) .. ": solo carica su di lei o perno di 45 gradi"
     end
     if sparato and v.dopoTiro then
         return v.dopoTiro, "ha sparato"
@@ -102,6 +124,9 @@ function move_canCharge(slot, u)
     if command_unitInHolds(slot, u.meta) then return false, "HOLDS" end
     if move_outOfCommand(slot, u) then return false, "fuori comando" end
     if move_hasMoved(u.key) then return false, "ha gia' mosso" end
+    if main_unitFormation(u) == "quadrato" then return false, "in quadrato" end
+    if MOVE_STATE.formazione and MOVE_STATE.formazione[u.key] then return false, "ha cambiato formazione (9.1)" end
+    if move_generalsStarted(slot) then return false, "i Generali hanno gia' mosso" end
     return true, nil
 end
 
@@ -121,6 +146,7 @@ function move_recordStart(u)
         posa[b.getGUID()] = { x = p.x, y = p.y, z = p.z, ry = r.y }
     end
     MOVE_STATE.partenza[u.key] = posa
+    move_pinRecord(u.side, u)
 end
 -- ============================================================
 -- FUNZIONE: move_baseDistanceD(u, obj)
@@ -165,7 +191,7 @@ function move_restore(u)
     end
     MOVE_STATE.partenza[u.key] = nil
     MOVE_STATE.cariche[u.key] = nil
-    for _, t in ipairs({ "budget", "lati", "dopoCarica", "pannello" }) do
+    for _, t in ipairs({ "budget", "lati", "dopoCarica", "pannello", "perno", "latiFini", "pinnate" }) do
         if MOVE_STATE[t] then MOVE_STATE[t][u.key] = nil end
     end
 end
@@ -337,6 +363,18 @@ end
 -- Fine fase: testo dell'avviso se una base è oltre il limite.
 -- ============================================================
 function move_checkLimits(slot)
+    -- 9.4: nessuna unità finisce sopra un'altra
+    for key, _ in pairs(MOVE_STATE.partenza) do
+        local u = main_unitsOfSide(slot)[key]
+        if u and not MOVE_STATE.cariche[key] then
+            local sopra = move_overlapKey(u, slot)
+            if sopra then
+                local x = main_unit(sopra)
+                return string.format("%s e' sopra %s: sposta una delle due", u.meta.nomeDisplay or key,
+                    x and (x.meta.nomeDisplay or sopra) or sopra)
+            end
+        end
+    end
     for key, _ in pairs(MOVE_STATE.partenza) do
         local u = main_unitOrGeneral(slot, key)
         local esente = MOVE_STATE.cariche[key] or (MOVE_STATE.pannello and MOVE_STATE.pannello[key])
@@ -389,9 +427,22 @@ function move_chargeValuta(slot, u, t)
     if not move_inChargeArc(u, t) then
         return "arancio", base .. " - Fuori dall'arco frontale di " .. LDC_CARICA_ARCO .. " gradi"
     end
+    -- 9.3: la pinnata carica solo chi la pinna (tranne la
+    -- cavalleria pinnata da fanteria o artiglieria)
+    local pin = move_pinInfo(slot, u)
+    if pin and not pin.libera then
+        local suo = false
+        for _, k in ipairs(pin.chi) do if k == t.key then suo = true end end
+        if not suo then
+            return "arancio", base .. " - Pinnata: carica solo " .. move_pinNames(pin)
+        end
+    end
+    -- 9.6: una sola unità per lato
+    local _, _, latoFine = move_chargeSideStart(u, t)
     for k, b in pairs(MOVE_STATE.cariche) do
-        if b == t.key and k ~= u.key then
-            return "arancio", base .. " - Gia' caricato da un'altra unita'"
+        if b == t.key and k ~= u.key and MOVE_STATE.latiFini and MOVE_STATE.latiFini[k] == latoFine then
+            local x = main_unit(k)
+            return "arancio", base .. " - Lato gia' caricato da " .. (x and (x.meta.nomeDisplay or k) or k)
         end
     end
     return "ok", base .. " - Bersaglio valido"
@@ -430,6 +481,15 @@ function move_baseButtons(obj, u, slot)
         elseif move_unitLimit(slot, u) and not u.generale then
             table.insert(lista, { label = "MUOVI", click = "move_clickMuovi", color = MOVE.muoviColor,
                 tooltip = "Pannello di movimento (avanti, perno)" })
+        end
+    end
+    if not u.generale and main_unitCategory(u.meta) == CATEGORIA.FANTERIA and not MOVE_STATE.cariche[u.key]
+       and not main_mirinoActive() and not MOVE_CHARGE_PREP then
+        local inQ = main_unitFormation(u) == "quadrato"
+        if inQ or move_canFormSquare(slot, u) then
+            table.insert(lista, { label = inQ and "SCIOGLI" or "QUADRATO", click = "move_clickQuadrato",
+                color = MOVE.quadratoColor, width = 520,
+                tooltip = inQ and "Scioglie il quadrato (non a 1D da cavalleria nemica)" or "Forma il quadrato (9.1)" })
         end
     end
     if u.generale then
