@@ -195,7 +195,7 @@ function move_btnFormation(player, value, id)
 end
 -- ============================================================
 -- FUNZIONE: move_clickFormazione(obj, player_color, alt_click)
--- FORMAZIONE sulla base nello Schieramento (come IEF): pannello
+-- MANOVRA sulla base nello Schieramento (come IEF): pannello
 -- con la sola sezione FORMAZIONE attiva.
 -- ============================================================
 function move_clickFormazione(obj, player_color, alt_click)
@@ -209,7 +209,9 @@ end
 -- ============================================================
 function deploy_baseButtons(obj, u, slot)
     if u.generale or not next(main_formationsOf(u)) then return {} end
-    return { { label = "FORMAZIONE", click = "move_clickFormazione", tooltip = "Cambia la formazione dell'unita'" } }
+    -- stesso nome della Manovra (Max 12/11): il pannello si apre
+    -- con attiva solo la sezione FORMAZIONE
+    return { { label = "MANOVRA", click = "move_clickFormazione", tooltip = "Pannello di manovra: formazione" } }
 end
 
 -- ============================================================
