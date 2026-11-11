@@ -667,3 +667,29 @@ function debug_rompi()
     end
     main_refreshBaseButtons()
 end
+
+-- ============================================================
+-- FUNZIONE: debug_foto()
+-- /execute debug_foto() con una base selezionata: i nomi di asset
+-- che la scheda INFO cerca per la fotina e gli asset UI del mod.
+-- ============================================================
+function debug_foto()
+    local sel = {}
+    for _, p in ipairs(Player.getPlayers()) do
+        for _, o in ipairs(p.getSelectedObjects() or {}) do table.insert(sel, o) end
+    end
+    local ok, assets = pcall(function() return UI.getCustomAssets() end)
+    local elenco = {}
+    for _, a in ipairs(ok and assets or {}) do table.insert(elenco, tostring(a.name)) end
+    print("[foto] asset UI del mod: " .. (#elenco > 0 and table.concat(elenco, ", ") or "nessuno"))
+    for _, o in ipairs(sel) do
+        local m = main_baseMeta(o)
+        if m and m.unitKey then
+            local u = main_unitOrGeneral(m.side, m.unitKey)
+            print(string.format("[foto] %s cerca: %s -> %s", m.unitKey,
+                table.concat(main_unitFotoNomi(u and u.meta or m, u), ", "),
+                tostring(main_unitFotoAsset(u and u.meta or m, u) or "nessuna")))
+        end
+    end
+    if #sel == 0 then print("[foto] seleziona una base per vedere i nomi cercati") end
+end

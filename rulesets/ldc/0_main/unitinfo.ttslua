@@ -183,7 +183,26 @@ end
 -- unit_name dell'unità, col nome dell'elemento. Ritorna il nome
 -- dell'asset trovato o nil (niente foto).
 -- ============================================================
-function main_unitFotoAsset(meta)
+-- Nomi cercati, nell'ordine: campo foto, unit_name, elemento
+-- della base di comando e di ogni altra base dell'unità (la base
+-- di comando ha di solito un elemento suo, es. FRA_LIGNE_COMANDO,
+-- le altre FRA_LIGNE).
+function main_unitFotoNomi(meta, u)
+    local nomi, visti = {}, {}
+    local function add(n)
+        if type(n) == "string" and n ~= "" and not visti[string.lower(n)] then
+            visti[string.lower(n)] = true
+            table.insert(nomi, n)
+        end
+    end
+    add(meta.foto); add(meta.unitName); add(meta.elemento)
+    for _, b in ipairs(u and u.basi or {}) do
+        local m = main_baseMeta(b)
+        if m then add(m.foto); add(m.elemento) end
+    end
+    return nomi
+end
+function main_unitFotoAsset(meta, u)
     if not meta then return nil end
     local ok, assets = pcall(function() return UI.getCustomAssets() end)
     if not ok or type(assets) ~= "table" then return nil end
@@ -191,10 +210,8 @@ function main_unitFotoAsset(meta)
     for _, a in ipairs(assets) do
         if a.name then nomi[string.lower(a.name)] = a.name end
     end
-    -- (niente ipairs: un campo nil interromperebbe la lista)
-    for _, campo in ipairs({ "foto", "unitName", "elemento" }) do
-        local n = meta[campo]
-        if type(n) == "string" and n ~= "" and nomi[string.lower(n)] then return nomi[string.lower(n)] end
+    for _, n in ipairs(main_unitFotoNomi(meta, u)) do
+        if nomi[string.lower(n)] then return nomi[string.lower(n)] end
     end
     return nil
 end
@@ -267,7 +284,7 @@ function main_unitInfoRedraw(slot)
     end
     local righe = main_unitInfoRows(key)
     local u = main_unitInfoUnit(key)
-    local foto = u and main_unitFotoAsset(u.meta)
+    local foto = u and main_unitFotoAsset(u.meta, u)
     UI.setAttribute(pre, "height", tostring(uiHeight(righe, foto)))
     UI.setAttribute(pre .. "_foto", "active", foto and "true" or "false")
     if foto then UI.setAttribute(pre .. "_foto", "image", foto) end
