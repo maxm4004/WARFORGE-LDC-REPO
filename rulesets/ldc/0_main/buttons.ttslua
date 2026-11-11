@@ -33,7 +33,7 @@ function main_refreshBaseButtons()
         end
         for _, u in pairs(main_unitsOfSide(slot)) do
             local lista = provider and provider(u.comando, u, slot) or {}
-            main_drawBaseButtons(u.comando, u, slot, lista)
+            main_drawBaseButtons(main_buttonAnchor(u), u, slot, lista)
         end
         -- Generali: stessi bottoni (u.generale = true)
         for _, g in pairs(main_generalsOfSide(slot)) do
@@ -53,32 +53,34 @@ function main_drawBaseButtons(obj, u, slot, lista)
     local metaProf  = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
     local metaFront = main_cmToTts(meta.fronteCm or CALIBRAZIONE.baseFronteCm)
 
-    -- Cartellino: disordini / limite
+    -- Seconda fila, sempre (Max 11/11): RIORDINA, INFO e il
+    -- cartellino dei disordini
+    local fissi = {}
+    if not u.generale then
+        table.insert(fissi, { label = "RIORDINA", click = "main_riordinaClick", color = B.riordinaColor,
+            width = 480, tooltip = "Riordina le basi dell'unita' in formazione compatta" })
+    end
+    table.insert(fissi, { label = "INFO", click = "main_unitInfoOpen", color = B.infoColor,
+        width = B.infoWidth, tooltip = "Scheda dell'unita' (alt-click chiude)" })
     local dis = main_unitDisorders(u.key)
     if dis > 0 then
+        table.insert(fissi, { label = string.format("DIS %d/%d", dis, main_unitDisorderLimit(meta)),
+            click = "main_baseButtonNoop", color = B.disColor, tooltip = "Disordini dell'unita'" })
+    end
+    local nf = #fissi
+    for i, btn in ipairs(fissi) do
+        local x = (i - (nf + 1) / 2) * B.passoX
         obj.createButton({
-            click_function = "main_baseButtonNoop",
+            click_function = btn.click,
             function_owner = Global,
-            label          = string.format("DIS %d/%d", dis, main_unitDisorderLimit(meta)),
-            position       = { x = 0, y = B.y, z = -(metaProf / 2 + B.dietro + B.passoZ) },
+            label          = btn.label,
+            position       = { x = -x, y = B.y, z = -(metaProf / 2 + B.dietro + B.passoZ) },
             rotation       = { x = 0, y = 180, z = 0 },
-            width          = B.width, height = B.height, font_size = B.fontSize,
-            color          = B.disColor, font_color = B.textColor,
-            tooltip        = "Disordini dell'unita'",
+            width          = btn.width or B.width, height = B.height, font_size = B.fontSize,
+            color          = btn.color, font_color = B.textColor,
+            tooltip        = btn.tooltip,
         })
     end
-
-    -- INFO: scheda dell'unità (come IEF), seconda fila a destra
-    obj.createButton({
-        click_function = "main_unitInfoOpen",
-        function_owner = Global,
-        label          = "INFO",
-        position       = { x = -B.passoX, y = B.y, z = -(metaProf / 2 + B.dietro + B.passoZ) },
-        rotation       = { x = 0, y = 180, z = 0 },
-        width          = B.infoWidth or 300, height = B.height, font_size = B.fontSize,
-        color          = B.infoColor or { r = 0.25, g = 0.25, b = 0.25 }, font_color = B.textColor,
-        tooltip        = "Scheda dell'unita' (alt-click chiude)",
-    })
 
     -- Bottoni della fase, centrati dietro la base
     local n = #lista
@@ -100,6 +102,37 @@ end
 -- FUNZIONE: main_baseOwnerClick(obj, player_color)
 -- Unità e schieramento della base cliccata e se il giocatore
 -- appartiene a quello schieramento. Ritorna u, slot, mio.
+-- ============================================================
+-- ============================================================
+-- FUNZIONE: main_buttonAnchor(u)
+-- Base che porta i bottoni (Max 11/11/2026): unità su un solo
+-- rango → base di comando; su più ranghi → ultimo rango, prima
+-- base da sinistra (sinistra dell'unità, guardando il suo fronte).
+-- ============================================================
+function main_buttonAnchor(u)
+    if u.generale or #u.basi < 2 then return u.comando end
+    local f = main_baseForward(u.comando)
+    local r = { x = f.z, z = -f.x }
+    local hd = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm) / 2
+    local fronte, retro = -math.huge, math.huge
+    for _, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        local v = p.x * f.x + p.z * f.z
+        fronte, retro = math.max(fronte, v), math.min(retro, v)
+    end
+    if fronte - retro < hd then return u.comando end
+    local migliore, mw = nil, nil
+    for _, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        if p.x * f.x + p.z * f.z <= retro + hd then
+            local w = p.x * r.x + p.z * r.z
+            if not mw or w < mw then migliore, mw = b, w end
+        end
+    end
+    return migliore or u.comando
+end
+-- ============================================================
+-- FUNZIONE: main_baseOwnerClick(obj, player_color)
 -- ============================================================
 function main_baseOwnerClick(obj, player_color)
     local meta = main_baseMeta(obj)

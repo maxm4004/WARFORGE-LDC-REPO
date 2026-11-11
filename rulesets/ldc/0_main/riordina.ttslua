@@ -1,0 +1,90 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/riordina.ttslua
+-- RIORDINA ricalcato su IEF main_sistemaFormazione /
+-- main_ricostruisciFormazione: rimette le basi dell'unità in
+-- formazione compatta col fronte attuale (basi in primo rango),
+-- orientate come la base di comando, ranghi pieni da sinistra.
+-- Il primo rango resta dov'è (centro del fronte fermo).
+-- ============================================================
+
+-- ============================================================
+-- FUNZIONE: main_riordinaCore(u)
+-- Ritorna true se ha riordinato.
+-- ============================================================
+function main_riordinaCore(u)
+    if not u or u.generale or #u.basi < 2 then return false end
+    local ref = u.comando
+    local yaw = ref.getRotation().y
+    local a = math.rad(yaw)
+    local f = { x = math.sin(a), z = math.cos(a) }
+    local r = { x = f.z, z = -f.x }
+    local larg = main_cmToTts(u.meta.fronteCm or CALIBRAZIONE.baseFronteCm)
+    local prof = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
+
+    -- primo rango e suo centro
+    local fronte = -math.huge
+    for _, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        fronte = math.max(fronte, p.x * f.x + p.z * f.z)
+    end
+    local primo = {}
+    for _, b in ipairs(u.basi) do
+        local p = b.getPosition()
+        if p.x * f.x + p.z * f.z >= fronte - prof / 2 then table.insert(primo, b) end
+    end
+    local function w(b) local p = b.getPosition(); return p.x * r.x + p.z * r.z end
+    table.sort(primo, function(x, y) return w(x) < w(y) end)
+    local sx, dx = primo[1].getPosition(), primo[#primo].getPosition()
+    local centro = { x = (sx.x + dx.x) / 2, y = sx.y, z = (sx.z + dx.z) / 2 }
+    local nf = #primo
+
+    -- ordine: per numero di base (come IEF baseSeq)
+    local basi = {}
+    for _, b in ipairs(u.basi) do table.insert(basi, b) end
+    table.sort(basi, function(x, y)
+        local mx, my = main_baseMeta(x) or {}, main_baseMeta(y) or {}
+        return (mx.baseSeq or 0) < (my.baseSeq or 0)
+    end)
+    local pieni = math.floor(#basi / nf)
+    local resto = #basi % nf
+    local mezzo = (nf - 1) * larg / 2
+    for i, b in ipairs(basi) do
+        local idx = i - 1
+        local rango, col = math.floor(idx / nf), idx % nf
+        -- IEF: con 2 basi avanzate vanno alle ali dell'ultimo rango
+        if resto == 2 and rango == pieni then
+            col = (idx - pieni * nf == 0) and 0 or (nf - 1)
+        end
+        local ox = col * larg - mezzo
+        local p = b.getPosition()
+        b.setRotation({ x = 0, y = yaw, z = 0 })
+        b.setPosition({ x = centro.x + r.x * ox - f.x * rango * prof, y = p.y,
+                        z = centro.z + r.z * ox - f.z * rango * prof })
+    end
+    return true
+end
+-- ============================================================
+-- FUNZIONE: main_riordinaClick(obj, player_color, alt_click)
+-- Bottone RIORDINA (solo il proprietario).
+-- ============================================================
+function main_riordinaClick(obj, player_color, alt_click)
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio then return end
+    local player = Player[player_color]
+    if MOVE_STATE and MOVE_STATE.cariche and MOVE_STATE.cariche[u.key] then
+        warningToColor("Unita' in carica: non si riordina", player, "Yellow", 4, false)
+        return
+    end
+    if (MOVE_PIVOT and MOVE_PIVOT.key == u.key) or (MOVE_MANUAL and MOVE_MANUAL.key == u.key) then
+        warningToColor("Finisci prima l'avanti o il perno", player, "Yellow", 4, false)
+        return
+    end
+    if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_recordStart and slot == TURN.activeSide then
+        move_recordStart(u)
+    end
+    if main_riordinaCore(u) then
+        if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_drawLines then move_drawLines(slot) end
+        if MOVE_PANEL and MOVE_PANEL.key == u.key and move_panelRedraw then move_panelRedraw() end
+        main_refreshBaseButtons()
+    end
+end

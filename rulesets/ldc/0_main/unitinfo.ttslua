@@ -33,6 +33,7 @@ UNITINFO = {
     warnColor     = "#FFB347",
     koColor       = "#FF6B6B",
     valueWidth    = 190,
+    fotoHeight    = 150,   -- fotina dell'unità (campo foto del JSON)
 }
 
 -- unitKey mostrata per schieramento
@@ -173,9 +174,10 @@ function main_unitInfoRows(key)
     for i = 1, math.min(#righe, UNITINFO.maxRows) do out[i] = righe[i] end
     return out
 end
-local function uiHeight(righe)
+local function uiHeight(righe, foto)
     local U = UNITINFO
     local h = U.padding * 2 + U.titleHeight + U.subHeight + U.spacing * 2
+    if foto then h = h + U.fotoHeight + U.spacing end
     for _, r in ipairs(righe) do
         h = h + (r.sezione and U.sectionHeight or U.rowHeight) + U.spacing
     end
@@ -240,7 +242,12 @@ function main_unitInfoRedraw(slot)
         return
     end
     local righe = main_unitInfoRows(key)
-    UI.setAttribute(pre, "height", tostring(uiHeight(righe)))
+    local u = main_unitInfoUnit(key)
+    local foto = u and u.meta.foto
+    if foto == "" then foto = nil end
+    UI.setAttribute(pre, "height", tostring(uiHeight(righe, foto)))
+    UI.setAttribute(pre .. "_foto", "active", foto and "true" or "false")
+    if foto then UI.setAttribute(pre .. "_foto", "image", foto) end
     UI.setAttribute(pre, "visibility", main_sideVisibility(slot))
     UI.setAttribute(pre .. "_title", "text", main_unitInfoTitle(key))
     UI.setAttribute(pre .. "_sub", "text", main_unitInfoSub(key))
@@ -287,6 +294,7 @@ function main_unitInfoPanelsXml()
                         '<Button id="%s_close" text="X" font="%s" fontSize="13" fontStyle="Bold" textColor="White" color="%s" preferredWidth="%d" preferredHeight="%d" onClick="main_unitInfoCloseClick"/>' ..
                     '</HorizontalLayout>' ..
                     '<Text id="%s_sub" text="" font="%s" fontSize="10" color="%s" alignment="MiddleLeft" preferredHeight="%d"/>' ..
+                    '<Image id="%s_foto" image="" preserveAspect="true" preferredHeight="%d" active="false"/>' ..
                     '%s' ..
                 '</VerticalLayout>' ..
             '</Panel>',
@@ -296,6 +304,7 @@ function main_unitInfoPanelsXml()
             pre, U.font, U.titleColor, U.width - U.padding * 2 - U.titleHeight,
             pre, U.font, U.rowBg, U.titleHeight, U.titleHeight,
             pre, U.font, U.subColor, U.subHeight,
+            pre, U.fotoHeight,
             rowsXml)
     end
     return xml
