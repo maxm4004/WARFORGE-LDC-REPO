@@ -88,12 +88,11 @@ function move_unitLimit(slot, u)
 
     local holds = command_unitInHolds(slot, u.meta)
     local fuori = move_outOfCommand(slot, u)
+    -- HOLDS o fuori comando (7.2, 7.3): niente MUOVI e niente
+    -- CARICA (Max 11/11/2026; anche la cavalleria, che dal
+    -- regolamento muoverebbe alla velocità di pinnata)
     if holds or fuori then
-        local motivo = holds and "HOLDS" or "fuori comando"
-        if main_unitCategory(u.meta) == CATEGORIA.CAVALLERIA and v.pinnata then
-            return v.pinnata, motivo .. ": velocita' di pinnata"
-        end
-        return nil, motivo
+        return nil, holds and "fermo (HOLDS)" or "fuori comando"
     end
 
     if MOVE_STATE.cariche[u.key] and v.carica then

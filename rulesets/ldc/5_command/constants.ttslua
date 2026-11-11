@@ -65,6 +65,7 @@ COMMAND_PANEL = {
 -- Marker HOLDS: testo 3D sul tavolo dietro la base del Generale
 -- (la cosa più semplice per ora; da tarare in TTS)
 COMMAND_MARKER = {
+    attivo   = false,     -- testo HOLDS sul tavolo spento (Max 11/11)
     testo     = "HOLDS",
     colore    = { r = 1, g = 0.15, b = 0.15 },
     fontSize  = 64,

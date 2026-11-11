@@ -538,6 +538,9 @@ end
 -- Brigata).
 -- ============================================================
 function command_spawnMarker(slot, key)
+    -- Max 11/11/2026: niente testo HOLDS sul tavolo (le unità
+    -- ferme non hanno MUOVI e CARICA); il codice resta spento
+    if not COMMAND_MARKER.attivo then return end
     local g = command_group(slot, key)
     local gen = g and g.guid and getObjectFromGUID(g.guid)
     if not gen then return end
