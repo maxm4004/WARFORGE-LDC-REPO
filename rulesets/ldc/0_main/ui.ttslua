@@ -15,21 +15,21 @@ function getRulesetUiXml()
     <Panel id="panelTop"
            rectAlignment="UpperCenter"
            width="450" height="150"
-           ]] .. main_stylePanelAttrs() .. [[
+           ]] .. main_stylePanelAttrs(S.bgTop) .. [[
 
            offsetXY="0 -70">
         <VerticalLayout spacing="4" padding="12 12 10 10">
-            <Text id="textTurno" text="" font="]] .. S.font .. [[" fontSize="]] .. M.sezione + 2 .. [["
+            <Text id="textTurno" ]] .. main_styleTextOutline() .. [[ text="" font="]] .. S.font .. [[" fontSize="]] .. M.sezione + 2 .. [["
                   color="]] .. S.sezione .. [[" alignment="MiddleCenter"/>
-            <Text id="textFase" text="" font="]] .. S.font .. [[" fontSize="]] .. M.titolo + 4 .. [["
+            <Text id="textFase" ]] .. main_styleTextOutline() .. [[ text="" font="]] .. S.font .. [[" fontSize="]] .. M.titolo + 4 .. [["
                   color="]] .. S.titolo .. [[" alignment="MiddleCenter"/>
             <Text id="textDesc" text="" font="]] .. S.font .. [[" fontSize="]] .. M.piccolo + 1 .. [["
                   color="]] .. S.tenue .. [[" alignment="MiddleCenter"/>
             <HorizontalLayout spacing="6" childAlignment="MiddleCenter" color="rgba(0,0,0,0)">
-                <Text id="army1" text="Army1" font="]] .. S.font .. [[" fontSize="]] .. M.testo + 1 .. [[" color="]] .. S.tenue .. [[" alignment="MiddleCenter"/>
+                <Text id="army1" ]] .. main_styleTextOutline() .. [[ text="Army1" font="]] .. S.font .. [[" fontSize="]] .. M.testo + 1 .. [[" color="]] .. S.tenue .. [[" alignment="MiddleCenter"/>
                 <Button id="iconActiveArmy1" icon="left" iconColor="rgba(1,1,1,0)" color="rgba(0,0,0,0)" tooltip="Schieramento attivo" tooltipPosition="Below"/>
                 <Button id="iconActiveArmy2" icon="right" iconColor="rgba(1,1,1,0)" color="rgba(0,0,0,0)" tooltip="Schieramento attivo" tooltipPosition="Below"/>
-                <Text id="army2" text="Army2" font="]] .. S.font .. [[" fontSize="]] .. M.testo + 1 .. [[" color="]] .. S.tenue .. [[" alignment="MiddleCenter"/>
+                <Text id="army2" ]] .. main_styleTextOutline() .. [[ text="Army2" font="]] .. S.font .. [[" fontSize="]] .. M.testo + 1 .. [[" color="]] .. S.tenue .. [[" alignment="MiddleCenter"/>
             </HorizontalLayout>
         </VerticalLayout>
     </Panel>

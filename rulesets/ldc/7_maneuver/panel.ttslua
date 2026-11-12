@@ -282,7 +282,7 @@ function move_panelXml()
     return string.format([[
         <Panel id="move_panel" rectAlignment="LowerCenter" offsetXY="0 90" %s width="%d" height="%d" active="false" visibility="">
             <VerticalLayout spacing="4" padding="%d %d 10 10" childAlignment="UpperCenter" childForceExpandHeight="false">
-                <Text id="move_panel_title" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleCenter" preferredHeight="22"/>
+                <Text id="move_panel_title" ]] .. main_styleTextOutline() .. [[ text="" font="%s" fontSize="%d" color="%s" alignment="MiddleCenter" preferredHeight="22"/>
                 <Text id="move_panel_info" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleCenter" preferredHeight="18"/>
                 <Text id="move_panel_dist" text="" font="%s" fontSize="20" color="%s" alignment="MiddleCenter" preferredHeight="24"/>
                 %s %s %s %s

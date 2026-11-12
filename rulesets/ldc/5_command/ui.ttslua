@@ -5,8 +5,8 @@
 --   Attivazione - Army2
 --   + 2a Divisione ...                     (primo livello)
 --   - 3a Divisione ...                     (aperta: clic sul nome)
---         Brigata Kister   Gen 4  da attivare   [Attiva]
---         Brigata Maucune  Gen 2  Non Attivata  [5] [Riprova]
+--         Brigata Kister   Competenza 4  da attivare   [Attiva]
+--         Brigata Maucune  Competenza 2  Non Attivata  [5] [Riprova]
 -- Un clic sulla Divisione apre o chiude le sue Brigate; il
 -- pannello cresce e cala con le righe visibili. Il nome della
 -- Brigata inquadra le sue basi. Niente messaggi sotto il
@@ -27,7 +27,7 @@ COMMAND_DIVROWS = {}
 -- ============================================================
 function command_panelHeight(righe)
     local P = COMMAND_PANEL
-    return P.padding * 2 + P.headerHeight + P.footerHeight
+    return P.padding * 2 + P.headerHeight
         + righe * P.rowHeight + (righe + 1) * P.spacing
 end
 -- ============================================================
@@ -46,7 +46,7 @@ function command_panelXml()
                 <Text id="cmdInd%d" text="" preferredWidth="%d" active="false"/>
                 <Button id="cmdNome%d" text="" font="%s" fontSize="%d" textColor="%s" color="rgba(0,0,0,0)"
                         textAlignment="MiddleLeft" preferredWidth="%d" onClick="command_clickNome"/>
-                <Text id="cmdGen%d" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleCenter" preferredWidth="46"/>
+                <Text id="cmdGen%d" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleLeft" preferredWidth="%d"/>
                 <Text id="cmdStato%d" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleLeft" preferredWidth="104"/>
                 <Image id="cmdDado%d" image="" preserveAspect="true" preferredWidth="%d" preferredHeight="%d" active="false"/>
                 <Image id="cmdDadoR%d" image="" preserveAspect="true" preferredWidth="%d" preferredHeight="%d" active="false"/>
@@ -59,7 +59,7 @@ function command_panelXml()
 ]], i, P.rowHeight, S.riga,
             i, P.rientro,
             i, S.font, M.testo, S.testo, P.nomeWidth,
-            i, S.font, M.piccolo, S.tenue,
+            i, S.font, M.piccolo, S.tenue, P.competenzaWidth,
             i, S.font, M.testo, S.tenue,
             i, P.dadoLato, P.dadoLato, i, P.dadoLato, P.dadoLato,
             i, S.font, M.bottone, P.btnH, S.azione, S.azioneTesto,
@@ -70,17 +70,15 @@ function command_panelXml()
     <Panel id="cmdPanel" active="false" rectAlignment="%s" offsetXY="%s"
            width="%d" height="%d" %s>
         <VerticalLayout padding="%d %d %d %d" spacing="%d" childForceExpandHeight="false" childAlignment="UpperCenter">
-            <Text id="cmdTitolo" text="Attivazione" font="%s" fontSize="%d" color="%s"
+            <Text id="cmdTitolo" ]] .. main_styleTextOutline() .. [[ text="Attivazione" font="%s" fontSize="%d" color="%s"
                   alignment="MiddleCenter" preferredHeight="%d"/>
 %s
-            <Text id="cmdNota" text="" font="%s" fontSize="%d" color="%s"
-                  alignment="MiddleCenter" preferredHeight="%d"/>
         </VerticalLayout>
     </Panel>
 ]], P.rectAlignment, P.offsetXY, P.width, command_panelHeight(P.righeMax), main_stylePanelAttrs(),
         P.padding, P.padding, P.padding, P.padding, P.spacing,
         S.font, M.titolo, S.titolo, P.headerHeight,
-        righe, S.font, M.piccolo, S.tenue, P.footerHeight)
+        righe)
 end
 -- ============================================================
 -- FUNZIONE: command_rowText(d)
@@ -196,7 +194,7 @@ function command_redrawPanel()
             engine_uiSet("cmdInd" .. i, "active", "false")
             engine_uiSet("cmdNome" .. i, "text", (r.aperta and "-  " or "+  ") .. (div and div.nome or tostring(r.divId)))
             engine_uiSet("cmdNome" .. i, "textColor", S.titolo)
-            engine_uiSet("cmdGen" .. i, "text", div and ("Gen " .. tostring(div.valore)) or "")
+            engine_uiSet("cmdGen" .. i, "text", div and ("Competenza " .. tostring(div.valore)) or "")
             engine_uiSet("cmdStato" .. i, "text", r.aperta and "" or riassunto)
             engine_uiSet("cmdStato" .. i, "color", tutte and S.ok or S.tenue)
             for _, nome in ipairs({ "cmdTira", "cmdRitira", "cmdDado", "cmdDadoR" }) do
@@ -213,7 +211,7 @@ function command_redrawPanel()
             engine_uiSet("cmdInd" .. i, "active", "true")
             engine_uiSet("cmdNome" .. i, "text", d.nome)
             engine_uiSet("cmdNome" .. i, "textColor", S.testo)
-            engine_uiSet("cmdGen" .. i, "text", d.valore and ("Gen " .. tostring(d.valore)) or "-")
+            engine_uiSet("cmdGen" .. i, "text", d.valore and ("Competenza " .. tostring(d.valore)) or "-")
             engine_uiSet("cmdStato" .. i, "text", command_rowText(d))
             engine_uiSet("cmdStato" .. i, "color", P.statoColor[d.stato] or S.testo)
 
@@ -236,17 +234,4 @@ function command_redrawPanel()
         end
     end
 
-    -- In fondo: CiC e Riprova
-    local nota
-    if not st.cic then
-        nota = "Nessun CiC: niente Riprova"
-    else
-        nota = string.format("CiC %d - Riprova usati %d", st.cic.valore, st.ritiriUsati)
-        if COMMAND_RITIRI_MAX then nota = nota .. " su " .. COMMAND_RITIRI_MAX end
-        nota = nota .. " - raggio " .. COMMAND_RITIRO_D .. " D"
-    end
-    if #elenco > P.righeMax then
-        nota = nota .. string.format(" (righe %d su %d)", P.righeMax, #elenco)
-    end
-    engine_uiSet("cmdNota", "text", nota)
 end

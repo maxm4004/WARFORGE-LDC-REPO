@@ -3,7 +3,7 @@
 -- Stile dei pannelli: un solo posto per colori, carattere e
 -- misure del testo. Tre stili da provare in partita con il
 -- comando in chat !stile A / B / C (Max 12/11/2026).
---   A  come IEF, rifinito (nero, oro)
+--   A  classico: come il pannello centrale originale
 --   B  stato maggiore (carta e inchiostro)
 --   C  moderno pulito (antracite, blu)
 -- Regola d'oro: nessun testo in grassetto nei pannelli.
@@ -12,30 +12,34 @@
 
 STILI = {
     A = {
-        nome         = "Come IEF",
+        -- come il pannello centrale originale (Max 12/11): nero
+        -- trasparente, poco coprente, titoli gialli e arancio
+        nome         = "Classico",
         font         = "warforge_font",
-        bg           = "rgba(0.05,0.05,0.05,0.86)",   -- sfondo dei pannelli
-        bordo        = "rgba(1,0.85,0.2,0.30)",       -- filo del bordo
-        titolo       = "#FFD833",                     -- titoli
-        sezione      = "#C9A64A",                     -- intestazioni di sezione
-        testo        = "#F2EEE3",
-        tenue        = "#B9B3A3",                     -- note, etichette
-        azione       = "#B8902E",                     -- bottone principale
-        azioneTesto  = "#14110A",
-        secondario   = "#4A4A4A",                     -- Annulla, Chiudi
-        secondarioTesto = "#F2EEE3",
-        scelto       = "#2E6DA4",                     -- opzione in uso
-        sceltoTesto  = "#FFFFFF",
-        spento       = "rgba(0.16,0.16,0.16,0.9)",    -- bottone non disponibile
-        spentoTesto  = "#777777",
-        riga         = "rgba(1,1,1,0.05)",            -- sfondo delle righe
-        rigaScelta   = "rgba(1,0.85,0.2,0.16)",       -- riga in evidenza
-        rigaLivello1 = "rgba(1,1,1,0.09)",            -- riga di primo livello (Divisione)
-        ok           = "#8DBF7E",
-        ko           = "#E26B5E",
-        avviso       = "#F0A33A",
-        attesaBg     = "rgba(0.05,0.05,0.05,0.60)",   -- barra "In attesa..."
-        attesaTesto  = "#FFD833",
+        bgTop        = "rgba(0,0,0,0.25)",            -- pannello centrale in alto
+        bg           = "rgba(0,0,0,0.35)",            -- sfondo dei pannelli
+        bordo        = "rgba(0,0,0,0)",               -- niente filo
+        contorno     = "#000000",                     -- contorno del testo (leggibile sul campo)
+        titolo       = "Yellow",
+        sezione      = "Orange",
+        testo        = "White",
+        tenue        = "rgba(0.8,0.8,0.8,1)",
+        azione       = "rgba(1,1,1,0.18)",
+        azioneTesto  = "White",
+        secondario   = "rgba(0,0,0,0.40)",
+        secondarioTesto = "rgba(0.85,0.85,0.85,1)",
+        scelto       = "rgba(1,0.85,0.2,0.85)",
+        sceltoTesto  = "Black",
+        spento       = "rgba(1,1,1,0.05)",
+        spentoTesto  = "rgba(0.5,0.5,0.5,1)",
+        riga         = "rgba(0,0,0,0.20)",
+        rigaScelta   = "rgba(1,0.85,0.2,0.18)",
+        rigaLivello1 = "rgba(0,0,0,0.35)",
+        ok           = "#7FD67F",
+        ko           = "#FF7A6B",
+        avviso       = "Orange",
+        attesaBg     = "rgba(0,0,0,0.35)",
+        attesaTesto  = "Yellow",
     },
     B = {
         nome         = "Stato maggiore",
@@ -110,9 +114,18 @@ STILE = STILI[STILE_NOME]
 -- Attributi comuni del contenitore di un pannello: sfondo e
 -- filo del bordo. Uso: '<Panel ... ' .. main_stylePanelAttrs() .. '>'
 -- ============================================================
-function main_stylePanelAttrs()
+function main_stylePanelAttrs(bg)
     return string.format('color="%s" outline="%s" outlineSize="%d %d"',
-        STILE.bg, STILE.bordo, STILE_MISURE.bordo, -STILE_MISURE.bordo)
+        bg or STILE.bg, STILE.bordo, STILE_MISURE.bordo, -STILE_MISURE.bordo)
+end
+-- ============================================================
+-- FUNZIONE: main_styleTextOutline()
+-- Contorno del testo dove lo stile lo vuole (A: nero, come il
+-- pannello centrale originale); "" altrimenti.
+-- ============================================================
+function main_styleTextOutline()
+    if not STILE.contorno then return "" end
+    return string.format('outline="%s" outlineSize="1 -1"', STILE.contorno)
 end
 -- ============================================================
 -- FUNZIONE: main_styleBorder()
@@ -208,7 +221,7 @@ end
 function main_styleSet(nome, player)
     nome = string.upper(tostring(nome or ""))
     if not STILI[nome] then
-        local msg = "Stili disponibili: A (Come IEF), B (Stato maggiore), C (Moderno)"
+        local msg = "Stili disponibili: A (Classico), B (Stato maggiore), C (Moderno)"
         if player then warningToColor(msg, player, "Yellow", 5, true) else printToAll(msg, LOG_AVVISO) end
         return
     end
