@@ -179,11 +179,30 @@ function fire_coneLines(cono, rangeUnits, y)
         table.insert(arco, punto(cono.s0 + rangeUnits * math.cos(ang), cono.tR + rangeUnits * math.sin(ang)))
     end
     local col = FIRE_COLORI.cono
-    return {
-        { points = sx,   color = col, thickness = 0.1 },
-        { points = dx,   color = col, thickness = 0.1 },
-        { points = arco, color = col, thickness = 0.1 },
-    }
+    local linee = {}
+    -- riempimento: righe parallele al fronte, da un lato all'altro
+    -- del cono, fino al limite di gittata (archi compresi)
+    local F = FIRE_CONO_RIEMPI
+    if F and F.attivo and F.passo > 0 then
+        local d = F.passo / 2
+        while d < rangeUnits do
+            local apertura
+            if d <= rangeUnits * cosA then
+                apertura = d * sinA / cosA
+            else
+                apertura = math.sqrt(math.max(rangeUnits * rangeUnits - d * d, 0))
+            end
+            table.insert(linee, {
+                points = { punto(cono.s0 + d, cono.tL - apertura), punto(cono.s0 + d, cono.tR + apertura) },
+                color = F.colore, thickness = F.spessore,
+            })
+            d = d + F.passo
+        end
+    end
+    table.insert(linee, { points = sx,   color = col, thickness = 0.1 })
+    table.insert(linee, { points = dx,   color = col, thickness = 0.1 })
+    table.insert(linee, { points = arco, color = col, thickness = 0.1 })
+    return linee
 end
 
 -- ============================================================

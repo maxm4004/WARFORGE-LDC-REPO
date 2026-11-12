@@ -24,6 +24,17 @@ FIRE_COLORI = {
     cono      = { 1, 0.8, 0.1 },
 }
 
+-- Riempimento del cono (Max 12/11): righe gialle parallele al
+-- fronte, con trasparenza (alfa). Con spessore = passo le righe
+-- si toccano e l'area è piena. Prova in partita:
+--   /execute debug_cono(passo, spessore, alfa)
+FIRE_CONO_RIEMPI = {
+    attivo   = true,
+    passo    = 0.25,              -- distanza fra le righe (unità TTS)
+    spessore = 0.25,              -- spessore delle righe
+    colore   = { 1, 0.8, 0.1, 0.18 },
+}
+
 -- ============================================================
 -- PANNELLO INFO TIRO (copiato da IEF 7_shoot/constants)
 -- Visibile al giocatore che tira dal rilascio del mirino sul

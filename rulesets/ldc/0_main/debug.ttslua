@@ -693,3 +693,22 @@ function debug_foto()
     end
     if #sel == 0 then print("[foto] seleziona una base per vedere i nomi cercati") end
 end
+
+-- ============================================================
+-- FUNZIONE: debug_cono(passo, spessore, alfa)
+-- Prova del riempimento del cono di tiro: /execute debug_cono(0.25, 0.25, 0.18)
+-- debug_cono(0) toglie il riempimento. Vale dal prossimo mirino.
+-- ============================================================
+function debug_cono(passo, spessore, alfa)
+    local F = FIRE_CONO_RIEMPI
+    if passo == 0 then
+        F.attivo = false
+        printToAll("Cono: senza riempimento", LOG_COLORE)
+        return
+    end
+    F.attivo = true
+    F.passo = passo or F.passo
+    F.spessore = spessore or F.spessore
+    if alfa then F.colore = { F.colore[1], F.colore[2], F.colore[3], alfa } end
+    printToAll(string.format("Cono: passo %.2f, spessore %.2f, alfa %.2f", F.passo, F.spessore, F.colore[4]), LOG_COLORE)
+end
