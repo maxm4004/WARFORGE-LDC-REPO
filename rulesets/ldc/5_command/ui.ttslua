@@ -75,14 +75,17 @@ function command_panelXml()
                       alignment="MiddleCenter" preferredWidth="%d"/>
                 <Button id="cmdTutte" text="Tutte" font="%s" fontSize="%d" preferredWidth="60" preferredHeight="%d"
                         color="%s" textColor="%s" onClick="command_clickTutte" active="false"
-                        tooltip="Torna a tutte le Divisioni" tooltipPosition="Above"/>
+                        tooltip="Tutte le Divisioni" tooltipPosition="Above"/>
+                <Button id="cmdChiudi" text="Chiudi" font="%s" fontSize="%d" preferredWidth="60" preferredHeight="%d"
+                        color="%s" textColor="%s" onClick="command_clickChiudi"/>
             </HorizontalLayout>
 %s
         </VerticalLayout>
     </Panel>
 ]], P.rectAlignment, P.offsetXY, P.width, command_panelHeight(P.righeMax), main_stylePanelAttrs(),
         P.padding, P.padding, P.padding, P.padding, P.spacing,
-        P.headerHeight, S.font, M.titolo, S.titolo, P.width - 2 * P.padding - 66,
+        P.headerHeight, S.font, M.titolo, S.titolo, P.width - 2 * P.padding - 132,
+        S.font, M.bottone, P.btnH, S.secondario, S.secondarioTesto,
         S.font, M.bottone, P.btnH, S.secondario, S.secondarioTesto,
         righe)
 end
@@ -123,7 +126,7 @@ function command_panelRows(slot)
     -- aperto dal Generale (bottone ATTIVA sulla sua base): solo la
     -- sua Brigata, o le Brigate della sua Divisione
     local F = COMMAND_FILTRO
-    if F and F.slot == slot then
+    if F and F.slot == slot and F.tipo ~= "tutte" then
         for _, div in ipairs(command_divisionsOf(slot)) do
             for _, key in ipairs(div.gruppi) do
                 if (F.tipo == "brigata" and key == F.key) or (F.tipo == "divisione" and div.divId == F.divId) then
@@ -200,7 +203,9 @@ function command_redrawPanel()
     local st = slot and COMMAND_STATE[slot]
     COMMAND_ROWS, COMMAND_DIVROWS = {}, {}
 
-    if not ENGINE or ENGINE.phase ~= PHASE.COMMAND or not st then
+    -- si apre solo dal bottone ATTIVA dei Generali (Max 12/11)
+    local F = COMMAND_FILTRO
+    if not ENGINE or ENGINE.phase ~= PHASE.COMMAND or not st or not F or F.slot ~= slot then
         engine_uiSet("cmdPanel", "active", "false")
         return
     end
@@ -210,8 +215,9 @@ function command_redrawPanel()
     engine_uiSet("cmdPanel", "active", "true")
     engine_uiSet("cmdPanel", "height", tostring(command_panelHeight(math.max(righe, 1))))
     engine_uiSet("cmdTitolo", "text", command_panelTitle(slot))
-    engine_uiSet("cmdTutte", "active", (COMMAND_FILTRO and COMMAND_FILTRO.slot == slot) and "true" or "false")
+    engine_uiSet("cmdTutte", "active", F.tipo ~= "tutte" and "true" or "false")
     engine_uiSet("cmdTutte", "visibility", main_sideVisibility(slot))
+    engine_uiSet("cmdChiudi", "visibility", main_sideVisibility(slot))
 
     local visibili = main_sideVisibility(slot)
     local inVolo = COMMAND_ROLLING or COMMAND_PENDING ~= nil

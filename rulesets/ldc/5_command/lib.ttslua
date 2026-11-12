@@ -138,7 +138,7 @@ function command_start(slot)
     COMMAND_PENDING = nil
     COMMAND_ROLLING = false
     COMMAND_APERTE[slot] = {}     -- Divisioni chiuse (primo livello)
-    COMMAND_FILTRO = nil          -- pannello completo
+    COMMAND_FILTRO = nil          -- pannello chiuso: si apre da ATTIVA sui Generali
 
     local gruppi, divisioni, ordine, cic = command_readSide(slot)
     for _, g in pairs(gruppi) do

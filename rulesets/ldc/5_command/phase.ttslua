@@ -9,7 +9,7 @@ function command_phase()
     return {
         [PHASE.COMMAND] = {
             title  = "FASE DI COMANDO",
-            desc   = "Attivazione delle Divisioni e delle Brigate",
+            desc   = "ATTIVA sui Generali: attivazione di Divisioni e Brigate",
             before = "before_command",
             after  = "after_command",
             onRoll = "command_onRoll",
