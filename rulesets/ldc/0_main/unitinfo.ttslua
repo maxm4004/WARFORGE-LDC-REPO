@@ -76,7 +76,7 @@ function main_unitInfoFixedRows(u, slot)
     local righe = { { sezione = "UNITA'" } }
     if u.generale then
         table.insert(righe, { "Ruolo", (tostring(m.ruolo or "generale"):gsub("_", " ")) })
-        table.insert(righe, { "Valore", tostring(m.valore or "-") })
+        table.insert(righe, { "Competenza", main_competenza(m.valore) })
         if m.divisioneNome then table.insert(righe, { "Divisione", m.divisioneNome }) end
         if m.brigataNome then table.insert(righe, { "Brigata", m.brigataNome }) end
         table.insert(righe, { "Movimento", main_formatD((LDC_VELOCITA.GEN or {}).velocita or 4) })

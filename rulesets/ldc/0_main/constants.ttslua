@@ -299,3 +299,21 @@ CONFIRMPANEL = {
 -- Secondi in cui l'esito resta a schermo prima che la sottofase
 -- si chiuda da sola (come IEF MORALE_ESITO_SECONDS)
 MORALE_ESITO_SECONDS = 6
+
+-- ------------------------------------------------------------
+-- Competenza dei Generali (regolamento 7.1): valore -> nome
+-- ------------------------------------------------------------
+GENERALE_COMPETENZA = {
+    [1] = "Imbecille",
+    [2] = "Incompetente",
+    [3] = "Affidabile",
+    [4] = "Abile",
+    [5] = "Geniale",
+}
+-- "Abile (4)"; valore fuori tabella: solo il numero
+function main_competenza(valore)
+    local v = tonumber(valore)
+    if not v then return "-" end
+    local nome = GENERALE_COMPETENZA[v]
+    return nome and string.format("%s (%d)", nome, v) or tostring(v)
+end

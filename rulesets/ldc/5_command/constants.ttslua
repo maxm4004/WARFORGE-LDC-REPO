@@ -28,14 +28,14 @@ COMMAND_DICEPANEL_CLOSE = 3
 -- STILE (0_main/style.ttslua, main_styleApply)
 COMMAND_PANEL = {
     righeMax      = 16,         -- righe al massimo (Divisioni + Brigate aperte)
-    width         = 620,
+    width         = 640,
     rowHeight     = 30,
     headerHeight  = 24,
     padding       = 12,
     spacing       = 3,
     rientro       = 18,         -- rientro delle Brigate sotto la Divisione
     nomeWidth     = 230,
-    competenzaWidth = 100,      -- "Competenza 4" (Max 12/11, era "Gen 4")
+    competenzaWidth = 120,      -- "Incompetente (2)", tabella 7.1 (Max 12/11, era "Gen 4")
     btnH          = 24,
     font          = "warforge_font",
     rowBg         = "rgba(1,1,1,0.06)",

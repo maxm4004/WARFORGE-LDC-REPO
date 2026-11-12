@@ -5,8 +5,8 @@
 --   Attivazione - Army2
 --   + 2a Divisione ...                     (primo livello)
 --   - 3a Divisione ...                     (aperta: clic sul nome)
---         Brigata Kister   Competenza 4  da attivare   [Attiva]
---         Brigata Maucune  Competenza 2  Non Attivata  [5] [Riprova]
+--         Brigata Kister   Abile (4)         da attivare   [Attiva]
+--         Brigata Maucune  Incompetente (2)  Non Attivata  [5] [Riprova]
 -- Un clic sulla Divisione apre o chiude le sue Brigate; il
 -- pannello cresce e cala con le righe visibili. Il nome della
 -- Brigata inquadra le sue basi. Niente messaggi sotto il
@@ -194,7 +194,7 @@ function command_redrawPanel()
             engine_uiSet("cmdInd" .. i, "active", "false")
             engine_uiSet("cmdNome" .. i, "text", (r.aperta and "-  " or "+  ") .. (div and div.nome or tostring(r.divId)))
             engine_uiSet("cmdNome" .. i, "textColor", S.titolo)
-            engine_uiSet("cmdGen" .. i, "text", div and ("Competenza " .. tostring(div.valore)) or "")
+            engine_uiSet("cmdGen" .. i, "text", div and main_competenza(div.valore) or "")
             engine_uiSet("cmdStato" .. i, "text", r.aperta and "" or riassunto)
             engine_uiSet("cmdStato" .. i, "color", tutte and S.ok or S.tenue)
             for _, nome in ipairs({ "cmdTira", "cmdRitira", "cmdDado", "cmdDadoR" }) do
@@ -211,7 +211,7 @@ function command_redrawPanel()
             engine_uiSet("cmdInd" .. i, "active", "true")
             engine_uiSet("cmdNome" .. i, "text", d.nome)
             engine_uiSet("cmdNome" .. i, "textColor", S.testo)
-            engine_uiSet("cmdGen" .. i, "text", d.valore and ("Competenza " .. tostring(d.valore)) or "-")
+            engine_uiSet("cmdGen" .. i, "text", main_competenza(d.valore))
             engine_uiSet("cmdStato" .. i, "text", command_rowText(d))
             engine_uiSet("cmdStato" .. i, "color", P.statoColor[d.stato] or S.testo)
 
