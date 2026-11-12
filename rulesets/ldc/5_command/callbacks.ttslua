@@ -76,3 +76,78 @@ function command_clickNome(player, value, id)
     command_cameraToGroup(player, s, key)
     command_redrawPanel()
 end
+
+-- ============================================================
+--        BOTTONE ATTIVA SUI GENERALI (Max 12/11/2026)
+-- Sul Generale di Brigata apre il pannello con la sola sua
+-- Brigata; sul Generale di Divisione con le Brigate della sua
+-- Divisione (e le unità senza Brigata). "Tutte" nel pannello
+-- torna all'elenco completo.
+-- ============================================================
+
+-- Filtro del pannello: nil | { slot, tipo = "brigata", key }
+--                          | { slot, tipo = "divisione", divId }
+COMMAND_FILTRO = nil
+
+-- ============================================================
+-- FUNZIONE: command_genFilter(slot, m)
+-- Filtro del pannello per il Generale con meta m (nil se non
+-- comanda niente da attivare).
+-- ============================================================
+function command_genFilter(slot, m)
+    local st = COMMAND_STATE[slot]
+    if not st or not m or not m.divisione then return nil end
+    if m.ruolo == DEPLOY_RUOLO.GEN_BRIGATA then
+        local key = command_groupKey(m.divisione, m.brigata)
+        if st.gruppi[key] then return { slot = slot, tipo = "brigata", key = key } end
+    elseif m.ruolo == DEPLOY_RUOLO.GEN_DIVISIONE then
+        for _, g in pairs(st.gruppi) do
+            if g.divId == m.divisione then return { slot = slot, tipo = "divisione", divId = m.divisione } end
+        end
+    end
+    return nil
+end
+-- ============================================================
+-- FUNZIONE: command_baseButtons(obj, u, slot)
+-- ATTIVA sui Generali di Brigata e di Divisione dello
+-- schieramento attivo.
+-- ============================================================
+function command_baseButtons(obj, u, slot)
+    if not u.generale or not TURN or slot ~= TURN.activeSide then return {} end
+    if not command_genFilter(slot, u.meta) then return {} end
+    local tip = u.meta.ruolo == DEPLOY_RUOLO.GEN_DIVISIONE and "Attivazione delle Brigate della Divisione"
+        or "Attivazione della Brigata"
+    return { { label = "ATTIVA", click = "command_clickAttivaGen", tooltip = tip } }
+end
+-- ============================================================
+-- FUNZIONE: command_clickAttivaGen(obj, player_color, alt_click)
+-- ============================================================
+function command_clickAttivaGen(obj, player_color, alt_click)
+    if not ENGINE or ENGINE.phase ~= PHASE.COMMAND or ENGINE.transitionPending then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio or not u.generale or slot ~= TURN.activeSide then return end
+    local f = command_genFilter(slot, u.meta)
+    if not f then return end
+    COMMAND_FILTRO = f
+    command_redrawPanel()
+end
+-- ============================================================
+-- FUNZIONE: command_clickTutte(player, value, id)
+-- Torna al pannello completo (Divisioni e Brigate).
+-- ============================================================
+function command_clickTutte(player, value, id)
+    if not ENGINE or ENGINE.phase ~= PHASE.COMMAND then return end
+    local slot = TURN.activeSide
+    if player and not main_colorInSide(player.color, slot) then return end
+    -- la Divisione vista resta aperta nell'elenco completo
+    local F = COMMAND_FILTRO
+    if F and F.slot == slot then
+        local divId = F.divId or (COMMAND_STATE[slot].gruppi[F.key] or {}).divId
+        if divId then
+            COMMAND_APERTE[slot] = COMMAND_APERTE[slot] or {}
+            COMMAND_APERTE[slot][divId] = true
+        end
+    end
+    COMMAND_FILTRO = nil
+    command_redrawPanel()
+end

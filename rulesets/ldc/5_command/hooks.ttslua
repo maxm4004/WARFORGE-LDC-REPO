@@ -21,6 +21,7 @@ end
 -- pannello e tiro in sospeso.
 -- ============================================================
 function after_command(phaseName, phase)
+    COMMAND_FILTRO = nil
     if TURN.activeSide then command_closeFailed(TURN.activeSide) end
     COMMAND_PENDING = nil
     COMMAND_ROLLING = false

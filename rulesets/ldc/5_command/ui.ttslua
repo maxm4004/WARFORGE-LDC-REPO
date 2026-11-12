@@ -70,14 +70,20 @@ function command_panelXml()
     <Panel id="cmdPanel" active="false" rectAlignment="%s" offsetXY="%s"
            width="%d" height="%d" %s>
         <VerticalLayout padding="%d %d %d %d" spacing="%d" childForceExpandHeight="false" childAlignment="UpperCenter">
-            <Text id="cmdTitolo" ]] .. main_styleTextOutline() .. [[ text="Attivazione" font="%s" fontSize="%d" color="%s"
-                  alignment="MiddleCenter" preferredHeight="%d"/>
+            <HorizontalLayout preferredHeight="%d" childForceExpandWidth="false" childAlignment="MiddleCenter" spacing="6">
+                <Text id="cmdTitolo" ]] .. main_styleTextOutline() .. [[ text="Attivazione" font="%s" fontSize="%d" color="%s"
+                      alignment="MiddleCenter" preferredWidth="%d"/>
+                <Button id="cmdTutte" text="Tutte" font="%s" fontSize="%d" preferredWidth="60" preferredHeight="%d"
+                        color="%s" textColor="%s" onClick="command_clickTutte" active="false"
+                        tooltip="Torna a tutte le Divisioni" tooltipPosition="Above"/>
+            </HorizontalLayout>
 %s
         </VerticalLayout>
     </Panel>
 ]], P.rectAlignment, P.offsetXY, P.width, command_panelHeight(P.righeMax), main_stylePanelAttrs(),
         P.padding, P.padding, P.padding, P.padding, P.spacing,
-        S.font, M.titolo, S.titolo, P.headerHeight,
+        P.headerHeight, S.font, M.titolo, S.titolo, P.width - 2 * P.padding - 66,
+        S.font, M.bottone, P.btnH, S.secondario, S.secondarioTesto,
         righe)
 end
 -- ============================================================
@@ -114,6 +120,19 @@ end
 function command_panelRows(slot)
     local aperte = COMMAND_APERTE[slot] or {}
     local righe = {}
+    -- aperto dal Generale (bottone ATTIVA sulla sua base): solo la
+    -- sua Brigata, o le Brigate della sua Divisione
+    local F = COMMAND_FILTRO
+    if F and F.slot == slot then
+        for _, div in ipairs(command_divisionsOf(slot)) do
+            for _, key in ipairs(div.gruppi) do
+                if (F.tipo == "brigata" and key == F.key) or (F.tipo == "divisione" and div.divId == F.divId) then
+                    table.insert(righe, { tipo = "gruppo", key = key, piatta = true })
+                end
+            end
+        end
+        return righe
+    end
     for _, div in ipairs(command_divisionsOf(slot)) do
         local aperta = aperte[div.divId] == true
         table.insert(righe, { tipo = "div", divId = div.divId, aperta = aperta, gruppi = div.gruppi })
@@ -124,6 +143,22 @@ function command_panelRows(slot)
         end
     end
     return righe
+end
+-- ============================================================
+-- FUNZIONE: command_panelTitle(slot)
+-- "Attivazione - Army1"; aperto dal Generale: il suo comando.
+-- ============================================================
+function command_panelTitle(slot)
+    local F = COMMAND_FILTRO
+    local st = COMMAND_STATE[slot]
+    if F and F.slot == slot and st then
+        if F.tipo == "brigata" and st.gruppi[F.key] then
+            return "Attivazione - " .. st.gruppi[F.key].nome
+        elseif F.tipo == "divisione" and st.divisioni[F.divId] then
+            return "Attivazione - " .. st.divisioni[F.divId].nome
+        end
+    end
+    return "Attivazione - " .. main_sideName(slot)
 end
 -- ============================================================
 -- FUNZIONE: command_divSummary(slot, gruppi)
@@ -174,7 +209,9 @@ function command_redrawPanel()
     local righe = math.min(#elenco, P.righeMax)
     engine_uiSet("cmdPanel", "active", "true")
     engine_uiSet("cmdPanel", "height", tostring(command_panelHeight(math.max(righe, 1))))
-    engine_uiSet("cmdTitolo", "text", "Attivazione - " .. main_sideName(slot))
+    engine_uiSet("cmdTitolo", "text", command_panelTitle(slot))
+    engine_uiSet("cmdTutte", "active", (COMMAND_FILTRO and COMMAND_FILTRO.slot == slot) and "true" or "false")
+    engine_uiSet("cmdTutte", "visibility", main_sideVisibility(slot))
 
     local visibili = main_sideVisibility(slot)
     local inVolo = COMMAND_ROLLING or COMMAND_PENDING ~= nil
@@ -208,7 +245,7 @@ function command_redrawPanel()
             local focus = COMMAND_FOCUS and COMMAND_FOCUS.key == key
             engine_uiSet(row, "active", "true")
             engine_uiSet(row, "color", focus and S.rigaScelta or S.riga)
-            engine_uiSet("cmdInd" .. i, "active", "true")
+            engine_uiSet("cmdInd" .. i, "active", r.piatta and "false" or "true")
             engine_uiSet("cmdNome" .. i, "text", d.nome)
             engine_uiSet("cmdNome" .. i, "textColor", S.testo)
             engine_uiSet("cmdGen" .. i, "text", main_competenza(d.valore))
