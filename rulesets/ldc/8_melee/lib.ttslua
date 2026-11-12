@@ -266,11 +266,11 @@ function melee_listRefresh()
     local attivo = ENGINE and ENGINE.phase == PHASE.MELEE and #MELEE_STATE.mischie > 0
     local ctx = melee_resolveCtx()
     for slot = 1, 2 do
-        UI.setAttribute("melee_list_army" .. slot, "active", attivo and "true" or "false")
-        UI.setAttribute("melee_list_army" .. slot, "visibility", main_sideVisibility(slot))
-        UI.setAttribute("melee_list_title_army" .. slot, "text", "MISCHIE - " .. main_sideName(slot))
+        engine_uiSet("melee_list_army" .. slot, "active", attivo and "true" or "false")
+        engine_uiSet("melee_list_army" .. slot, "visibility", main_sideVisibility(slot))
+        engine_uiSet("melee_list_title_army" .. slot, "text", "MISCHIE - " .. main_sideName(slot))
         local n = math.min(#MELEE_STATE.mischie, MELEE.listaMax)
-        UI.setAttribute("melee_list_army" .. slot, "height",
+        engine_uiSet("melee_list_army" .. slot, "height",
             tostring(2 * S.padding + S.titleH + S.noteH + S.spacing + math.max(n, 1) * (S.rowH + S.spacing)))
         for i = 1, MELEE.listaMax do
             local m = MELEE_STATE.mischie[i]
@@ -282,11 +282,11 @@ function melee_listRefresh()
                 elseif m.fatta then
                     testo, colore = testo .. " - risolta", S.done
                 end
-                UI.setAttribute(id, "active", "true")
-                UI.setAttribute(id, "text", testo)
-                UI.setAttribute(id, "textColor", colore)
+                engine_uiSet(id, "active", "true")
+                engine_uiSet(id, "text", testo)
+                engine_uiSet(id, "textColor", colore)
             else
-                UI.setAttribute(id, "active", "false")
+                engine_uiSet(id, "active", "false")
             end
         end
     end

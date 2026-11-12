@@ -220,6 +220,8 @@ function main_restart()
     main_unitsReset()
     main_divReset()
     deploy_clearAll()
+    main_buttonsForget()
+    MAIN_META_CACHE = {}
     main_drawDeployLines(false)
     LDC_UNIT_INFO = {}
 
@@ -317,7 +319,7 @@ end
 -- ============================================================
 function main_setCenterTextColor(id, color)
     local function apply()
-        UI.setAttribute(id, "textColor", color)
+        engine_uiSet(id, "textColor", color)
     end
     Wait.frames(function()
         if UI.loading then
@@ -333,7 +335,7 @@ end
 -- ============================================================
 function main_setActiveIcon(slot)
     for s = 1, 2 do
-        UI.setAttribute("iconActiveArmy" .. s, "iconColor", (s == slot) and "White" or "rgba(1,1,1,0)")
+        engine_uiSet("iconActiveArmy" .. s, "iconColor", (s == slot) and "White" or "rgba(1,1,1,0)")
     end
 end
 -- ============================================================
@@ -366,21 +368,21 @@ function main_updateCenterPanel()
     end
 
     -- Turno, fase, descrizione
-    UI.setAttribute("versione",  "text", VERSION)
-    UI.setAttribute("textTurno", "text", main_turnText())
-    UI.setAttribute("textFase",  "text", phase.title or ENGINE.phase)
-    UI.setAttribute("textDesc",  "text", phase.desc or "")
+    engine_uiSet("versione",  "text", VERSION)
+    engine_uiSet("textTurno", "text", main_turnText())
+    engine_uiSet("textFase",  "text", phase.title or ENGINE.phase)
+    engine_uiSet("textDesc",  "text", phase.desc or "")
 
     -- Nomi degli schieramenti: colorati se sono stati scelti
     for slot = 1, 2 do
-        UI.setAttribute("army" .. slot, "text",  main_sideName(slot))
-        UI.setAttribute("army" .. slot, "color", SIDE_CHOSEN[slot] ~= nil and main_sideMainColor(slot) or COLOR.NOARMY)
+        engine_uiSet("army" .. slot, "text",  main_sideName(slot))
+        engine_uiSet("army" .. slot, "color", SIDE_CHOSEN[slot] ~= nil and main_sideMainColor(slot) or COLOR.NOARMY)
     end
     main_setActiveIcon(TURN.activeSide)
 
     -- Bottoni
     for _, id in ipairs({ BUTTONS.BTN_ARMY1, BUTTONS.BTN_ARMY2, BUTTONS.BTN_SINGLE }) do
-        UI.setAttribute(id, "interactable", "true")
+        engine_uiSet(id, "interactable", "true")
     end
 
     if phase.inputMode == INPUT_MODE.ACTIVE then
@@ -388,8 +390,8 @@ function main_updateCenterPanel()
         -- Dopo il click, fino al cambio di fase: grigio (completato)
         local button = (phase.buttons or {})[BUTTONS.BTN_SINGLE] or {}
         local fatto  = ENGINE.transitionPending == true
-        UI.setAttribute(BUTTONS.BTN_SINGLE, "text",  button.label or "")
-        UI.setAttribute(BUTTONS.BTN_SINGLE, "color", fatto and CENTERPANEL.doneColor or main_sideMainColor(TURN.activeSide))
+        engine_uiSet(BUTTONS.BTN_SINGLE, "text",  button.label or "")
+        engine_uiSet(BUTTONS.BTN_SINGLE, "color", fatto and CENTERPANEL.doneColor or main_sideMainColor(TURN.activeSide))
         main_setCenterTextColor(BUTTONS.BTN_SINGLE, fatto and CENTERPANEL.doneText or CENTERPANEL.activeText)
     else
         -- Due bottoni, uno per schieramento
@@ -397,8 +399,8 @@ function main_updateCenterPanel()
             local id     = (slot == 1) and BUTTONS.BTN_ARMY1 or BUTTONS.BTN_ARMY2
             local button = (phase.buttons or {})[id] or {}
             local fatto  = main_buttonDone(phase, slot)
-            UI.setAttribute(id, "text",  button.label or "")
-            UI.setAttribute(id, "color", fatto and CENTERPANEL.doneColor or main_sideMainColor(slot))
+            engine_uiSet(id, "text",  button.label or "")
+            engine_uiSet(id, "color", fatto and CENTERPANEL.doneColor or main_sideMainColor(slot))
             main_setCenterTextColor(id, fatto and CENTERPANEL.doneText or CENTERPANEL.activeText)
         end
     end
@@ -453,9 +455,9 @@ function main_updateWaiting(phase)
 
     for slot = 1, 2 do
         local testo = main_waitingText(phase, slot)
-        UI.setAttribute("panelWait" .. slot, "visibility", main_sideVisibility(slot))
-        UI.setAttribute("panelWait" .. slot, "active", testo and "true" or "false")
-        UI.setAttribute("textWait" .. slot, "text", string.upper(testo or ""))
+        engine_uiSet("panelWait" .. slot, "visibility", main_sideVisibility(slot))
+        engine_uiSet("panelWait" .. slot, "active", testo and "true" or "false")
+        engine_uiSet("textWait" .. slot, "text", string.upper(testo or ""))
         if not testo then
             table.insert(vedono, main_sideVisibility(slot))
         end
@@ -464,11 +466,11 @@ function main_updateWaiting(phase)
     if #vedono == 2 then
         -- nessuno aspetta: bottoni a tutti (anche a chi non ha
         -- ancora un esercito)
-        UI.setAttribute(panel, "visibility", "")
+        engine_uiSet(panel, "visibility", "")
     elseif #vedono == 1 then
-        UI.setAttribute(panel, "visibility", vedono[1])
+        engine_uiSet(panel, "visibility", vedono[1])
     else
-        UI.setAttribute(panel, "active", "false")
+        engine_uiSet(panel, "active", "false")
     end
 end
 -- ============================================================

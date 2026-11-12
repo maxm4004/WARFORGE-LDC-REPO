@@ -36,10 +36,10 @@ function warningToColor(warning, player, textColor, second, inConsole)
         ENGINE_MSG_GEN = ENGINE_MSG_GEN + 1
         local gen = ENGINE_MSG_GEN
 
-        UI.setAttribute("playerGameMessage", "Color", color)
-        UI.setAttribute("playerGameMessage", "text", warning)
-        UI.setAttribute("playerGameMessage", "active", "true")
-        UI.setAttribute("playerGameMessage", "visibility", player.color)
+        engine_uiSet("playerGameMessage", "Color", color)
+        engine_uiSet("playerGameMessage", "text", warning)
+        engine_uiSet("playerGameMessage", "active", "true")
+        engine_uiSet("playerGameMessage", "visibility", player.color)
 
         Wait.time(function()
             engine_hideGameMessage(gen)
@@ -68,9 +68,9 @@ function warningListToColor(warnings, player, textColor, second)
         ENGINE_MSG_GEN = ENGINE_MSG_GEN + 1
         local gen = ENGINE_MSG_GEN
 
-        UI.setAttribute("playerGameMessage", "Color", color)
-        UI.setAttribute("playerGameMessage", "active", "true")
-        UI.setAttribute("playerGameMessage", "visibility", player.color)
+        engine_uiSet("playerGameMessage", "Color", color)
+        engine_uiSet("playerGameMessage", "active", "true")
+        engine_uiSet("playerGameMessage", "visibility", player.color)
 
         ENGINE_WARNING_ACTIVE = true
         local a = true
@@ -78,7 +78,7 @@ function warningListToColor(warnings, player, textColor, second)
         local function step(i)
             if not ENGINE_WARNING_ACTIVE or gen ~= ENGINE_MSG_GEN then return end
 
-            UI.setAttribute("playerGameMessage", "text", warnings[i])
+            engine_uiSet("playerGameMessage", "text", warnings[i])
             if a then
                 printToColor("[LOG] " .. warnings[i], player.color, {1, 1, 1})
             end
@@ -105,10 +105,10 @@ function warning(warning, textColor)
     ENGINE_MSG_GEN = ENGINE_MSG_GEN + 1
     local gen = ENGINE_MSG_GEN
 
-    UI.setAttribute("playerGameMessage", "Color", color)
-    UI.setAttribute("playerGameMessage", "text", warning)
-    UI.setAttribute("playerGameMessage", "visibility", "")
-    UI.setAttribute("playerGameMessage", "active", "true")
+    engine_uiSet("playerGameMessage", "Color", color)
+    engine_uiSet("playerGameMessage", "text", warning)
+    engine_uiSet("playerGameMessage", "visibility", "")
+    engine_uiSet("playerGameMessage", "active", "true")
 
     Wait.time(function()
         engine_hideGameMessage(gen)
@@ -127,7 +127,7 @@ function engine_hideGameMessage(gen)
         end, function() return not UI.loading end, 10)
         return
     end
-    UI.setAttribute("playerGameMessage", "active", "false")
+    engine_uiSet("playerGameMessage", "active", "false")
 end
 -- ============================================================
 -- FUNZIONE: printLog(message, color)

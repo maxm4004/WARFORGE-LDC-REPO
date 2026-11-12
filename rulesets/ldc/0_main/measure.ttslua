@@ -18,19 +18,62 @@
 -- Dati di gioco della base (GMNotes scritte allo spawn), nil
 -- se l'oggetto non è una base LDC.
 -- ============================================================
+-- Cache delle GMNotes decodificate: JSON.decode in TTS è lento
+-- e i bottoni / le regole rileggono tutte le basi a ogni click
+-- (prestazioni, Max 12/11/2026). Si ridecodifica solo se il
+-- testo delle note cambia. Le meta non vanno modificate.
+MAIN_META_CACHE = {}
+
+-- Dentro lo stesso frame non si rilegge nemmeno il testo delle
+-- note (le distanze chiedono le misure della base migliaia di volte)
+MAIN_META_FRAME = {}
+MAIN_META_FRAME_ATTESA = false
+
 function main_baseMeta(obj)
     if not obj or obj.isDestroyed() then return nil end
+    local guid = obj.getGUID()
+    local f = MAIN_META_FRAME[guid]
+    if f ~= nil then return f or nil end
     local notes = obj.getGMNotes and obj.getGMNotes() or ""
-    if notes == "" then return nil end
-    local ok, meta = pcall(JSON.decode, notes)
-    if not ok or type(meta) ~= "table" then return nil end
+    local meta = nil
+    if notes ~= "" then
+        local c = MAIN_META_CACHE[guid]
+        if c and c.notes == notes then
+            meta = c.meta
+        else
+            local ok, m = pcall(JSON.decode, notes)
+            if ok and type(m) == "table" then
+                meta = m
+                MAIN_META_CACHE[guid] = { notes = notes, meta = meta }
+            end
+        end
+    end
+    MAIN_META_FRAME[guid] = meta or false
+    if not MAIN_META_FRAME_ATTESA then
+        MAIN_META_FRAME_ATTESA = true
+        Wait.frames(function()
+            MAIN_META_FRAME = {}
+            MAIN_META_FRAME_ATTESA = false
+        end, 1)
+    end
     return meta
 end
 -- ============================================================
 -- FUNZIONE: main_basesOfSide(slot)
 -- Basi dello schieramento sul tavolo: lista di { obj, meta }.
 -- ============================================================
+-- Elenco ricordato fino al frame dopo: dentro un click le regole
+-- lo chiedono centinaia di volte (prestazioni, 12/11/2026).
+-- Le posizioni si leggono sempre dagli oggetti.
+MAIN_BASES_FRAME = { [1] = nil, [2] = nil }
+
 function main_basesOfSide(slot)
+    local c = MAIN_BASES_FRAME[slot]
+    if c then
+        local copia = {}
+        for i, b in ipairs(c) do copia[i] = b end
+        return copia
+    end
     local result = {}
     for _, obj in ipairs(getObjectsWithTag(DEPLOY_TAG_SIDE[slot]) or {}) do
         local meta = main_baseMeta(obj)
@@ -38,7 +81,18 @@ function main_basesOfSide(slot)
             table.insert(result, { obj = obj, meta = meta })
         end
     end
-    return result
+    MAIN_BASES_FRAME[slot] = result
+    Wait.frames(function() MAIN_BASES_FRAME[slot] = nil end, 1)
+    local copia = {}
+    for i, b in ipairs(result) do copia[i] = b end
+    return copia
+end
+-- ============================================================
+-- FUNZIONE: main_basesForget()
+-- Basi aggiunte o tolte (spawn, rotta): si rilegge subito.
+-- ============================================================
+function main_basesForget()
+    MAIN_BASES_FRAME = { [1] = nil, [2] = nil }
 end
 
 -- ============================================================

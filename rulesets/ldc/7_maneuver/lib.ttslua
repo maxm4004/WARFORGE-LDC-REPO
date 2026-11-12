@@ -637,13 +637,13 @@ function move_dragTextXml()
 end
 function move_dragText(slot, testo, oltre)
     if not testo then
-        UI.setAttribute("move_drag_panel", "active", "false")
+        engine_uiSet("move_drag_panel", "active", "false")
         return
     end
-    UI.setAttribute("move_drag_panel", "visibility", main_sideVisibility(slot))
-    UI.setAttribute("move_drag_text", "text", testo)
-    UI.setAttribute("move_drag_text", "color", oltre and STILE.ko or STILE.testo)
-    UI.setAttribute("move_drag_panel", "active", "true")
+    engine_uiSet("move_drag_panel", "visibility", main_sideVisibility(slot))
+    engine_uiSet("move_drag_text", "text", testo)
+    engine_uiSet("move_drag_text", "color", oltre and STILE.ko or STILE.testo)
+    engine_uiSet("move_drag_panel", "active", "true")
 end
 -- ============================================================
 -- FUNZIONE: move_clickCerchio(obj, player_color, alt_click)

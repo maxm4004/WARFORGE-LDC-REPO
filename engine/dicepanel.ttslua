@@ -233,66 +233,66 @@ function engine_dicePanelRedraw()
 
     local L = dpLayout()
     if L.colonne == 0 then
-        UI.setAttribute("dice_panel", "active", "false")
+        engine_uiSet("dice_panel", "active", "false")
         return
     end
 
     local w, h = dpSize(L)
-    UI.setAttribute("dice_panel", "width", tostring(w))
-    UI.setAttribute("dice_panel", "height", tostring(h))
+    engine_uiSet("dice_panel", "width", tostring(w))
+    engine_uiSet("dice_panel", "height", tostring(h))
 
     for slot = 1, 2 do
         local p = ENGINE_DICE_PANEL[slot]
         local pre = "dice_col_army" .. slot
-        UI.setAttribute(pre, "active", p and "true" or "false")
+        engine_uiSet(pre, "active", p and "true" or "false")
 
         if p then
             local s = p.scheda or {}
-            UI.setAttribute(pre .. "_title", "text", s.titolo or "")
-            UI.setAttribute(pre .. "_sub", "text", s.sottotitolo or "")
-            UI.setAttribute(pre .. "_sub", "active", L.sub and "true" or "false")
+            engine_uiSet(pre .. "_title", "text", s.titolo or "")
+            engine_uiSet(pre .. "_sub", "text", s.sottotitolo or "")
+            engine_uiSet(pre .. "_sub", "active", L.sub and "true" or "false")
 
             local righe = dpRows(p)
             for i = 1, DICEPANEL.maxRows do
                 local r = righe[i]
-                UI.setAttribute(pre .. "_row" .. i, "active", (i <= L.rows) and "true" or "false")
+                engine_uiSet(pre .. "_row" .. i, "active", (i <= L.rows) and "true" or "false")
                 if i <= L.rows then
                     local cl, cv = dpRowColors(r)
-                    UI.setAttribute(pre .. "_row" .. i .. "_l", "text", r and r[1] or "")
-                    UI.setAttribute(pre .. "_row" .. i .. "_l", "color", cl)
-                    UI.setAttribute(pre .. "_row" .. i .. "_v", "text", r and r[2] or "")
-                    UI.setAttribute(pre .. "_row" .. i .. "_v", "color", cv)
+                    engine_uiSet(pre .. "_row" .. i .. "_l", "text", r and r[1] or "")
+                    engine_uiSet(pre .. "_row" .. i .. "_l", "color", cl)
+                    engine_uiSet(pre .. "_row" .. i .. "_v", "text", r and r[2] or "")
+                    engine_uiSet(pre .. "_row" .. i .. "_v", "color", cv)
                 end
             end
 
-            UI.setAttribute(pre .. "_need", "text", s.serve or "")
-            UI.setAttribute(pre .. "_need", "active", L.need and "true" or "false")
+            engine_uiSet(pre .. "_need", "text", s.serve or "")
+            engine_uiSet(pre .. "_need", "active", L.need and "true" or "false")
 
             local facce = dpFaces(p)
-            UI.setAttribute(pre .. "_faces", "active", L.faces > 0 and "true" or "false")
+            engine_uiSet(pre .. "_faces", "active", L.faces > 0 and "true" or "false")
             if L.faces > 0 then
-                UI.setAttribute(pre .. "_faces", "preferredHeight", tostring(dpFacesHeight(L.faces)))
+                engine_uiSet(pre .. "_faces", "preferredHeight", tostring(dpFacesHeight(L.faces)))
             end
             for i = 1, DICEPANEL.maxFaces do
                 local v = (i <= facce) and p.risultati[i] or nil
                 local id = pre .. "_face" .. i
-                UI.setAttribute(id, "active", v and "true" or "false")
+                engine_uiSet(id, "active", v and "true" or "false")
                 if v then
-                    UI.setAttribute(id, "image", "d" .. v)
-                    UI.setAttribute(id, "color", dpFaceColor(p, v))
+                    engine_uiSet(id, "image", "d" .. v)
+                    engine_uiSet(id, "color", dpFaceColor(p, v))
                 end
             end
 
             local esito = p.esito
-            UI.setAttribute(pre .. "_outcome", "active", L.esito and "true" or "false")
-            UI.setAttribute(pre .. "_outcome", "text", esito and esito.testo or "")
-            if esito then UI.setAttribute(pre .. "_outcome", "color", esito.colore) end
-            UI.setAttribute(pre .. "_note", "active", L.nota and "true" or "false")
-            UI.setAttribute(pre .. "_note", "text", esito and esito.nota or "")
+            engine_uiSet(pre .. "_outcome", "active", L.esito and "true" or "false")
+            engine_uiSet(pre .. "_outcome", "text", esito and esito.testo or "")
+            if esito then engine_uiSet(pre .. "_outcome", "color", esito.colore) end
+            engine_uiSet(pre .. "_note", "active", L.nota and "true" or "false")
+            engine_uiSet(pre .. "_note", "text", esito and esito.nota or "")
         end
     end
 
-    UI.setAttribute("dice_panel", "active", "true")
+    engine_uiSet("dice_panel", "active", "true")
 end
 
 -- ============================================================

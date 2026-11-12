@@ -61,7 +61,7 @@ end
 -- FUNZIONE: shoot_infoHide()
 -- ============================================================
 function shoot_infoHide()
-    UI.setAttribute("shoot_info_panel", "active", "false")
+    engine_uiSet("shoot_info_panel", "active", "false")
 end
 
 -- ============================================================
@@ -76,7 +76,7 @@ function shoot_infoAltezza(stato, facce, esito)
     if stato then h = h + S.statoH + 2 end
     if facce then h = h + S.faceSize + 6 end
     if esito then h = h + S.esitoH + 2 end
-    UI.setAttribute("shoot_info_panel", "height", tostring(h))
+    engine_uiSet("shoot_info_panel", "height", tostring(h))
 end
 
 -- ============================================================
@@ -86,10 +86,10 @@ end
 -- pannello dadi che sostituisce.
 -- ============================================================
 function shoot_infoStato(testo, colore)
-    UI.setAttribute("shootinfo_stato", "text", testo or "")
-    UI.setAttribute("shootinfo_stato", "color", colore or SHOOTINFO.gold)
-    UI.setAttribute("shootinfo_stato", "active", "true")
-    UI.setAttribute("shoot_info_panel", "visibility", "")
+    engine_uiSet("shootinfo_stato", "text", testo or "")
+    engine_uiSet("shootinfo_stato", "color", colore or SHOOTINFO.gold)
+    engine_uiSet("shootinfo_stato", "active", "true")
+    engine_uiSet("shoot_info_panel", "visibility", "")
     shoot_infoAltezza(true, false, false)
 end
 
@@ -100,22 +100,22 @@ end
 -- ============================================================
 function shoot_infoRisultati(risultati, soglia, colpi)
     local S = SHOOTINFO
-    UI.setAttribute("shootinfo_stato", "active", "false")
+    engine_uiSet("shootinfo_stato", "active", "false")
     for i = 1, S.maxFaces do
         local v = risultati and risultati[i]
         local id = "shootinfo_f" .. i
         if v then
-            UI.setAttribute(id, "image", "d" .. v)
-            UI.setAttribute(id, "color", (v >= soglia) and S.bonus or S.faceKo)
-            UI.setAttribute(id, "active", "true")
+            engine_uiSet(id, "image", "d" .. v)
+            engine_uiSet(id, "color", (v >= soglia) and S.bonus or S.faceKo)
+            engine_uiSet(id, "active", "true")
         else
-            UI.setAttribute(id, "active", "false")
+            engine_uiSet(id, "active", "false")
         end
     end
-    UI.setAttribute("shootinfo_faces", "active", "true")
-    UI.setAttribute("shootinfo_esito", "text",
+    engine_uiSet("shootinfo_faces", "active", "true")
+    engine_uiSet("shootinfo_esito", "text",
         (colpi == 1) and "1 COLPO A SEGNO" or string.format("%d COLPI A SEGNO", colpi or 0))
-    UI.setAttribute("shootinfo_esito", "color", ((colpi or 0) > 0) and S.bonus or S.malus)
-    UI.setAttribute("shootinfo_esito", "active", "true")
+    engine_uiSet("shootinfo_esito", "color", ((colpi or 0) > 0) and S.bonus or S.malus)
+    engine_uiSet("shootinfo_esito", "active", "true")
     shoot_infoAltezza(false, true, true)
 end

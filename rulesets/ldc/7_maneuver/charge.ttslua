@@ -200,8 +200,8 @@ end
 -- FUNZIONE: move_chargePanelHide()
 -- ============================================================
 function move_chargePanelHide()
-    UI.setAttribute("charge_info_panel", "active", "false")
-    UI.setAttribute("confirm_panel_charge", "active", "false")
+    engine_uiSet("charge_info_panel", "active", "false")
+    engine_uiSet("confirm_panel_charge", "active", "false")
 end
 -- ============================================================
 -- FUNZIONE: move_chargePrepare(player, slot, u, t)
@@ -221,14 +221,14 @@ function move_chargePrepare(player, slot, u, t)
         { "Lato contattato", lato:lower() },
     }
     for i, r in ipairs(righe) do
-        UI.setAttribute("charge_info_r" .. i .. "_k", "text", r[1])
-        UI.setAttribute("charge_info_r" .. i .. "_v", "text", r[2])
+        engine_uiSet("charge_info_r" .. i .. "_k", "text", r[1])
+        engine_uiSet("charge_info_r" .. i .. "_v", "text", r[2])
     end
-    UI.setAttribute("charge_info_stato", "text", "Dichiara: le basi vanno a contatto")
-    UI.setAttribute("charge_info_panel", "visibility", "")
-    UI.setAttribute("charge_info_panel", "active", "true")
-    UI.setAttribute("confirm_panel_charge", "visibility", main_sideVisibility(slot))
-    UI.setAttribute("confirm_panel_charge", "active", "true")
+    engine_uiSet("charge_info_stato", "text", "Dichiara: le basi vanno a contatto")
+    engine_uiSet("charge_info_panel", "visibility", "")
+    engine_uiSet("charge_info_panel", "active", "true")
+    engine_uiSet("confirm_panel_charge", "visibility", main_sideVisibility(slot))
+    engine_uiSet("confirm_panel_charge", "active", "true")
     for _, b in ipairs(t.basi) do pcall(function() b.highlightOn({ 1, 0.5, 0.1 }) end) end
     main_refreshBaseButtons()
 end
@@ -404,24 +404,24 @@ function move_chargeListRefresh()
     local n = math.min(#lista, MOVE.listaMax)
     for slot = 1, 2 do
         local pre = "charge_list_army" .. slot
-        UI.setAttribute(pre, "active", attivo and "true" or "false")
-        UI.setAttribute(pre, "visibility", main_sideVisibility(slot))
-        UI.setAttribute("charge_list_title_army" .. slot, "text",
+        engine_uiSet(pre, "active", attivo and "true" or "false")
+        engine_uiSet(pre, "visibility", main_sideVisibility(slot))
+        engine_uiSet("charge_list_title_army" .. slot, "text",
             (slot == MOVE_STATE.side) and "CARICHE" or "CARICHE SUBITE")
-        UI.setAttribute(pre, "height",
+        engine_uiSet(pre, "height",
             tostring(2 * S.padding + S.titleH + S.noteH + S.spacing + math.max(n, 1) * (S.rowH + S.spacing)))
         for i = 1, MOVE.listaMax do
             local c = lista[i]
             local id = string.format("charge_row_%d_%d", slot, i)
             if c and i <= n then
                 local u, t = main_unit(c.att), main_unit(c.dif)
-                UI.setAttribute(id, "active", "true")
-                UI.setAttribute(id, "text", string.format("%s carica %s%s",
+                engine_uiSet(id, "active", "true")
+                engine_uiSet(id, "text", string.format("%s carica %s%s",
                     u and (u.meta.nomeDisplay or u.key) or c.att, t and (t.meta.nomeDisplay or t.key) or c.dif,
                     c.lato and (" - " .. c.lato:lower()) or ""))
-                UI.setAttribute(id, "textColor", (slot == MOVE_STATE.side) and S.todo or S.gold)
+                engine_uiSet(id, "textColor", (slot == MOVE_STATE.side) and S.todo or S.gold)
             else
-                UI.setAttribute(id, "active", "false")
+                engine_uiSet(id, "active", "false")
             end
         end
     end

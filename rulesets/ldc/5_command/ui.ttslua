@@ -168,15 +168,15 @@ function command_redrawPanel()
     COMMAND_ROWS, COMMAND_DIVROWS = {}, {}
 
     if not ENGINE or ENGINE.phase ~= PHASE.COMMAND or not st then
-        UI.setAttribute("cmdPanel", "active", "false")
+        engine_uiSet("cmdPanel", "active", "false")
         return
     end
 
     local elenco = command_panelRows(slot)
     local righe = math.min(#elenco, P.righeMax)
-    UI.setAttribute("cmdPanel", "active", "true")
-    UI.setAttribute("cmdPanel", "height", tostring(command_panelHeight(math.max(righe, 1))))
-    UI.setAttribute("cmdTitolo", "text", "Attivazione - " .. main_sideName(slot))
+    engine_uiSet("cmdPanel", "active", "true")
+    engine_uiSet("cmdPanel", "height", tostring(command_panelHeight(math.max(righe, 1))))
+    engine_uiSet("cmdTitolo", "text", "Attivazione - " .. main_sideName(slot))
 
     local visibili = main_sideVisibility(slot)
     local inVolo = COMMAND_ROLLING or COMMAND_PENDING ~= nil
@@ -185,22 +185,22 @@ function command_redrawPanel()
         local r = elenco[i]
         local row = "cmdRow" .. i
         if not r then
-            UI.setAttribute(row, "active", "false")
+            engine_uiSet(row, "active", "false")
         elseif r.tipo == "div" then
             -- primo livello: Divisione (clic = apri / chiudi)
             local div = st.divisioni[r.divId]
             COMMAND_DIVROWS[i] = r.divId
             local riassunto, tutte = command_divSummary(slot, r.gruppi)
-            UI.setAttribute(row, "active", "true")
-            UI.setAttribute(row, "color", S.rigaLivello1)
-            UI.setAttribute("cmdInd" .. i, "active", "false")
-            UI.setAttribute("cmdNome" .. i, "text", (r.aperta and "-  " or "+  ") .. (div and div.nome or tostring(r.divId)))
-            UI.setAttribute("cmdNome" .. i, "textColor", S.titolo)
-            UI.setAttribute("cmdGen" .. i, "text", div and ("Gen " .. tostring(div.valore)) or "")
-            UI.setAttribute("cmdStato" .. i, "text", r.aperta and "" or riassunto)
-            UI.setAttribute("cmdStato" .. i, "color", tutte and S.ok or S.tenue)
+            engine_uiSet(row, "active", "true")
+            engine_uiSet(row, "color", S.rigaLivello1)
+            engine_uiSet("cmdInd" .. i, "active", "false")
+            engine_uiSet("cmdNome" .. i, "text", (r.aperta and "-  " or "+  ") .. (div and div.nome or tostring(r.divId)))
+            engine_uiSet("cmdNome" .. i, "textColor", S.titolo)
+            engine_uiSet("cmdGen" .. i, "text", div and ("Gen " .. tostring(div.valore)) or "")
+            engine_uiSet("cmdStato" .. i, "text", r.aperta and "" or riassunto)
+            engine_uiSet("cmdStato" .. i, "color", tutte and S.ok or S.tenue)
             for _, nome in ipairs({ "cmdTira", "cmdRitira", "cmdDado", "cmdDadoR" }) do
-                UI.setAttribute(nome .. i, "active", "false")
+                engine_uiSet(nome .. i, "active", "false")
             end
         else
             -- secondo livello: Brigata (o Senza Brigata)
@@ -208,31 +208,31 @@ function command_redrawPanel()
             local d = st.gruppi[key]
             COMMAND_ROWS[i] = key
             local focus = COMMAND_FOCUS and COMMAND_FOCUS.key == key
-            UI.setAttribute(row, "active", "true")
-            UI.setAttribute(row, "color", focus and S.rigaScelta or S.riga)
-            UI.setAttribute("cmdInd" .. i, "active", "true")
-            UI.setAttribute("cmdNome" .. i, "text", d.nome)
-            UI.setAttribute("cmdNome" .. i, "textColor", S.testo)
-            UI.setAttribute("cmdGen" .. i, "text", d.valore and ("Gen " .. tostring(d.valore)) or "-")
-            UI.setAttribute("cmdStato" .. i, "text", command_rowText(d))
-            UI.setAttribute("cmdStato" .. i, "color", P.statoColor[d.stato] or S.testo)
+            engine_uiSet(row, "active", "true")
+            engine_uiSet(row, "color", focus and S.rigaScelta or S.riga)
+            engine_uiSet("cmdInd" .. i, "active", "true")
+            engine_uiSet("cmdNome" .. i, "text", d.nome)
+            engine_uiSet("cmdNome" .. i, "textColor", S.testo)
+            engine_uiSet("cmdGen" .. i, "text", d.valore and ("Gen " .. tostring(d.valore)) or "-")
+            engine_uiSet("cmdStato" .. i, "text", command_rowText(d))
+            engine_uiSet("cmdStato" .. i, "color", P.statoColor[d.stato] or S.testo)
 
             -- Bottoni: solo lo schieramento attivo, solo quelli utili
             local scelta = COMMAND_PENDING and COMMAND_PENDING.key == key
             local tira   = d.stato == COMMAND_STATO.DA_TIRARE and (not inVolo or scelta)
             local ritira = d.stato == COMMAND_STATO.FALLITA and command_canReroll(slot, key) and (not inVolo or scelta)
             for nome, acceso in pairs({ cmdTira = tira, cmdRitira = ritira }) do
-                UI.setAttribute(nome .. i, "active", acceso and "true" or "false")
-                UI.setAttribute(nome .. i, "visibility", visibili)
+                engine_uiSet(nome .. i, "active", acceso and "true" or "false")
+                engine_uiSet(nome .. i, "visibility", visibili)
             end
             -- bottone del tiro scelto: si tira coi dadi del vassoio
-            UI.setAttribute("cmdTira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "tiro") and "Dadi" or "Attiva")
-            UI.setAttribute("cmdRitira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "ritiro") and "Dadi" or "Riprova")
+            engine_uiSet("cmdTira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "tiro") and "Dadi" or "Attiva")
+            engine_uiSet("cmdRitira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "ritiro") and "Dadi" or "Riprova")
             -- facce dei dadi tirati (asset d1..d6)
-            UI.setAttribute("cmdDado" .. i, "active", d.tiro and "true" or "false")
-            if d.tiro then UI.setAttribute("cmdDado" .. i, "image", "d" .. tostring(d.tiro)) end
-            UI.setAttribute("cmdDadoR" .. i, "active", d.ritiro and "true" or "false")
-            if d.ritiro then UI.setAttribute("cmdDadoR" .. i, "image", "d" .. tostring(d.ritiro)) end
+            engine_uiSet("cmdDado" .. i, "active", d.tiro and "true" or "false")
+            if d.tiro then engine_uiSet("cmdDado" .. i, "image", "d" .. tostring(d.tiro)) end
+            engine_uiSet("cmdDadoR" .. i, "active", d.ritiro and "true" or "false")
+            if d.ritiro then engine_uiSet("cmdDadoR" .. i, "image", "d" .. tostring(d.ritiro)) end
         end
     end
 
@@ -248,5 +248,5 @@ function command_redrawPanel()
     if #elenco > P.righeMax then
         nota = nota .. string.format(" (righe %d su %d)", P.righeMax, #elenco)
     end
-    UI.setAttribute("cmdNota", "text", nota)
+    engine_uiSet("cmdNota", "text", nota)
 end

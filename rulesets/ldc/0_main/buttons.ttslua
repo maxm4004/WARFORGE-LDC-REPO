@@ -22,25 +22,65 @@ function main_baseButtonNoop() end
 -- FUNZIONE: main_refreshBaseButtons()
 -- Ridisegna i bottoni di tutte le unità.
 -- ============================================================
+-- Bottoni già sulle basi: MAIN_BTN_FIRMA[guid] = firma dei
+-- bottoni disegnati. Si ricreano solo quelli cambiati: clear e
+-- create su decine di basi a ogni click erano il collo di
+-- bottiglia (prestazioni, Max 12/11/2026).
+MAIN_BTN_FIRMA = {}
+
 function main_refreshBaseButtons()
     local phase = ENGINE and ENGINE.phases and ENGINE.phases[ENGINE.phase]
     local provider = phase and phase.baseButtons and _G[phase.baseButtons]
 
     for slot = 1, 2 do
-        -- prima si puliscono tutte le basi, poi i bottoni sulle .1
-        for _, b in ipairs(main_basesOfSide(slot)) do
-            if b.obj.clearButtons then b.obj.clearButtons() end
-        end
+        -- bottoni voluti per base: [guid] = { obj, bottoni }
+        local voluti = {}
         for _, u in pairs(main_unitsOfSide(slot)) do
             local lista = provider and provider(u.comando, u, slot) or {}
-            main_drawBaseButtons(main_buttonAnchor(u), u, slot, lista)
+            local obj = main_buttonAnchor(u)
+            voluti[obj.getGUID()] = { obj = obj, bottoni = main_baseButtonsOf(obj, u, slot, lista) }
+            main_drawDisorders(u)
         end
         -- Generali: stessi bottoni (u.generale = true)
         for _, g in pairs(main_generalsOfSide(slot)) do
             local lista = provider and provider(g.comando, g, slot) or {}
-            main_drawBaseButtons(g.comando, g, slot, lista)
+            voluti[g.comando.getGUID()] = { obj = g.comando, bottoni = main_baseButtonsOf(g.comando, g, slot, lista) }
+        end
+        for _, b in ipairs(main_basesOfSide(slot)) do
+            local guid = b.obj.getGUID()
+            local v = voluti[guid]
+            local firma = v and main_buttonsSignature(v.bottoni) or ""
+            if MAIN_BTN_FIRMA[guid] ~= firma then
+                if b.obj.clearButtons then b.obj.clearButtons() end
+                if v then
+                    for _, p in ipairs(v.bottoni) do b.obj.createButton(p) end
+                end
+                MAIN_BTN_FIRMA[guid] = firma
+            end
         end
     end
+end
+-- ============================================================
+-- FUNZIONE: main_buttonsSignature(bottoni)
+-- Testo che cambia se cambia qualcosa dei bottoni.
+-- ============================================================
+function main_buttonsSignature(bottoni)
+    local parti = {}
+    for _, p in ipairs(bottoni) do
+        local c = p.color
+        local col = type(c) == "table" and string.format("%.3f,%.3f,%.3f", c.r or c[1] or 0, c.g or c[2] or 0, c.b or c[3] or 0) or tostring(c)
+        table.insert(parti, string.format("%s|%s|%.3f|%.3f|%d|%s|%s", p.label, p.click_function,
+            p.position.x, p.position.z, p.width, col, p.tooltip or ""))
+    end
+    return table.concat(parti, ";")
+end
+-- ============================================================
+-- FUNZIONE: main_buttonsForget()
+-- Dimentica i bottoni disegnati (partita da capo, ripristino).
+-- ============================================================
+function main_buttonsForget()
+    MAIN_BTN_FIRMA = {}
+    MAIN_TINTA = {}
 end
 -- ============================================================
 -- FUNZIONE: main_drawBaseButtons(obj, u, slot, lista)
@@ -48,6 +88,15 @@ end
 -- il cartellino dei disordini davanti a sinistra.
 -- ============================================================
 function main_drawBaseButtons(obj, u, slot, lista)
+    for _, p in ipairs(main_baseButtonsOf(obj, u, slot, lista)) do obj.createButton(p) end
+    main_drawDisorders(u)
+    MAIN_BTN_FIRMA[obj.getGUID()] = nil
+end
+-- ============================================================
+-- FUNZIONE: main_baseButtonsOf(obj, u, slot, lista)
+-- Parametri di createButton dei bottoni della base.
+-- ============================================================
+function main_baseButtonsOf(obj, u, slot, lista)
     local B = BASE_BUTTONS
     local meta = u.meta or {}
     local metaProf  = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
@@ -65,7 +114,7 @@ function main_drawBaseButtons(obj, u, slot, lista)
     table.insert(tutti, { label = "INFO", click = "main_unitInfoOpen",
         tooltip = "Scheda dell'unita' (alt-click chiude)" })
     for _, btn in ipairs(lista) do table.insert(tutti, btn) end
-    main_drawDisorders(u)
+    local out = {}
 
     local colore = main_sideMainColor(slot)
     -- rotazione 180: la x locale positiva è a sinistra di chi
@@ -74,7 +123,7 @@ function main_drawBaseButtons(obj, u, slot, lista)
     for _, btn in ipairs(tutti) do
         local w = math.max(B.width, #btn.label * B.larghezzaPerLettera)
         local mezza = w / B.unitaPerTts / 2
-        obj.createButton({
+        table.insert(out, {
             click_function = btn.click,
             function_owner = Global,
             label          = btn.label,
@@ -86,6 +135,7 @@ function main_drawBaseButtons(obj, u, slot, lista)
         })
         cursore = cursore - 2 * mezza - B.spazio
     end
+    return out
 end
 -- ============================================================
 -- FUNZIONE: main_baseOwnerClick(obj, player_color)
@@ -154,6 +204,8 @@ end
 -- basi dall'ultima (numero di base più alto) verso la prima; la
 -- base di comando per ultima. Le altre tornano bianche.
 -- ============================================================
+MAIN_TINTA = MAIN_TINTA or {}   -- [guid] = "dis" | "ok" già applicato
+
 function main_drawDisorders(u)
     if not u or u.generale then return end
     local dis = main_unitDisorders(u.key)
@@ -165,6 +217,13 @@ function main_drawDisorders(u)
         return ((main_baseMeta(x) or {}).baseSeq or 0) > ((main_baseMeta(y) or {}).baseSeq or 0)
     end)
     for i, b in ipairs(basi) do
-        pcall(function() b.setColorTint(i <= dis and BASE_BUTTONS.disTinta or BASE_BUTTONS.normaleTinta) end)
+        -- solo se cambia (setColorTint su tutte le basi a ogni
+        -- click costava caro)
+        local stato = i <= dis and "dis" or "ok"
+        local guid = b.getGUID()
+        if MAIN_TINTA[guid] ~= stato then
+            MAIN_TINTA[guid] = stato
+            pcall(function() b.setColorTint(stato == "dis" and BASE_BUTTONS.disTinta or BASE_BUTTONS.normaleTinta) end)
+        end
     end
 end

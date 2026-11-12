@@ -29,5 +29,5 @@ function after_command(phaseName, phase)
     if TURN.activeSide then
         engine_dicePanelCloseAfter(TURN.activeSide, COMMAND_DICEPANEL_CLOSE)
     end
-    UI.setAttribute("cmdPanel", "active", "false")
+    engine_uiSet("cmdPanel", "active", "false")
 end

@@ -288,9 +288,9 @@ end
 function fire_infoShow(player, d)
     local S = SHOOTINFO
     local function set(id, testo, colore)
-        UI.setAttribute(id, "text", testo or "")
-        if colore then UI.setAttribute(id, "color", colore) end
-        UI.setAttribute(id, "active", (testo and testo ~= "") and "true" or "false")
+        engine_uiSet(id, "text", testo or "")
+        if colore then engine_uiSet(id, "color", colore) end
+        engine_uiSet(id, "active", (testo and testo ~= "") and "true" or "false")
     end
     local u, t, c = d.u, d.t, d.c
     local nomeU = u.meta.nomeDisplay or u.key
@@ -353,13 +353,13 @@ function fire_infoShow(player, d)
             local b = lista[i]
             local id = "shootinfo_" .. lato .. i
             if b then
-                UI.setAttribute(id, "active", "true")
-                UI.setAttribute(id .. "_l", "text", b[1])
-                UI.setAttribute(id .. "_l", "color", (b[3] and b[2] == "") and b[3] or "White")
-                UI.setAttribute(id .. "_v", "text", b[2] or "")
-                UI.setAttribute(id .. "_v", "color", b[3] or "White")
+                engine_uiSet(id, "active", "true")
+                engine_uiSet(id .. "_l", "text", b[1])
+                engine_uiSet(id .. "_l", "color", (b[3] and b[2] == "") and b[3] or "White")
+                engine_uiSet(id .. "_v", "text", b[2] or "")
+                engine_uiSet(id .. "_v", "color", b[3] or "White")
             else
-                UI.setAttribute(id, "active", "false")
+                engine_uiSet(id, "active", "false")
             end
         end
     end
@@ -367,14 +367,14 @@ function fire_infoShow(player, d)
     scriviColonna("C", B)
     local righeB = math.max(math.min(#D, S.rows), math.min(#B, S.rows))
 
-    UI.setAttribute("shootinfo_stato", "active", "false")
-    UI.setAttribute("shootinfo_faces", "active", "false")
-    UI.setAttribute("shootinfo_esito", "active", "false")
+    engine_uiSet("shootinfo_stato", "active", "false")
+    engine_uiSet("shootinfo_faces", "active", "false")
+    engine_uiSet("shootinfo_esito", "active", "false")
 
     S.hBase = 2 * S.padding + S.titleH + S.noteH + righeCol * S.rowH + righeB * S.rowH + 2 * 5 + 8
-    UI.setAttribute("shoot_info_panel", "height", tostring(S.hBase))
-    UI.setAttribute("shoot_info_panel", "visibility", player.color)
-    UI.setAttribute("shoot_info_panel", "active", "true")
+    engine_uiSet("shoot_info_panel", "height", tostring(S.hBase))
+    engine_uiSet("shoot_info_panel", "visibility", player.color)
+    engine_uiSet("shoot_info_panel", "active", "true")
 end
 -- ============================================================
 -- FUNZIONE: fire_confirmPanelXml()
@@ -536,8 +536,8 @@ function fire_prepare(player, sel, t)
 
     FIRE_PREP = { slot = sel.slot, u = u, t = t, dist = dist, c = c, player = player, primo = primo }
     fire_infoShow(player, { u = u, t = t, dist = dist, c = c, raggiunte = raggiunte })
-    UI.setAttribute("confirm_panel_shoot", "active", "true")
-    UI.setAttribute("confirm_panel_shoot", "visibility", player.color)
+    engine_uiSet("confirm_panel_shoot", "active", "true")
+    engine_uiSet("confirm_panel_shoot", "visibility", player.color)
     main_refreshBaseButtons()
 end
 -- ============================================================
@@ -555,7 +555,7 @@ function fire_ResetLines(tieniInfo)
         for _, b in ipairs(p.t.basi or {}) do if not b.isDestroyed() then b.highlightOff() end end
         for _, b in ipairs(p.primo or {}) do if not b.isDestroyed() then b.highlightOff() end end
     end
-    UI.setAttribute("confirm_panel_shoot", "active", "false")
+    engine_uiSet("confirm_panel_shoot", "active", "false")
 end
 -- ============================================================
 -- FUNZIONE: fire_Reset()
@@ -677,9 +677,9 @@ function fire_rollDo(ctx, slot, player, rec)
         if eccesso > 0 then
             ctx.rottura = eccesso
             engine_subStep("FIRE_ROLL", slot, "ROTTURA")
-            UI.setAttribute("shootinfo_stato", "text", string.format("ROTTURA: premi Roll, %dD6, serve piu' di %d", eccesso, ctx.morale))
-            UI.setAttribute("shootinfo_stato", "color", SHOOTINFO.malus)
-            UI.setAttribute("shootinfo_stato", "active", "true")
+            engine_uiSet("shootinfo_stato", "text", string.format("ROTTURA: premi Roll, %dD6, serve piu' di %d", eccesso, ctx.morale))
+            engine_uiSet("shootinfo_stato", "color", SHOOTINFO.malus)
+            engine_uiSet("shootinfo_stato", "active", "true")
             shoot_infoAltezza(true, true, true)
             printToAll(string.format("[FUOCO] %d hit possono mandare in rotta %s: ritiro, serve piu' di %d",
                 eccesso, ctx.targetLabel, ctx.morale), LOG_COLORE)
@@ -708,8 +708,8 @@ function fire_rotturaDo(ctx, slot, player, rec)
 
         local rompe = (successi or 0) > 0
         shoot_infoRisultati(risultati, ctx.morale + 1, successi or 0)
-        UI.setAttribute("shootinfo_esito", "text", rompe and "ROTTA! L'UNITA' LASCIA IL CAMPO" or "TIENE: GLI HIT VANNO PERSI")
-        UI.setAttribute("shootinfo_esito", "color", rompe and SHOOTINFO.bonus or SHOOTINFO.malus)
+        engine_uiSet("shootinfo_esito", "text", rompe and "ROTTA! L'UNITA' LASCIA IL CAMPO" or "TIENE: GLI HIT VANNO PERSI")
+        engine_uiSet("shootinfo_esito", "color", rompe and SHOOTINFO.bonus or SHOOTINFO.malus)
         if rompe then
             ctx.motivo = ctx.targetLabel .. " rompe"
             main_unitBreak(ctx.targetKey, "fuoco")

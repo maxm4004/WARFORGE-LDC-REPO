@@ -319,35 +319,35 @@ function move_panelRedraw()
     local P = MOVEPANEL
     local u, slot = move_panelUnit()
     if not u then
-        UI.setAttribute("move_panel", "active", "false")
+        engine_uiSet("move_panel", "active", "false")
         return
     end
     local sch = MOVE_PANEL.schieramento
     local residuo = sch and 0 or move_budget(slot, u)
     local carica = MOVE_STATE.cariche[u.key] ~= nil
-    UI.setAttribute("move_panel", "visibility", main_sideVisibility(slot))
-    UI.setAttribute("move_panel", "active", "true")
-    UI.setAttribute("move_panel_title", "text", u.meta.nomeDisplay or u.key)
+    engine_uiSet("move_panel", "visibility", main_sideVisibility(slot))
+    engine_uiSet("move_panel", "active", "true")
+    engine_uiSet("move_panel_title", "text", u.meta.nomeDisplay or u.key)
     local _, nota = move_unitLimit(slot, u)
     if sch then
-        UI.setAttribute("move_panel_info", "text", "Schieramento - formazione: " .. main_formationName(main_unitFormation(u)))
+        engine_uiSet("move_panel_info", "text", "Schieramento - formazione: " .. main_formationName(main_unitFormation(u)))
     else
-        UI.setAttribute("move_panel_info", "text", string.format("Movimento %s   Formazione: %s%s",
+        engine_uiSet("move_panel_info", "text", string.format("Movimento %s   Formazione: %s%s",
             main_formatD(residuo), main_formationName(main_unitFormation(u)),
             (carica and "   IN CARICA") or (nota and ("   " .. nota)) or ""))
     end
-    if not MOVE_MANUAL and not MOVE_PIVOT then UI.setAttribute("move_panel_dist", "text", "") end
+    if not MOVE_MANUAL and not MOVE_PIVOT then engine_uiSet("move_panel_dist", "text", "") end
 
     local S = STILE
     local function setBtn(id, ok, acceso, secondario)
-        UI.setAttribute(id, "interactable", ok and "true" or "false")
+        engine_uiSet(id, "interactable", ok and "true" or "false")
         local colore, testo
         if acceso then colore, testo = S.scelto, S.sceltoTesto
         elseif not ok then colore, testo = S.spento, S.spentoTesto
         elseif secondario then colore, testo = S.secondario, S.secondarioTesto
         else colore, testo = S.azione, S.azioneTesto end
-        UI.setAttribute(id, "color", colore)
-        UI.setAttribute(id, "textColor", testo)
+        engine_uiSet(id, "color", colore)
+        engine_uiSet(id, "textColor", testo)
     end
     local muove = residuo > 0.001 and not carica
     setBtn("move_btn_Avanti", muove, MOVE_MANUAL ~= nil)
@@ -363,7 +363,7 @@ function move_panelRedraw()
     for _, f in ipairs(FORMAZIONI) do
         local id = "move_btn_F_" .. f.id
         local esiste = possibili[f.id] == true
-        UI.setAttribute(id, "active", esiste and "true" or "false")
+        engine_uiSet(id, "active", esiste and "true" or "false")
         if esiste then setBtn(id, cambia and attuale ~= f.id, attuale == f.id) end
     end
     local hist = #MOVE_PANEL.history > 0
@@ -444,7 +444,7 @@ function move_panelClose()
     if MOVE_MANUAL then move_manualOff(true) end
     if MOVE_PIVOT then move_pivotOff() end
     MOVE_PANEL = nil
-    UI.setAttribute("move_panel", "active", "false")
+    engine_uiSet("move_panel", "active", "false")
     main_setLines("pannello", {})
     main_refreshBaseButtons()
 end
@@ -647,7 +647,7 @@ function move_manualOnPickUp(player_color, obj)
     if m.colore and m.colore ~= player_color then return true end
     if not m.start[obj.getGUID()] then return false end
     m.driver = obj
-    UI.setAttribute("move_panel_dist", "text", move_manualTesto(m))
+    engine_uiSet("move_panel_dist", "text", move_manualTesto(m))
     m.waitId = Wait.time(function() move_manualTick() end, MOVE.tickManuale, -1)
     return true
 end
@@ -658,8 +658,8 @@ function move_manualTick()
         return
     end
     m.t = move_manualProietta(m)
-    UI.setAttribute("move_panel_dist", "text", move_manualTesto(m))
-    UI.setAttribute("move_panel_dist", "color", m.oltre and STILE.ko or STILE.testo)
+    engine_uiSet("move_panel_dist", "text", move_manualTesto(m))
+    engine_uiSet("move_panel_dist", "color", m.oltre and STILE.ko or STILE.testo)
     move_panelLines()
 end
 -- ============================================================
@@ -699,7 +699,7 @@ function move_manualFinalizza()
     if t == 0 then
         -- nessun avanzamento: il manuale resta attivo
         move_manualSeleziona(u, m.colore, true)
-        UI.setAttribute("move_panel_dist", "text", "")
+        engine_uiSet("move_panel_dist", "text", "")
         move_panelLines()
         return
     end
@@ -709,7 +709,7 @@ function move_manualFinalizza()
     if MOVE_STATE.budget[u.key] < 0.005 then MOVE_STATE.budget[u.key] = 0 end
     MOVE_MANUAL = nil
     if MOVE_PANEL.player then warningToColor("Avanza " .. main_formatD(t), MOVE_PANEL.player, "White", 4, false) end
-    UI.setAttribute("move_panel_dist", "text", "")
+    engine_uiSet("move_panel_dist", "text", "")
     move_panelRedraw()
     main_refreshBaseButtons()
 end
@@ -844,7 +844,7 @@ function move_pivotOff()
     for _, b in ipairs(m.bloccate or {}) do
         if b and not b.isDestroyed() then b.setLock(false) end
     end
-    UI.setAttribute("move_panel_dist", "text", "")
+    engine_uiSet("move_panel_dist", "text", "")
     move_panelLines()
 end
 -- Angolo dalla posizione della maniglia in mano (IEF move_pivotManMisura)
@@ -865,7 +865,7 @@ function move_pivotOnPickUp(player_color, obj)
     if not m or m.driver or not h then return end
     if m.colore and m.colore ~= player_color then return end
     m.driver, m.manDir = obj, h.dir
-    UI.setAttribute("move_panel_dist", "text", "Perno 0 gradi")
+    engine_uiSet("move_panel_dist", "text", "Perno 0 gradi")
     m.waitId = Wait.time(function() move_pivotTick() end, MOVE.tickManuale, -1)
 end
 function move_pivotTick()
@@ -879,7 +879,7 @@ function move_pivotTick()
     m.ang = ang
     local c = (m.manDir == "left") and m.sx or m.dx
     move_rotateUnit(u.basi, c, ang, m.start, m.rot)
-    UI.setAttribute("move_panel_dist", "text", string.format("%sPerno %s %d gradi", oltre and "max " or "",
+    engine_uiSet("move_panel_dist", "text", string.format("%sPerno %s %d gradi", oltre and "max " or "",
         m.manDir == "left" and "Sn" or "Ds", math.floor(math.abs(math.deg(ang)) + 0.5)))
 end
 function move_pivotOnDrop(player_color, obj)
@@ -905,7 +905,7 @@ function move_pivotFinalizza(ang)
             maniglia.setPosition({ x = hs.x, y = hs.y, z = hs.z })
             maniglia.setRotation({ x = 0, y = 0, z = 0 })
         end
-        UI.setAttribute("move_panel_dist", "text", "")
+        engine_uiSet("move_panel_dist", "text", "")
         return
     end
     local snap = move_snapshot(u)

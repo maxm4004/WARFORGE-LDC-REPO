@@ -278,34 +278,34 @@ function main_unitInfoRedraw(slot)
     local pre = "unit_info_army" .. slot
     local key = LDC_UNIT_INFO[slot]
     if not key then
-        UI.setAttribute(pre, "active", "false")
+        engine_uiSet(pre, "active", "false")
         return
     end
     local righe = main_unitInfoRows(key)
     local u = main_unitInfoUnit(key)
     local foto = u and main_unitFotoAsset(u.meta, u)
-    UI.setAttribute(pre, "height", tostring(uiHeight(righe, foto)))
-    UI.setAttribute(pre .. "_foto", "active", foto and "true" or "false")
-    if foto then UI.setAttribute(pre .. "_foto", "image", foto) end
-    UI.setAttribute(pre, "visibility", main_sideVisibility(slot))
-    UI.setAttribute(pre .. "_title", "text", main_unitInfoTitle(key))
-    UI.setAttribute(pre .. "_sub", "text", main_unitInfoSub(key))
+    engine_uiSet(pre, "height", tostring(uiHeight(righe, foto)))
+    engine_uiSet(pre .. "_foto", "active", foto and "true" or "false")
+    if foto then engine_uiSet(pre .. "_foto", "image", foto) end
+    engine_uiSet(pre, "visibility", main_sideVisibility(slot))
+    engine_uiSet(pre .. "_title", "text", main_unitInfoTitle(key))
+    engine_uiSet(pre .. "_sub", "text", main_unitInfoSub(key))
     for i = 1, U.maxRows do
         local r = righe[i]
         local id = pre .. "_row" .. i
-        UI.setAttribute(id, "active", r and "true" or "false")
+        engine_uiSet(id, "active", r and "true" or "false")
         if r then
             local sezione = r.sezione ~= nil
-            UI.setAttribute(id, "preferredHeight", tostring(sezione and U.sectionHeight or U.rowHeight))
-            UI.setAttribute(id .. "_l", "text", sezione and r.sezione or (r[1] or ""))
-            UI.setAttribute(id .. "_l", "color", sezione and U.sectionColor or uiLabelColor(r))
-            UI.setAttribute(id .. "_l", "fontStyle", "Normal")
-            UI.setAttribute(id .. "_l", "fontSize", sezione and "13" or "12")
-            UI.setAttribute(id .. "_v", "text", sezione and "" or (r[2] or ""))
-            UI.setAttribute(id .. "_v", "color", sezione and U.textColor or uiValueColor(r))
+            engine_uiSet(id, "preferredHeight", tostring(sezione and U.sectionHeight or U.rowHeight))
+            engine_uiSet(id .. "_l", "text", sezione and r.sezione or (r[1] or ""))
+            engine_uiSet(id .. "_l", "color", sezione and U.sectionColor or uiLabelColor(r))
+            engine_uiSet(id .. "_l", "fontStyle", "Normal")
+            engine_uiSet(id .. "_l", "fontSize", sezione and "13" or "12")
+            engine_uiSet(id .. "_v", "text", sezione and "" or (r[2] or ""))
+            engine_uiSet(id .. "_v", "color", sezione and U.textColor or uiValueColor(r))
         end
     end
-    UI.setAttribute(pre, "active", "true")
+    engine_uiSet(pre, "active", "true")
 end
 -- ============================================================
 -- FUNZIONE: main_unitInfoPanelsXml()

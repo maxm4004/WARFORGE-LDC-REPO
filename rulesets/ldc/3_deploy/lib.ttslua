@@ -438,6 +438,7 @@ function deploy_spawnArmy(slot, army)
     end
 
     DEPLOY_STATE.spawned[slot] = true
+    main_basesForget()
     DEPLOY_STATE.tag[slot]     = army.tag
 
     printToAll(string.format("[DEPLOY] %s: %s, %d basi sul tavolo",
@@ -466,4 +467,5 @@ function deploy_clearAll()
         spawned = { [1] = false, [2] = false },
         tag     = { [1] = nil,   [2] = nil },
     }
+    main_basesForget()
 end

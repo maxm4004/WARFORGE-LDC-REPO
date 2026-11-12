@@ -410,26 +410,26 @@ function engine_subRedraw()
 
         local v = engine_subView(slot)
         local bottoni = engine_subButtons(v)
-        UI.setAttribute("sub_panel_army" .. slot, "active", (#bottoni > 0) and "true" or "false")
+        engine_uiSet("sub_panel_army" .. slot, "active", (#bottoni > 0) and "true" or "false")
         
         for n = 1, SUBPANEL.btnMax do
             local id = "sub_btn_army" .. slot .. "_" .. n
             local b = bottoni[n]
             if b then
-                UI.setAttribute(id, "text", b.label or "")
-                UI.setAttribute(id, "icon", b.icon or "default")
-                UI.setAttribute(id, "active", "true")
+                engine_uiSet(id, "text", b.label or "")
+                engine_uiSet(id, "icon", b.icon or "default")
+                engine_uiSet(id, "active", "true")
             else
-                UI.setAttribute(id, "active", "false")
+                engine_uiSet(id, "active", "false")
             end
         end
 
         if engine_subBlocksPhase(slot) then
-            UI.setAttribute("BTN_ARMY" .. slot, "interactable", "false")
+            engine_uiSet("BTN_ARMY" .. slot, "interactable", "false")
         end
     end
     if engine_subFreezesPhase() then
-        UI.setAttribute("BTN_SINGLE", "interactable", "false")
+        engine_uiSet("BTN_SINGLE", "interactable", "false")
     end
 end
 -- ============================================================

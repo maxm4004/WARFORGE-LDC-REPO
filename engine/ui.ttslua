@@ -39,7 +39,39 @@ end
 -- UI.setXml è asincrono: un setAttribute fatto mentre
 -- UI.loading è vero può andare perso.
 -- ============================================================
+-- ============================================================
+-- FUNZIONE: engine_uiSet(id, attr, valore)
+-- UI.setAttribute solo se il valore cambia (prestazioni: i
+-- pannelli si ridisegnano interi a ogni click). Cache svuotata
+-- a ogni UI.setXml; mentre la UI carica si passa sempre (e non
+-- si ricorda: il valore potrebbe andare perso). Cambiare il
+-- testo di un bottone in TTS ne resetta il textColor: si
+-- dimentica anche quello.
+-- ============================================================
+ENGINE_UI_CACHE = {}
+
+function engine_uiSet(id, attr, valore)
+    local v = tostring(valore)
+    if UI.loading then
+        ENGINE_UI_CACHE[id] = nil
+        return UI.setAttribute(id, attr, valore)
+    end
+    local c = ENGINE_UI_CACHE[id]
+    if not c then c = {}; ENGINE_UI_CACHE[id] = c end
+    if c[attr] == v then return true end
+    c[attr] = v
+    if attr == "text" then c.textColor = nil end
+    return UI.setAttribute(id, attr, valore)
+end
+-- ============================================================
+-- FUNZIONE: engine_uiForget()
+-- ============================================================
+function engine_uiForget()
+    ENGINE_UI_CACHE = {}
+end
+
 function buildUI()
+    engine_uiForget()
     local rulesetXml = callHandler("getRulesetUiXml") or ""
     local header = [[<XmlLayout xmlns="XmlLayout"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -60,15 +92,15 @@ function engine_bannerShow(testo, secondi)
 
     engine_uiWhenReady(function()
         if gen ~= ENGINE_BANNER_GEN then return end
-        UI.setAttribute("phaseBannerText", "text", testo or "")
-        UI.setAttribute("phaseBanner", "active", "true")
+        engine_uiSet("phaseBannerText", "text", testo or "")
+        engine_uiSet("phaseBanner", "active", "true")
     end)
 
     Wait.time(function()
         if gen ~= ENGINE_BANNER_GEN then return end
         engine_uiWhenReady(function()
             if gen ~= ENGINE_BANNER_GEN then return end
-            UI.setAttribute("phaseBanner", "active", "false")
+            engine_uiSet("phaseBanner", "active", "false")
         end)
     end, secondi or BANNER.seconds)
 end

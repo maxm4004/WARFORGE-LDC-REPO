@@ -216,6 +216,7 @@ function main_unitBreak(unitKey, motivo)
     local basi = {}
     for _, b in ipairs(u.basi) do table.insert(basi, b) end
     for _, b in ipairs(basi) do b.destruct() end
+    main_basesForget()
     -- Morale di Divisione (12): conta l'unità appena rotta
     main_divCheck(u.side, u.meta.divisione)
 end

@@ -12,10 +12,10 @@ RENDERERS = RENDERERS or {}
 -- Un solo bottone (BTN_SINGLE), al posto dei due.
 -- ============================================================
 RENDERERS["1BtnClick"] = function(phase)
-    UI.setAttribute("panelBtnUp",   "active", "false")
-    UI.setAttribute("panelBtnDown", "active", "true")
-    UI.setAttribute("panelBtnDown", "offsetXY", "0 -223")
-    UI.setAttribute("BTN_SINGLE",   "active", "true")
+    engine_uiSet("panelBtnUp",   "active", "false")
+    engine_uiSet("panelBtnDown", "active", "true")
+    engine_uiSet("panelBtnDown", "offsetXY", "0 -223")
+    engine_uiSet("BTN_SINGLE",   "active", "true")
 end
 
 -- ============================================================
@@ -23,7 +23,7 @@ end
 -- Due bottoni, uno per schieramento (BTN_ARMY1, BTN_ARMY2).
 -- ============================================================
 RENDERERS["2BtnClick"] = function(phase)
-    UI.setAttribute("panelBtnUp",   "active", "true")
-    UI.setAttribute("panelBtnDown", "active", "false")
-    UI.setAttribute("panelBtnUp",   "offsetXY", "0 -223")
+    engine_uiSet("panelBtnUp",   "active", "true")
+    engine_uiSet("panelBtnDown", "active", "false")
+    engine_uiSet("panelBtnUp",   "offsetXY", "0 -223")
 end
