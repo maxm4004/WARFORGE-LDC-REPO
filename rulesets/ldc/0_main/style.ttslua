@@ -176,10 +176,8 @@ function main_styleApply()
         CONFIRMPANEL.closeBg    = S.secondario
         CONFIRMPANEL.closeText  = S.secondarioTesto
     end
-    if WAITPANEL then
-        WAITPANEL.bg        = S.attesaBg
-        WAITPANEL.textColor = S.attesaTesto
-    end
+    -- WAITPANEL: resta nello stile originale come il pannello
+    -- centrale (Max 12/11)
     if MIRINO_PANNELLO then
         MIRINO_PANNELLO.bg    = S.bg
         MIRINO_PANNELLO.close = S.secondario

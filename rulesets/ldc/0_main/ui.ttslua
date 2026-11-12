@@ -10,26 +10,39 @@
 function getRulesetUiXml()
     -- colori dello stile in uso nelle tabelle dei pannelli
     main_styleApply()
-    local S, M = STILE, STILE_MISURE
+    -- Il pannello centrale resta nello stile originale in ogni
+    -- stile, per vedere meglio il piano verde (Max 12/11)
     return [[
     <Panel id="panelTop"
            rectAlignment="UpperCenter"
            width="450" height="150"
-           ]] .. main_stylePanelAttrs(S.bgTop) .. [[
-
+           color="rgba(0,0,0,0.25)"
            offsetXY="0 -70">
-        <VerticalLayout spacing="4" padding="12 12 10 10">
-            <Text id="textTurno" ]] .. main_styleTextOutline() .. [[ text="" font="]] .. S.font .. [[" fontSize="]] .. M.sezione + 2 .. [["
-                  color="]] .. S.sezione .. [[" alignment="MiddleCenter"/>
-            <Text id="textFase" ]] .. main_styleTextOutline() .. [[ text="" font="]] .. S.font .. [[" fontSize="]] .. M.titolo + 4 .. [["
-                  color="]] .. S.titolo .. [[" alignment="MiddleCenter"/>
-            <Text id="textDesc" text="" font="]] .. S.font .. [[" fontSize="]] .. M.piccolo + 1 .. [["
-                  color="]] .. S.tenue .. [[" alignment="MiddleCenter"/>
+        <VerticalLayout spacing="6" padding="10 10 10 10">
+            <HorizontalLayout spacing="6" childAlignment="MiddleCenter">
+                <Text id="textTurno"
+                      text=""
+                      fontSize="22"
+                      outline="#000000" outlineSize="2"
+                      color="Orange"/>
+            </HorizontalLayout>
+            <HorizontalLayout spacing="6" childAlignment="MiddleCenter">
+                <Text id="textFase"
+                      text=""
+                      fontSize="18"
+                      outline="#000000" outlineSize="2"
+                      color="Yellow"/>
+            </HorizontalLayout>
+            <Text id="textDesc"
+                  text=""
+                  fontSize="12"
+                  color="rgba(0.8,0.8,0.8,1)"
+                  alignment="MiddleCenter"/>
             <HorizontalLayout spacing="6" childAlignment="MiddleCenter" color="rgba(0,0,0,0)">
-                <Text id="army1" ]] .. main_styleTextOutline() .. [[ text="Army1" font="]] .. S.font .. [[" fontSize="]] .. M.testo + 1 .. [[" color="]] .. S.tenue .. [[" alignment="MiddleCenter"/>
+                <Text id="army1" text="Army1" fontSize="14" color="Grey" alignment="MiddleCenter"/>
                 <Button id="iconActiveArmy1" icon="left" iconColor="rgba(1,1,1,0)" color="rgba(0,0,0,0)" tooltip="Schieramento attivo" tooltipPosition="Below"/>
                 <Button id="iconActiveArmy2" icon="right" iconColor="rgba(1,1,1,0)" color="rgba(0,0,0,0)" tooltip="Schieramento attivo" tooltipPosition="Below"/>
-                <Text id="army2" ]] .. main_styleTextOutline() .. [[ text="Army2" font="]] .. S.font .. [[" fontSize="]] .. M.testo + 1 .. [[" color="]] .. S.tenue .. [[" alignment="MiddleCenter"/>
+                <Text id="army2" text="Army2" fontSize="14" color="Grey" alignment="MiddleCenter"/>
             </HorizontalLayout>
         </VerticalLayout>
     </Panel>
@@ -37,14 +50,16 @@ function getRulesetUiXml()
     <Panel id="panelBtnUp"
            rectAlignment="UpperCenter"
            width="450" height="50"
-           ]] .. main_stylePanelAttrs() .. [[>
-        <VerticalLayout spacing="6" padding="10 10 9 9">
+           color="rgba(0,0,0,0.35)">
+        <VerticalLayout spacing="6" padding="10 10 10 10">
             <HorizontalLayout spacing="30">
-                <Button id="BTN_ARMY1" text="" font="]] .. S.font .. [[" fontSize="14"
+                <Button id="BTN_ARMY1" text="" fontSize="14"
                         color="Red" textColor="White"
+                        outline="#000000" outlineSize="1"
                         onClick="onBtnArmy1"/>
-                <Button id="BTN_ARMY2" text="" font="]] .. S.font .. [[" fontSize="14"
+                <Button id="BTN_ARMY2" text="" fontSize="14"
                         color="Green" textColor="White"
+                        outline="#000000" outlineSize="1"
                         onClick="onBtnArmy2"/>
             </HorizontalLayout>
         </VerticalLayout>
@@ -53,14 +68,14 @@ function getRulesetUiXml()
     <Panel id="panelBtnDown"
            rectAlignment="UpperCenter"
            width="450" height="50"
-           ]] .. main_stylePanelAttrs() .. [[
-
+           color="rgba(0,0,0,0.35)"
            offsetXY="0 -223"
            active="false">
-        <VerticalLayout spacing="6" padding="10 10 9 9">
+        <VerticalLayout spacing="6" padding="10 10 10 10">
             <HorizontalLayout childAlignment="MiddleCenter">
-                <Button id="BTN_SINGLE" text="" width="380" font="]] .. S.font .. [[" fontSize="14"
+                <Button id="BTN_SINGLE" text="" width="380" fontSize="14"
                         color="Grey" textColor="White"
+                        outline="#000000" outlineSize="1"
                         onClick="onBtnScelta"/>
             </HorizontalLayout>
         </VerticalLayout>
@@ -78,10 +93,11 @@ function main_waitPanelsXml()
     for slot = 1, 2 do
         xml = xml .. string.format([[
     <Panel id="panelWait%d" rectAlignment="UpperCenter" width="%d" height="%d" color="%s"
-           outline="%s" outlineSize="1 -1" offsetXY="0 -223" visibility="%s" active="false">
-        <Text id="textWait%d" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleCenter"/>
+           offsetXY="0 -223" visibility="%s" active="false">
+        <Text id="textWait%d" text="" fontSize="%d"
+              outline="#000000" outlineSize="1" color="%s" alignment="MiddleCenter"/>
     </Panel>
-        ]], slot, W.width, W.height, W.bg, STILE.bordo, main_sideVisibility(slot), slot, STILE.font, W.fontSize, W.textColor)
+        ]], slot, W.width, W.height, W.bg, main_sideVisibility(slot), slot, W.fontSize, W.textColor)
     end
     return xml
 end
