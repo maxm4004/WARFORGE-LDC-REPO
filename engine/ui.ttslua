@@ -15,12 +15,12 @@ function getEngineUiXml()
         </Panel>
         -->
         <Panel rectAlignment="LowerCenter" width="1100" height="60" color="rgba(0,0,0,0)" offsetXY="0 300">
-            <Text id="playerGameMessage" text="" fontStyle="Bold" font="warforge_font" fontSize="18" color="rgba(212,175,55,0.9)" outline="#000000"
+            <Text id="playerGameMessage" text="" font="warforge_font" fontSize="18" color="rgba(212,175,55,0.9)" outline="#000000"
             outlineSize="1" alignment="LeftCenter"/>
         </Panel>
         <Panel id="phaseBanner" rectAlignment="MiddleCenter" width="]] .. BANNER.width .. [[" height="]] .. BANNER.height .. [["
             offsetXY="]] .. BANNER.offsetXY .. [[" color="]] .. BANNER.bg .. [[" active="false">
-            <Text id="phaseBannerText" text="" font="warforge_font" fontSize="]] .. BANNER.fontSize .. [[" fontStyle="Bold"
+            <Text id="phaseBannerText" text="" font="warforge_font" fontSize="]] .. BANNER.fontSize .. [["
                 color="]] .. BANNER.textColor .. [[" outline="#000000" outlineSize="2" alignment="MiddleCenter"/>
         </Panel>
         <Panel id="panelVersion" active="true"

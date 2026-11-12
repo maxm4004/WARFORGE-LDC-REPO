@@ -21,6 +21,7 @@ registerHandler("measureTable",              function()             return main_
 
 -- UI
 registerHandler("initUI",                    function()             return main_initUI()                        end)
+registerHandler("stile",                     function(nome, player) return main_styleSet(nome, player)     end)
 registerHandler("buildUI",                   function()             return buildUI()                            end)
 registerHandler("getRulesetUiXml",           function()             return getRulesetUiXml()                    end)
 registerHandler("updateCenterPanel",         function()             return main_updateCenterPanel()             end)

@@ -311,7 +311,7 @@ local function dpColXml(slot, L)
         local cl, cv = dpRowColors(r)
         local voce = string.format('<Text id="%s_row%d_l" text="%s" font="%s" fontSize="11" color="%s" alignment="%s"/>',
             pre, i, dpEsc(r and r[1]), DICEPANEL.font, cl, dpAlign(slot))
-        local valore = string.format('<Text id="%s_row%d_v" text="%s" font="%s" fontSize="11" fontStyle="Bold" color="%s" alignment="%s" preferredWidth="%d" flexibleWidth="0"/>',
+        local valore = string.format('<Text id="%s_row%d_v" text="%s" font="%s" fontSize="11" color="%s" alignment="%s" preferredWidth="%d" flexibleWidth="0"/>',
             pre, i, dpEsc(r and r[2]), DICEPANEL.font, cv, destra and "MiddleLeft" or "MiddleRight", DICEPANEL.valueWidth)
         rowsXml = rowsXml .. string.format(
             '<HorizontalLayout id="%s_row%d" preferredHeight="%d" childForceExpandWidth="true" active="%s">%s</HorizontalLayout>',
@@ -331,12 +331,12 @@ local function dpColXml(slot, L)
     local esito = p and p.esito
     return string.format(
         '<VerticalLayout id="%s" preferredWidth="%d" spacing="%d" childAlignment="%s" childForceExpandHeight="false" childForceExpandWidth="true" active="%s">' ..
-            '<Text id="%s_title" text="%s" font="%s" fontSize="15" fontStyle="Bold" color="%s" alignment="%s" preferredHeight="%d"/>' ..
+            '<Text id="%s_title" text="%s" font="%s" fontSize="15" color="%s" alignment="%s" preferredHeight="%d"/>' ..
             '<Text id="%s_sub" text="%s" font="%s" fontSize="10" color="%s" alignment="%s" preferredHeight="%d" active="%s"/>' ..
             '%s' ..
-            '<Text id="%s_need" text="%s" font="%s" fontSize="13" fontStyle="Bold" color="%s" alignment="%s" preferredHeight="%d" active="%s"/>' ..
+            '<Text id="%s_need" text="%s" font="%s" fontSize="13" color="%s" alignment="%s" preferredHeight="%d" active="%s"/>' ..
             '<GridLayout id="%s_faces" cellSize="%d %d" spacing="%d %d" startCorner="%s" childAlignment="%s" preferredHeight="%d" active="%s">%s</GridLayout>' ..
-            '<Text id="%s_outcome" text="%s" font="%s" fontSize="16" fontStyle="Bold" color="%s" alignment="%s" preferredHeight="%d" active="%s"/>' ..
+            '<Text id="%s_outcome" text="%s" font="%s" fontSize="16" color="%s" alignment="%s" preferredHeight="%d" active="%s"/>' ..
             '<Text id="%s_note" text="%s" font="%s" fontSize="10" color="%s" alignment="%s" horizontalOverflow="Wrap" preferredHeight="%d" active="%s"/>' ..
         '</VerticalLayout>',
         pre, DICEPANEL.colWidth, DICEPANEL.spacing, dpAlign(slot, "Upper"), p and "true" or "false",
@@ -362,12 +362,12 @@ function engine_dicePanelsXml()
     local L = dpLayout()
     local w, h = dpSize(L)
     return string.format(
-        '<Panel id="dice_panel" rectAlignment="%s" offsetXY="%s" width="%d" height="%d" color="%s" active="%s">' ..
+        '<Panel id="dice_panel" rectAlignment="%s" offsetXY="%s" width="%d" height="%d" color="%s" %s active="%s">' ..
             '<HorizontalLayout padding="%d %d %d %d" spacing="%d" childAlignment="UpperCenter" childForceExpandWidth="false" childForceExpandHeight="false">' ..
                 '%s%s' ..
             '</HorizontalLayout>' ..
         '</Panel>',
-        DICEPANEL.rectAlignment, DICEPANEL.offsetXY, w, h, DICEPANEL.bg, (L.colonne > 0) and "true" or "false",
+        DICEPANEL.rectAlignment, DICEPANEL.offsetXY, w, h, DICEPANEL.bg, DICEPANEL.bordo or "", (L.colonne > 0) and "true" or "false",
         DICEPANEL.padding, DICEPANEL.padding, DICEPANEL.padding, DICEPANEL.padding, DICEPANEL.colGap,
         dpColXml(1, L), dpColXml(2, L))
 end

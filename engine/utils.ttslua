@@ -15,6 +15,8 @@ ENGINE_WARNING_ACTIVE = false
 function engine_handleChat(message, player)
     if message == "!restart" then callHandler("restart") return false end
     if message == "!clear"   then clear()                return false end
+    local stile = message:match("^!stile%s*(%S*)$")
+    if stile then callHandler("stile", stile, player) return false end
     return true
 end
 -- Il Global comune con IEF chiama ancora ief_handleChat: finché

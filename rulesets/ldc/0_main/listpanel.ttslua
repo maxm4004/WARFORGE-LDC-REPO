@@ -49,9 +49,9 @@ function ui_listPanelXml(o)
     end
     local h = 2 * S.padding + S.titleH + (o.nota and (S.noteH + S.spacing) or 0) + n * (S.rowH + S.spacing)
     return string.format(
-        '<Panel id="%s" rectAlignment="%s" color="%s" width="%d" height="%d" offsetXY="%s" visibility="%s" active="%s">' ..
+        '<Panel id="%s" rectAlignment="%s" color="%s" ' .. main_styleBorder() .. ' width="%d" height="%d" offsetXY="%s" visibility="%s" active="%s">' ..
         '<VerticalLayout padding="%d %d %d %d" spacing="%d" childForceExpandHeight="false" childAlignment="UpperCenter">' ..
-            '<Text id="%s" text="%s" font="%s" fontSize="14" fontStyle="Bold" color="%s" alignment="MiddleCenter" preferredHeight="%d"/>' ..
+            '<Text id="%s" text="%s" font="%s" fontSize="14" color="%s" alignment="MiddleCenter" preferredHeight="%d"/>' ..
             '%s%s' ..
         '</VerticalLayout></Panel>',
         o.id, o.rectAlignment or "UpperRight", S.bg, S.width, h, o.offsetXY or S.offsetXY, o.visibility or "", o.attivo or "false",

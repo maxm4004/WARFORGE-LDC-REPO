@@ -5,6 +5,7 @@
 -- ============================================================
 
 require("rulesets.ldc.0_main.constants")
+require("rulesets.ldc.0_main.style")
 require("rulesets.ldc.0_main.state")
 require("rulesets.ldc.0_main.conditions")
 require("rulesets.ldc.0_main.lib")

@@ -258,38 +258,48 @@ end
 -- sezione FORMAZIONE: in LDC le formazioni si cambiano a mano).
 -- ============================================================
 function move_panelXml()
-    local P = MOVEPANEL
-    local function btn(id, testo, onClick, larghezza, colore)
-        return string.format('<Button id="%s" text="%s" font="%s" fontStyle="Bold" fontSize="15" color="%s" textColor="White" preferredWidth="%d" preferredHeight="32" onClick="%s"/>',
-            id, testo, P.font, colore or P.btnOn, larghezza, onClick)
+    local P, S, M = MOVEPANEL, STILE, STILE_MISURE
+    local function btn(id, testo, onClick, larghezza, colore, testoColore)
+        return string.format('<Button id="%s" text="%s" font="%s" fontSize="%d" color="%s" textColor="%s" preferredWidth="%d" preferredHeight="%d" onClick="%s"/>',
+            id, testo, S.font, M.bottone, colore or P.btnOn, testoColore or S.azioneTesto, larghezza, P.btnH, onClick)
+    end
+    local function sec(id, testo, onClick, larghezza)
+        return btn(id, testo, onClick, larghezza, S.secondario, S.secondarioTesto)
     end
     local function sezione(testo)
-        return string.format('<Text text="%s" font="%s" fontStyle="Bold" fontSize="14" color="%s" alignment="MiddleLeft" preferredHeight="20"/>', testo, P.font, P.gold)
+        return string.format('<Text text="%s" font="%s" fontSize="%d" color="%s" alignment="MiddleLeft" preferredHeight="16"/>',
+            testo, S.font, M.sezione, S.sezione)
     end
     local function riga(contenuto)
-        return '<HorizontalLayout spacing="8" childAlignment="MiddleCenter" childForceExpandWidth="false" preferredHeight="32">' .. contenuto .. '</HorizontalLayout>'
+        return string.format('<HorizontalLayout spacing="%d" childAlignment="MiddleCenter" childForceExpandWidth="false" preferredHeight="%d">',
+            P.gap, P.btnH) .. contenuto .. '</HorizontalLayout>'
     end
+    -- larghezze: 4 bottoni, 5 formazioni, 3 bottoni in fondo
+    local utile = P.width - 2 * P.padding
+    local w4 = math.floor((utile - 3 * P.gap) / 4)
+    local w5 = math.floor((utile - 4 * P.gap) / 5)
+    local w3 = math.floor((utile - 2 * P.gap) / 3)
     return string.format([[
-        <Panel id="move_panel" rectAlignment="LowerCenter" offsetXY="0 90" color="%s" width="%d" height="%d" active="false" visibility="">
-            <VerticalLayout spacing="5" padding="16 16 12 12" childAlignment="UpperCenter" childForceExpandHeight="false">
-                <Text id="move_panel_title" text="" font="%s" fontStyle="Bold" fontSize="20" color="%s" alignment="MiddleCenter" preferredHeight="26"/>
-                <Text id="move_panel_info" text="" font="%s" fontSize="14" color="%s" alignment="MiddleCenter" preferredHeight="20"/>
-                <Text id="move_panel_dist" text="" font="%s" fontStyle="Bold" fontSize="30" color="White" alignment="MiddleCenter" preferredHeight="36"/>
-                %s %s %s %s %s
+        <Panel id="move_panel" rectAlignment="LowerCenter" offsetXY="0 90" %s width="%d" height="%d" active="false" visibility="">
+            <VerticalLayout spacing="4" padding="%d %d 10 10" childAlignment="UpperCenter" childForceExpandHeight="false">
+                <Text id="move_panel_title" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleCenter" preferredHeight="22"/>
+                <Text id="move_panel_info" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleCenter" preferredHeight="18"/>
+                <Text id="move_panel_dist" text="" font="%s" fontSize="20" color="%s" alignment="MiddleCenter" preferredHeight="24"/>
+                %s %s %s %s
                 %s
             </VerticalLayout>
         </Panel>
-        ]], P.bg, P.width, P.height,
-        P.font, P.gold, P.font, P.grey, P.font,
-        sezione("MOVIMENTO"),
-        riga(btn("move_btn_Avanti", "Avanti", "move_btnManual", 160) .. btn("move_btn_AvantiMax", "Avanti Max", "move_btnMoveMax", 160)
-          .. btn("move_btn_PernoSn", "Perno Sn", "move_btnPivotSx", 160) .. btn("move_btn_PernoDs", "Perno Ds", "move_btnPivotDx", 160)),
-        sezione("FORMAZIONE"),
-        riga(btn("move_btn_F_linea", "Linea", "move_btnFormation", 128) .. btn("move_btn_F_colonna_attacco", "Col. d'attacco", "move_btnFormation", 128)
-          .. btn("move_btn_F_colonna_marcia", "Col. di marcia", "move_btnFormation", 128) .. btn("move_btn_F_quadrato", "Quadrato", "move_btnFormation", 128)
-          .. btn("move_btn_F_ordine_aperto", "Ordine aperto", "move_btnFormation", 128)),
-        riga(btn("move_btn_UndoLast", "Annulla Ultimo", "move_btnUndoLast", 330, P.undo1) .. btn("move_btn_UndoAll", "Annulla Tutto", "move_btnUndoAll", 330, P.undo2)),
-        riga(btn("move_btn_Close", "Chiudi", "move_btnClose", 676, P.close)))
+        ]], main_stylePanelAttrs(), P.width, P.height, P.padding, P.padding,
+        S.font, M.titolo, S.titolo, S.font, M.piccolo + 1, S.tenue, S.font, S.testo,
+        sezione("Movimento"),
+        riga(btn("move_btn_Avanti", "Avanti", "move_btnManual", w4) .. btn("move_btn_AvantiMax", "Avanti Max", "move_btnMoveMax", w4)
+          .. btn("move_btn_PernoSn", "Perno Sn", "move_btnPivotSx", w4) .. btn("move_btn_PernoDs", "Perno Ds", "move_btnPivotDx", w4)),
+        sezione("Formazione"),
+        riga(btn("move_btn_F_linea", "Linea", "move_btnFormation", w5) .. btn("move_btn_F_colonna_attacco", "Col. d'attacco", "move_btnFormation", w5)
+          .. btn("move_btn_F_colonna_marcia", "Col. di marcia", "move_btnFormation", w5) .. btn("move_btn_F_quadrato", "Quadrato", "move_btnFormation", w5)
+          .. btn("move_btn_F_ordine_aperto", "Ordine aperto", "move_btnFormation", w5)),
+        riga(sec("move_btn_UndoLast", "Annulla ultimo", "move_btnUndoLast", w3) .. sec("move_btn_UndoAll", "Annulla tutto", "move_btnUndoAll", w3)
+          .. sec("move_btn_Close", "Chiudi", "move_btnClose", w3)))
 end
 -- ============================================================
 -- FUNZIONE: move_panelUnit()
@@ -317,7 +327,7 @@ function move_panelRedraw()
     local carica = MOVE_STATE.cariche[u.key] ~= nil
     UI.setAttribute("move_panel", "visibility", main_sideVisibility(slot))
     UI.setAttribute("move_panel", "active", "true")
-    UI.setAttribute("move_panel_title", "text", (u.meta.nomeDisplay or u.key):upper())
+    UI.setAttribute("move_panel_title", "text", u.meta.nomeDisplay or u.key)
     local _, nota = move_unitLimit(slot, u)
     if sch then
         UI.setAttribute("move_panel_info", "text", "Schieramento - formazione: " .. main_formationName(main_unitFormation(u)))
@@ -328,10 +338,16 @@ function move_panelRedraw()
     end
     if not MOVE_MANUAL and not MOVE_PIVOT then UI.setAttribute("move_panel_dist", "text", "") end
 
-    local function setBtn(id, ok, acceso)
+    local S = STILE
+    local function setBtn(id, ok, acceso, secondario)
         UI.setAttribute(id, "interactable", ok and "true" or "false")
-        UI.setAttribute(id, "color", acceso and P.manualOn or (ok and P.btnOn or P.btnOff))
-        UI.setAttribute(id, "textColor", ok and "White" or P.grey)
+        local colore, testo
+        if acceso then colore, testo = S.scelto, S.sceltoTesto
+        elseif not ok then colore, testo = S.spento, S.spentoTesto
+        elseif secondario then colore, testo = S.secondario, S.secondarioTesto
+        else colore, testo = S.azione, S.azioneTesto end
+        UI.setAttribute(id, "color", colore)
+        UI.setAttribute(id, "textColor", testo)
     end
     local muove = residuo > 0.001 and not carica
     setBtn("move_btn_Avanti", muove, MOVE_MANUAL ~= nil)
@@ -351,12 +367,8 @@ function move_panelRedraw()
         if esiste then setBtn(id, cambia and attuale ~= f.id, attuale == f.id) end
     end
     local hist = #MOVE_PANEL.history > 0
-    setBtn("move_btn_UndoLast", hist)
-    setBtn("move_btn_UndoAll", hist or move_hasMoved(u.key))
-    if hist then
-        UI.setAttribute("move_btn_UndoLast", "color", P.undo1)
-        UI.setAttribute("move_btn_UndoAll", "color", P.undo2)
-    end
+    setBtn("move_btn_UndoLast", hist, false, true)
+    setBtn("move_btn_UndoAll", hist or move_hasMoved(u.key), false, true)
     move_panelLines()
 end
 -- ============================================================
@@ -373,7 +385,11 @@ function move_panelLines()
     elseif MOVE_PIVOT then
         linee = MOVE_PIVOT.linee or {}
     else
-        local residuo = move_budget(slot, u)
+        -- niente corridoio nello Schieramento e dopo un cambio di
+        -- formazione (Max 12/11)
+        local formazione = MOVE_PANEL.schieramento
+            or (MOVE_STATE.formazione and MOVE_STATE.formazione[u.key])
+        local residuo = formazione and 0 or move_budget(slot, u)
         if residuo > 0.001 and not MOVE_STATE.cariche[u.key] then
             local sx, dx, f = move_frontCorners(u)
             if sx then
@@ -643,7 +659,7 @@ function move_manualTick()
     end
     m.t = move_manualProietta(m)
     UI.setAttribute("move_panel_dist", "text", move_manualTesto(m))
-    UI.setAttribute("move_panel_dist", "color", m.oltre and "#FF4040" or "White")
+    UI.setAttribute("move_panel_dist", "color", m.oltre and STILE.ko or STILE.testo)
     move_panelLines()
 end
 -- ============================================================

@@ -1,0 +1,246 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/style.ttslua
+-- Stile dei pannelli: un solo posto per colori, carattere e
+-- misure del testo. Tre stili da provare in partita con il
+-- comando in chat !stile A / B / C (Max 12/11/2026).
+--   A  come IEF, rifinito (nero, oro)
+--   B  stato maggiore (carta e inchiostro)
+--   C  moderno pulito (antracite, blu)
+-- Regola d'oro: nessun testo in grassetto nei pannelli.
+-- Colori XML: "rgba(r,g,b,a)" con valori 0..1 oppure "#RRGGBB".
+-- ============================================================
+
+STILI = {
+    A = {
+        nome         = "Come IEF",
+        font         = "warforge_font",
+        bg           = "rgba(0.05,0.05,0.05,0.86)",   -- sfondo dei pannelli
+        bordo        = "rgba(1,0.85,0.2,0.30)",       -- filo del bordo
+        titolo       = "#FFD833",                     -- titoli
+        sezione      = "#C9A64A",                     -- intestazioni di sezione
+        testo        = "#F2EEE3",
+        tenue        = "#B9B3A3",                     -- note, etichette
+        azione       = "#B8902E",                     -- bottone principale
+        azioneTesto  = "#14110A",
+        secondario   = "#4A4A4A",                     -- Annulla, Chiudi
+        secondarioTesto = "#F2EEE3",
+        scelto       = "#2E6DA4",                     -- opzione in uso
+        sceltoTesto  = "#FFFFFF",
+        spento       = "rgba(0.16,0.16,0.16,0.9)",    -- bottone non disponibile
+        spentoTesto  = "#777777",
+        riga         = "rgba(1,1,1,0.05)",            -- sfondo delle righe
+        rigaScelta   = "rgba(1,0.85,0.2,0.16)",       -- riga in evidenza
+        rigaLivello1 = "rgba(1,1,1,0.09)",            -- riga di primo livello (Divisione)
+        ok           = "#8DBF7E",
+        ko           = "#E26B5E",
+        avviso       = "#F0A33A",
+        attesaBg     = "rgba(0.05,0.05,0.05,0.60)",   -- barra "In attesa..."
+        attesaTesto  = "#FFD833",
+    },
+    B = {
+        nome         = "Stato maggiore",
+        font         = "warforge_font",
+        bg           = "rgba(0.937,0.902,0.816,0.97)",
+        bordo        = "#6B5A3A",
+        titolo       = "#2A2218",
+        sezione      = "#7A2E22",
+        testo        = "#2A2218",
+        tenue        = "#6B5A3A",
+        azione       = "#1F3A5F",
+        azioneTesto  = "#F4EEDF",
+        secondario   = "#E0D3B4",
+        secondarioTesto = "#2A2218",
+        scelto       = "#7A2E22",
+        sceltoTesto  = "#F4EEDF",
+        spento       = "rgba(0.85,0.81,0.72,1)",
+        spentoTesto  = "#9C8E72",
+        riga         = "rgba(0.42,0.35,0.23,0.07)",
+        rigaScelta   = "rgba(0.12,0.23,0.37,0.16)",
+        rigaLivello1 = "rgba(0.42,0.35,0.23,0.16)",
+        ok           = "#2F5A2A",
+        ko           = "#7A2E22",
+        avviso       = "#A3521A",
+        attesaBg     = "rgba(0.937,0.902,0.816,0.92)",
+        attesaTesto  = "#2A2218",
+    },
+    C = {
+        nome         = "Moderno",
+        font         = "warforge_font",
+        bg           = "rgba(0.082,0.094,0.114,0.94)",
+        bordo        = "rgba(1,1,1,0.10)",
+        titolo       = "#FFFFFF",
+        sezione      = "#8A93A0",
+        testo        = "#E8EAED",
+        tenue        = "#8A93A0",
+        azione       = "#3B82F6",
+        azioneTesto  = "#FFFFFF",
+        secondario   = "rgba(1,1,1,0.10)",
+        secondarioTesto = "#E8EAED",
+        scelto       = "#E8EAED",
+        sceltoTesto  = "#15181D",
+        spento       = "rgba(1,1,1,0.04)",
+        spentoTesto  = "#5C6470",
+        riga         = "rgba(1,1,1,0.03)",
+        rigaScelta   = "rgba(0.23,0.51,0.96,0.18)",
+        rigaLivello1 = "rgba(1,1,1,0.07)",
+        ok           = "#4ADE80",
+        ko           = "#F87171",
+        avviso       = "#F59E0B",
+        attesaBg     = "rgba(0.082,0.094,0.114,0.80)",
+        attesaTesto  = "#E8EAED",
+    },
+}
+
+-- Misure del testo, uguali per tutti gli stili
+STILE_MISURE = {
+    titolo  = 16,     -- titolo del pannello
+    sezione = 12,     -- intestazione di sezione
+    testo   = 13,     -- righe e valori
+    piccolo = 11,     -- note
+    bottone = 12,     -- testo dei bottoni
+    bordo   = 1,      -- spessore del filo del bordo
+}
+
+-- Stile in uso (salvato con la partita)
+STILE_NOME = STILE_NOME or "A"
+STILE = STILI[STILE_NOME]
+
+-- ============================================================
+-- FUNZIONE: main_stylePanelAttrs()
+-- Attributi comuni del contenitore di un pannello: sfondo e
+-- filo del bordo. Uso: '<Panel ... ' .. main_stylePanelAttrs() .. '>'
+-- ============================================================
+function main_stylePanelAttrs()
+    return string.format('color="%s" outline="%s" outlineSize="%d %d"',
+        STILE.bg, STILE.bordo, STILE_MISURE.bordo, -STILE_MISURE.bordo)
+end
+-- ============================================================
+-- FUNZIONE: main_styleBorder()
+-- Solo il filo del bordo (per i pannelli con sfondo già scritto).
+-- ============================================================
+function main_styleBorder()
+    return string.format('outline="%s" outlineSize="%d %d"', STILE.bordo, STILE_MISURE.bordo, -STILE_MISURE.bordo)
+end
+-- ============================================================
+-- FUNZIONE: main_styleApply()
+-- Porta i colori dello stile in uso nelle tabelle dei pannelli
+-- (lette quando si costruisce l'XML e quando si ridisegna).
+-- ============================================================
+function main_styleApply()
+    local S = STILE
+    if COMMAND_PANEL then
+        COMMAND_PANEL.font       = S.font
+        COMMAND_PANEL.bg         = S.bg
+        COMMAND_PANEL.rowBg      = S.riga
+        COMMAND_PANEL.actionBg   = S.azione
+        COMMAND_PANEL.closeBg    = S.secondario
+        COMMAND_PANEL.titleColor = S.titolo
+        COMMAND_PANEL.textColor  = S.testo
+        COMMAND_PANEL.noteColor  = S.tenue
+        COMMAND_PANEL.statoColor = {
+            DA_TIRARE = S.tenue, FALLITA = S.ko, ATTIVA = S.ok, HOLDS = S.ko,
+        }
+    end
+    if MOVEPANEL then
+        MOVEPANEL.font     = S.font
+        MOVEPANEL.bg       = S.bg
+        MOVEPANEL.gold     = S.titolo
+        MOVEPANEL.grey     = S.tenue
+        MOVEPANEL.btnOn    = S.azione
+        MOVEPANEL.btnOff   = S.spento
+        MOVEPANEL.undo1    = S.secondario
+        MOVEPANEL.undo2    = S.secondario
+        MOVEPANEL.close    = S.secondario
+        MOVEPANEL.manualOn = S.scelto
+    end
+    if SUBPANEL then
+        SUBPANEL.bg       = S.bg
+        SUBPANEL.btnColor = S.azione
+    end
+    if CONFIRMPANEL then
+        CONFIRMPANEL.actionBg   = S.azione
+        CONFIRMPANEL.actionText = S.azioneTesto
+        CONFIRMPANEL.closeBg    = S.secondario
+        CONFIRMPANEL.closeText  = S.secondarioTesto
+    end
+    if WAITPANEL then
+        WAITPANEL.bg        = S.attesaBg
+        WAITPANEL.textColor = S.attesaTesto
+    end
+    if MIRINO_PANNELLO then
+        MIRINO_PANNELLO.bg    = S.bg
+        MIRINO_PANNELLO.close = S.secondario
+    end
+    if UNITINFO then
+        UNITINFO.font, UNITINFO.bg, UNITINFO.rowBg = S.font, S.bg, S.secondario
+        UNITINFO.titleColor, UNITINFO.sectionColor = S.titolo, S.sezione
+        UNITINFO.textColor, UNITINFO.subColor = S.testo, S.tenue
+        UNITINFO.okColor, UNITINFO.warnColor, UNITINFO.koColor = S.ok, S.avviso, S.ko
+        UNITINFO.closeText = S.secondarioTesto
+    end
+    if LISTPANEL then
+        LISTPANEL.font, LISTPANEL.bg, LISTPANEL.rowBg = S.font, S.bg, S.riga
+        LISTPANEL.gold, LISTPANEL.grey = S.titolo, S.tenue
+        LISTPANEL.todo, LISTPANEL.done = S.testo, S.ok
+    end
+    if SHOOTINFO then
+        SHOOTINFO.bg, SHOOTINFO.gold, SHOOTINFO.grey = S.bg, S.titolo, S.tenue
+        SHOOTINFO.bonus, SHOOTINFO.malus = S.ok, S.ko
+        SHOOTINFO.font, SHOOTINFO.testo = S.font, S.testo
+    end
+    if DICEPANEL then
+        DICEPANEL.font, DICEPANEL.bg = S.font, S.bg
+        DICEPANEL.titleColor, DICEPANEL.textColor, DICEPANEL.subColor = S.titolo, S.testo, S.tenue
+        DICEPANEL.okColor, DICEPANEL.koColor = S.ok, S.ko
+        DICEPANEL.bordo = main_styleBorder()
+    end
+    if SUBPANEL then
+        SUBPANEL.btnText = S.azioneTesto
+        SUBPANEL.font    = S.font
+        SUBPANEL.bordo   = main_styleBorder()
+    end
+end
+-- ============================================================
+-- FUNZIONE: main_styleSet(nome, player)
+-- Cambia stile in partita (!stile A): tabelle, UI rifatta e
+-- pannelli ridisegnati appena la UI è pronta.
+-- ============================================================
+function main_styleSet(nome, player)
+    nome = string.upper(tostring(nome or ""))
+    if not STILI[nome] then
+        local msg = "Stili disponibili: A (Come IEF), B (Stato maggiore), C (Moderno)"
+        if player then warningToColor(msg, player, "Yellow", 5, true) else printToAll(msg, LOG_AVVISO) end
+        return
+    end
+    STILE_NOME = nome
+    STILE = STILI[nome]
+    main_styleApply()
+    callHandler("buildUI")
+    engine_uiWhenReady(function()
+        Wait.frames(function()
+            if main_redrawAllPanels then main_redrawAllPanels() end
+        end, 2)
+    end)
+    printToAll("Stile dei pannelli: " .. nome .. " - " .. STILE.nome, LOG_COLORE)
+end
+-- ============================================================
+-- FUNZIONE: main_redrawAllPanels()
+-- Dopo una UI rifatta (cambio di stile): ogni pannello aperto
+-- torna com'era.
+-- ============================================================
+function main_redrawAllPanels()
+    local function prova(fn)
+        if type(fn) == "function" then
+            local ok, err = pcall(fn)
+            if not ok then printToAll("[stile] " .. tostring(err), LOG_AVVISO) end
+        end
+    end
+    prova(function() callHandler("updateCenterPanel") end)
+    prova(command_redrawPanel)
+    if MOVE_PANEL then prova(move_panelRedraw) end
+    prova(move_chargeListRefresh)
+    prova(melee_listRefresh)
+    prova(main_unitInfoRefresh)
+    prova(engine_subRedraw)
+    prova(engine_dicePanelRedraw)
+end

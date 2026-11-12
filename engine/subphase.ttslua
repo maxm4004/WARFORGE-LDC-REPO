@@ -382,18 +382,18 @@ function engine_subPanelsXml()
         for n = 1, SUBPANEL.btnMax do
             local b = bottoni[n]
             righe = righe .. string.format(
-                '<Button id="sub_btn_army%d_%d" text="%s" icon="%s" iconAlignment="Right" iconWidth="30" padding="6 15 4 4" font="warforge_font" fontSize="13" fontStyle="Bold" color="%s" textAlignment="MiddleRight" textColor="White" outline="#000000" outlineSize="1" preferredWidth="%d" preferredHeight="%d" onClick="engine_subButtonClick" active="%s"/>',
-                slot, n, xmlEsc(b and b.label), xmlEsc((b and b.icon) or "default"), SUBPANEL.btnColor,
+                '<Button id="sub_btn_army%d_%d" text="%s" icon="%s" iconAlignment="Right" iconWidth="30" padding="6 15 4 4" font="%s" fontSize="13" color="%s" textAlignment="MiddleRight" textColor="%s" preferredWidth="%d" preferredHeight="%d" onClick="engine_subButtonClick" active="%s"/>',
+                slot, n, xmlEsc(b and b.label), xmlEsc((b and b.icon) or "default"), SUBPANEL.font or "warforge_font", SUBPANEL.btnColor, SUBPANEL.btnText or "White",
                 SUBPANEL.btnWidth, SUBPANEL.btnHeight, b and "true" or "false")
         end
 
         xml = xml .. string.format(
-            '<Panel id="sub_panel_army%d" rectAlignment="UpperCenter" width="%d" height="%d" offsetXY="%s" color="%s" visibility="%s" active="%s">' ..
+            '<Panel id="sub_panel_army%d" rectAlignment="UpperCenter" width="%d" height="%d" offsetXY="%s" color="%s" %s visibility="%s" active="%s">' ..
                 '<HorizontalLayout id="sub_btns_army%d" spacing="%d" childAlignment="MiddleCenter" childForceExpandWidth="false" childForceExpandHeight="false">' ..
                     '%s' ..
                 '</HorizontalLayout>' ..
             '</Panel>',
-            slot, SUBPANEL.width, SUBPANEL.height, SUBPANEL.offsetXY, SUBPANEL.bg,
+            slot, SUBPANEL.width, SUBPANEL.height, SUBPANEL.offsetXY, SUBPANEL.bg, SUBPANEL.bordo or "",
             main_sideVisibility(slot), (#bottoni > 0) and "true" or "false",
             slot, SUBPANEL.btnSpacing, righe
         )

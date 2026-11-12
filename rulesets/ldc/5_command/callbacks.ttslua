@@ -8,16 +8,18 @@
 -- (solo lui arriva qui: main_canUseButton, modalità ACTIVE),
 -- solo quando tutte le Brigate sono ATTIVE o in HOLDS.
 -- ============================================================
-function command_btn(player, value, id, buttonConfig)
+function command_btn(player, value, id)
     local slot = TURN.activeSide
     if COMMAND_ROLLING then
         warningToColor("Aspetta che i dadi si fermino", player, "Yellow", 3, false)
         return false
     end
     if not command_allResolved(slot) then
-        warningToColor("Prima tira per tutte le Brigate (e decidi sui test falliti)", player, "Yellow", 5, false)
+        warningToColor("Prima attiva tutte le Brigate", player, "Yellow", 5, false)
         return false
     end
+    -- niente Fermo (Max 12/11): i test falliti non ripresi vanno in HOLDS
+    command_closeFailed(slot)
     return true
 end
 
@@ -55,20 +57,22 @@ function command_clickRitira(player, value, id)
     if slot then command_choose(player, slot, key, "ritiro") end
 end
 -- ============================================================
--- FUNZIONE: command_clickHolds(player, value, id)
--- ============================================================
-function command_clickHolds(player, value, id)
-    local slot, key = command_rowClick(player, id, "cmdHolds")
-    if slot then command_accept(player, slot, key) end
-end
--- ============================================================
 -- FUNZIONE: command_clickNome(player, value, id)
 -- Nome della Brigata: la inquadra e ne illumina le basi.
 -- ============================================================
 function command_clickNome(player, value, id)
-    local slot, key = command_rowClick(player, id, "cmdNome")
-    if not slot then return end
-    command_focus(slot, key, false)
-    command_cameraToGroup(player, slot, key)
+    if not ENGINE or ENGINE.phase ~= PHASE.COMMAND or ENGINE.transitionPending then return end
+    local slot = TURN.activeSide
+    local i = tonumber((id or ""):match("^cmdNome(%d+)$"))
+    -- Divisione: apre o chiude le sue Brigate (solo chi comanda)
+    local divId = i and COMMAND_DIVROWS[i]
+    if divId then
+        if player and main_colorInSide(player.color, slot) then command_toggleDivision(slot, divId) end
+        return
+    end
+    local s, key = command_rowClick(player, id, "cmdNome")
+    if not s then return end
+    command_focus(s, key, false)
+    command_cameraToGroup(player, s, key)
     command_redrawPanel()
 end

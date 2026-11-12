@@ -299,7 +299,7 @@ function main_unitInfoRedraw(slot)
             UI.setAttribute(id, "preferredHeight", tostring(sezione and U.sectionHeight or U.rowHeight))
             UI.setAttribute(id .. "_l", "text", sezione and r.sezione or (r[1] or ""))
             UI.setAttribute(id .. "_l", "color", sezione and U.sectionColor or uiLabelColor(r))
-            UI.setAttribute(id .. "_l", "fontStyle", sezione and "Bold" or "Normal")
+            UI.setAttribute(id .. "_l", "fontStyle", "Normal")
             UI.setAttribute(id .. "_l", "fontSize", sezione and "13" or "12")
             UI.setAttribute(id .. "_v", "text", sezione and "" or (r[2] or ""))
             UI.setAttribute(id .. "_v", "color", sezione and U.textColor or uiValueColor(r))
@@ -321,16 +321,16 @@ function main_unitInfoPanelsXml()
             rowsXml = rowsXml .. string.format(
                 '<HorizontalLayout id="%s_row%d" preferredHeight="%d" childForceExpandWidth="true" active="false">' ..
                     '<Text id="%s_row%d_l" text="" font="%s" fontSize="12" color="%s" alignment="MiddleLeft"/>' ..
-                    '<Text id="%s_row%d_v" text="" font="%s" fontSize="12" fontStyle="Bold" color="%s" alignment="MiddleRight" preferredWidth="%d" flexibleWidth="0"/>' ..
+                    '<Text id="%s_row%d_v" text="" font="%s" fontSize="12" color="%s" alignment="MiddleRight" preferredWidth="%d" flexibleWidth="0"/>' ..
                 '</HorizontalLayout>',
                 pre, i, U.rowHeight, pre, i, U.font, U.textColor, pre, i, U.font, U.textColor, U.valueWidth)
         end
         xml = xml .. string.format(
-            '<Panel id="%s" rectAlignment="%s" offsetXY="%s" width="%d" height="%d" color="%s" visibility="%s" active="false">' ..
+            '<Panel id="%s" rectAlignment="%s" offsetXY="%s" width="%d" height="%d" color="%s" ' .. main_styleBorder() .. ' visibility="%s" active="false">' ..
                 '<VerticalLayout padding="%d %d %d %d" spacing="%d" childAlignment="UpperLeft" childForceExpandHeight="false" childForceExpandWidth="true">' ..
                     '<HorizontalLayout preferredHeight="%d" childForceExpandWidth="false" childForceExpandHeight="false">' ..
-                        '<Text id="%s_title" text="" font="%s" fontSize="16" fontStyle="Bold" color="%s" alignment="MiddleLeft" preferredWidth="%d"/>' ..
-                        '<Button id="%s_close" text="X" font="%s" fontSize="13" fontStyle="Bold" textColor="White" color="%s" preferredWidth="%d" preferredHeight="%d" onClick="main_unitInfoCloseClick"/>' ..
+                        '<Text id="%s_title" text="" font="%s" fontSize="16" color="%s" alignment="MiddleLeft" preferredWidth="%d"/>' ..
+                        '<Button id="%s_close" text="X" font="%s" fontSize="13" textColor="' .. (U.closeText or "White") .. '" color="%s" preferredWidth="%d" preferredHeight="%d" onClick="main_unitInfoCloseClick"/>' ..
                     '</HorizontalLayout>' ..
                     '<Text id="%s_sub" text="" font="%s" fontSize="10" color="%s" alignment="MiddleLeft" preferredHeight="%d"/>' ..
                     '<Image id="%s_foto" image="" preserveAspect="true" preferredHeight="%d" active="false"/>' ..

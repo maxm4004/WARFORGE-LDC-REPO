@@ -128,10 +128,10 @@ function main_mirinoPannello(m, testo, colore)
             <Panel id="panelMirino" active="true" color="%s" width="760" height="90" offsetXY="0 405" position="%f %f %f" rotation="-90 0 0" visibility="%s">
                 <HorizontalLayout spacing="10" padding="16 16 10 10" childAlignment="MiddleCenter" childForceExpandWidth="false">
                     <Text id="txtMirino" text="%s" fontStyle="Normal" fontSize="20" color="%s" alignment="MiddleCenter" preferredWidth="560"/>
-                    <Button id="btnMirinoChiudi" text="Chiudi" fontSize="18" color="%s" textColor="White" preferredWidth="140" preferredHeight="50" onClick="Global/main_mirinoChiudi"/>
+                    <Button id="btnMirinoChiudi" text="Chiudi" fontSize="18" color="%s" textColor="%s" preferredWidth="140" preferredHeight="50" onClick="Global/main_mirinoChiudi"/>
                 </HorizontalLayout>
             </Panel>
-            ]], P.bg, x, P.y, P.z, m.player.color, testo, colore, P.close))
+            ]], P.bg, x, P.y, P.z, m.player.color, testo, colore, P.close, STILE.secondarioTesto))
         return
     end
     h.UI.setAttribute("txtMirino", "text", testo)

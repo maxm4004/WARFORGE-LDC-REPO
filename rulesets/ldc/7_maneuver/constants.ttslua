@@ -32,8 +32,12 @@ MOVE = {
 
 -- Pannello di movimento (IEF MOVEPANEL)
 MOVEPANEL = {
-    width    = 720,
-    height   = 300,
+    -- più piccolo (Max 12/11): colori da STILE (0_main/style)
+    width    = 512,
+    height   = 222,
+    padding  = 14,
+    gap      = 6,      -- fra i bottoni
+    btnH     = 26,     -- altezza dei bottoni
     bg       = "rgba(0,0,0,0.70)",
     font     = "warforge_font",
     gold     = "#FFD833",

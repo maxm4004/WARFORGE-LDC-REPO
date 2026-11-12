@@ -174,13 +174,13 @@ function move_chargePanelXml()
     local function riga(id)
         return string.format('<HorizontalLayout preferredHeight="20" childForceExpandWidth="true">' ..
             '<Text id="%s_k" text="" font="%s" fontSize="13" color="%s" alignment="MiddleLeft"/>' ..
-            '<Text id="%s_v" text="" font="%s" fontSize="13" fontStyle="Bold" color="White" alignment="MiddleRight"/></HorizontalLayout>',
-            id, P.font, P.grey, id, P.font)
+            '<Text id="%s_v" text="" font="%s" fontSize="13" color="%s" alignment="MiddleRight"/></HorizontalLayout>',
+            id, P.font, P.grey, id, P.font, STILE.testo)
     end
     return string.format([[
-        <Panel id="charge_info_panel" rectAlignment="LowerCenter" offsetXY="0 150" width="420" height="190" color="%s" active="false" visibility="">
+        <Panel id="charge_info_panel" rectAlignment="LowerCenter" offsetXY="0 150" width="420" height="190" color="%s" ]] .. main_styleBorder() .. [[ active="false" visibility="">
             <VerticalLayout spacing="3" padding="14 14 10 10" childForceExpandHeight="false">
-                <Text id="charge_info_title" text="CARICA" font="%s" fontStyle="Bold" fontSize="18" color="%s" alignment="MiddleCenter" preferredHeight="24"/>
+                <Text id="charge_info_title" text="Carica" font="%s" fontSize="16" color="%s" alignment="MiddleCenter" preferredHeight="24"/>
                 %s %s %s %s %s
                 <Text id="charge_info_stato" text="" font="%s" fontSize="13" color="%s" alignment="MiddleCenter" preferredHeight="22"/>
             </VerticalLayout>

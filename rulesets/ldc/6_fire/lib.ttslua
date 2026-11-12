@@ -389,8 +389,8 @@ function fire_confirmPanelXml()
         offsetXY="0 100"
         active="false">
         <HorizontalLayout spacing="8" padding="10 10 10 10" childAlignment="MiddleCenter" childForceExpandWidth="false" position="0 -100 0">
-            <Button id="btnShoot" text="Tiro" font="warforge_font" fontSize="13" fontStyle="Normal" color="]] .. CONFIRMPANEL.actionBg .. [[" textColor="]] .. CONFIRMPANEL.actionText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Confirm"/>
-            <Button id="btnShootCancel" text="Chiudi" font="warforge_font" fontSize="13" fontStyle="Normal" color="]] .. CONFIRMPANEL.closeBg .. [[" textColor="]] .. CONFIRMPANEL.closeText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Chiudi"/>
+            <Button id="btnShoot" text="Tiro" font="]] .. STILE.font .. [[" fontSize="13" color="]] .. CONFIRMPANEL.actionBg .. [[" textColor="]] .. CONFIRMPANEL.actionText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Confirm"/>
+            <Button id="btnShootCancel" text="Chiudi" font="]] .. STILE.font .. [[" fontSize="13" color="]] .. CONFIRMPANEL.closeBg .. [[" textColor="]] .. CONFIRMPANEL.closeText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Chiudi"/>
         </HorizontalLayout>
         </Panel>
     ]] .. shoot_infoPanelXml()

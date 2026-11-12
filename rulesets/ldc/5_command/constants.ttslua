@@ -8,7 +8,7 @@
 -- Divisione senza Brigata) nella fase di Comando
 COMMAND_STATO = {
     DA_TIRARE = "DA_TIRARE",   -- il Generale non ha ancora tirato
-    FALLITA   = "FALLITA",     -- test fallito, si può ritirare o accettare
+    FALLITA   = "FALLITA",     -- test fallito, si può ritirare (Riprova); a fine Comando HOLDS
     ATTIVA    = "ATTIVA",      -- attivata
     HOLDS     = "HOLDS",       -- in HOLDS fino al prossimo Comando
 }
@@ -24,23 +24,26 @@ COMMAND_RITIRI_MAX = 3
 -- Secondi prima di chiudere il pannello dadi a fine fase
 COMMAND_DICEPANEL_CLOSE = 3
 
--- Pannello Comando (Divisioni e loro Brigate)
+-- Pannello Comando a livelli (Divisione -> Brigate), colori da
+-- STILE (0_main/style.ttslua, main_styleApply)
 COMMAND_PANEL = {
-    righeMax      = 12,         -- righe al massimo (una per Brigata)
-    width         = 640,
+    righeMax      = 16,         -- righe al massimo (Divisioni + Brigate aperte)
+    width         = 600,
     rowHeight     = 30,
-    headerHeight  = 26,
-    footerHeight  = 18,
+    headerHeight  = 24,
+    footerHeight  = 16,
     padding       = 12,
     spacing       = 3,
+    rientro       = 18,         -- rientro delle Brigate sotto la Divisione
+    nomeWidth     = 250,
+    btnH          = 24,
     font          = "warforge_font",
     rowBg         = "rgba(1,1,1,0.06)",
-    actionBg      = "#B8902E",                -- come la conferma di IEF
+    actionBg      = "#B8902E",
     closeBg       = "rgba(0.45,0.45,0.45,1)",
-    dadoLato      = 26,                       -- faccia del dado (asset d1..d6)
+    dadoLato      = 24,                       -- faccia del dado (asset d1..d6)
     rectAlignment = "LowerCenter",   -- un solo pannello, in basso al centro (Max)
     offsetXY      = "0 90",
-    sceltaHeight  = 44,              -- riga del tiro scelto e dell'esito
     evidenzia     = { 1, 0.85, 0.1 },-- basi del gruppo scelto
     filoCiC       = { 0.72, 0.52, 0.04 },
     bg            = "rgba(0,0,0,0.70)",
@@ -50,15 +53,16 @@ COMMAND_PANEL = {
     -- colore del testo di ogni stato
     statoColor = {
         DA_TIRARE = "#BBBBBB",
-        FALLITA   = "#FFB347",
+        FALLITA   = "#FF6B6B",
         ATTIVA    = "#5BD35B",
         HOLDS     = "#FF6B6B",
     },
+    -- Max 12/11: Attivata / Non Attivata (fallito o HOLDS)
     statoTesto = {
         DA_TIRARE = "da attivare",
-        FALLITA   = "fallito",
-        ATTIVA    = "ATTIVA",
-        HOLDS     = "FERMO",
+        FALLITA   = "Non Attivata",
+        ATTIVA    = "Attivata",
+        HOLDS     = "Non Attivata",
     },
 }
 

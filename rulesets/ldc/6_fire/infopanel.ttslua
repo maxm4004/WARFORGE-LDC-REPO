@@ -11,8 +11,8 @@
 function shoot_infoPanelXml()
     local S = SHOOTINFO
     local function testo(id, h, size, color, bold, align)
-        return string.format('<Text id="%s" text="" font="warforge_font" fontSize="%d" color="%s" fontStyle="%s" alignment="%s" preferredHeight="%d" active="false"/>',
-            id, size, color, bold and "Bold" or "Normal", align or "MiddleLeft", h)
+        return string.format('<Text id="%s" text="" font="' .. (S.font or "warforge_font") .. '" fontSize="%d" color="%s" fontStyle="%s" alignment="%s" preferredHeight="%d" active="false"/>',
+            id, size, color, "Normal", align or "MiddleLeft", h)
     end
     local function colonna(lato)
         local x = string.format('<VerticalLayout spacing="0" childForceExpandHeight="false" childAlignment="UpperLeft" preferredWidth="%d">', S.colWidth)
@@ -33,8 +33,8 @@ function shoot_infoPanelXml()
             x = x .. string.format(
                 '<HorizontalLayout id="shootinfo_%s%d" preferredHeight="%d" childForceExpandWidth="false" active="false">%s%s</HorizontalLayout>',
                 lato, i, S.rowH,
-                string.format('<Text id="shootinfo_%s%d_l" text="" font="warforge_font" fontSize="11" color="White" alignment="MiddleLeft" preferredWidth="%d"/>', lato, i, S.colWidth - S.valWidth),
-                string.format('<Text id="shootinfo_%s%d_v" text="" font="warforge_font" fontSize="11" color="White" fontStyle="Bold" alignment="MiddleRight" preferredWidth="%d"/>', lato, i, S.valWidth))
+                string.format('<Text id="shootinfo_%s%d_l" text="" font="' .. (S.font or "warforge_font") .. '" fontSize="11" color="' .. (S.testo or "White") .. '" alignment="MiddleLeft" preferredWidth="%d"/>', lato, i, S.colWidth - S.valWidth),
+                string.format('<Text id="shootinfo_%s%d_v" text="" font="' .. (S.font or "warforge_font") .. '" fontSize="11" color="' .. (S.testo or "White") .. '" alignment="MiddleRight" preferredWidth="%d"/>', lato, i, S.valWidth))
         end
         return x .. '</VerticalLayout>'
     end
@@ -42,7 +42,7 @@ function shoot_infoPanelXml()
         colonnaVoci("D") .. colonnaVoci("C") .. '</HorizontalLayout>'
 
     return string.format(
-        '<Panel id="shoot_info_panel" rectAlignment="LowerCenter" offsetXY="0 50" width="%d" height="200" color="%s" active="false">' ..
+        '<Panel id="shoot_info_panel" rectAlignment="LowerCenter" offsetXY="0 50" width="%d" height="200" color="%s" ' .. main_styleBorder() .. ' active="false">' ..
         '<VerticalLayout padding="%d %d %d %d" spacing="2" childForceExpandHeight="false" childAlignment="UpperCenter">' ..
         '%s%s' ..
         '<HorizontalLayout spacing="12" childForceExpandWidth="false" childAlignment="UpperLeft" id="shootinfo_cols">%s%s</HorizontalLayout>' ..
@@ -54,7 +54,7 @@ function shoot_infoPanelXml()
         colonna("L"), colonna("R"), basso,
         testo("shootinfo_stato", S.statoH, 13, S.gold, true, "MiddleCenter"),
         facce,
-        testo("shootinfo_esito", S.esitoH, 16, "White", true, "MiddleCenter"))
+        testo("shootinfo_esito", S.esitoH, 16, S.testo or "White", true, "MiddleCenter"))
 end
 
 -- ============================================================

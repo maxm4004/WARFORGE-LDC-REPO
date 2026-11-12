@@ -41,6 +41,7 @@ function main_onSave()
         div_pending   = DIV_PENDING,
         command_forced = COMMAND_FORCED_HOLDS,
         side_chosen   = SIDE_CHOSEN,
+        stile         = STILE_NOME,
         sub           = ENGINE and ENGINE.sub or nil,
     }
     return JSON.encode(main_saveSanitize(saveData, "save"))
@@ -127,6 +128,10 @@ function main_restoreState(save_state)
     end
 
     SIDE_CHOSEN = main_slotPair(data.side_chosen)
+    if data.stile and STILI[data.stile] then
+        STILE_NOME = data.stile
+        STILE = STILI[data.stile]
+    end
 
     if data.deploy then
         DEPLOY_STATE = {

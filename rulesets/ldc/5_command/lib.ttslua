@@ -137,6 +137,7 @@ function command_start(slot)
     command_clearMarkers(slot)
     COMMAND_PENDING = nil
     COMMAND_ROLLING = false
+    COMMAND_APERTE[slot] = {}     -- Divisioni chiuse (primo livello)
 
     local gruppi, divisioni, ordine, cic = command_readSide(slot)
     for _, g in pairs(gruppi) do
@@ -207,17 +208,32 @@ function command_forceHolds(slot, key, motivo)
 end
 -- ============================================================
 -- FUNZIONE: command_allResolved(slot)
--- Tutti i gruppi sono ATTIVI o in HOLDS?
+-- Tutti i gruppi hanno tirato? (un test fallito conta: senza
+-- Riprova resta Non Attivata)
 -- ============================================================
 function command_allResolved(slot)
     local st = COMMAND_STATE[slot]
     if not st then return true end
     for _, d in pairs(st.gruppi) do
-        if d.stato ~= COMMAND_STATO.ATTIVA and d.stato ~= COMMAND_STATO.HOLDS then
+        if d.stato == COMMAND_STATO.DA_TIRARE then
             return false
         end
     end
     return true
+end
+-- ============================================================
+-- FUNZIONE: command_closeFailed(slot)
+-- Fine Comando: i test falliti senza Riprova vanno in HOLDS
+-- (niente bottone Fermo, Max 12/11).
+-- ============================================================
+function command_closeFailed(slot)
+    local st = COMMAND_STATE[slot]
+    if not st then return end
+    for key, d in pairs(st.gruppi) do
+        if d.stato == COMMAND_STATO.FALLITA then
+            command_setHolds(slot, key, "test fallito")
+        end
+    end
 end
 -- ============================================================
 -- FUNZIONE: command_reset()
@@ -334,6 +350,7 @@ function command_choose(player, slot, key, tipo)
     end
 
     COMMAND_PENDING = { slot = slot, key = key, tipo = tipo, valore = valore }
+    command_openDivisionOf(slot, key)
     COMMAND_ESITO = nil
     engine_diceClearLastRoll(slot)
     command_focus(slot, key, tipo == "ritiro")
@@ -394,12 +411,12 @@ function command_resolve(slot, pend, valoreDado)
         st.ritiriUsati = st.ritiriUsati + 1
         if riuscito then
             g.stato = COMMAND_STATO.ATTIVA
-            command_outcome(slot, string.format("Ritiro %d su %d: ATTIVA", valoreDado, pend.valore), true)
-            command_announce(slot, nome .. ": Riprova riuscito, ATTIVA")
+            command_outcome(slot, string.format("Ritiro %d su %d: Attivata", valoreDado, pend.valore), true)
+            command_announce(slot, nome .. ": Riprova riuscito, Attivata")
         else
-            command_outcome(slot, string.format("Riprova %d su %d: FERMO", valoreDado, pend.valore), false)
+            command_outcome(slot, string.format("Riprova %d su %d: Non Attivata", valoreDado, pend.valore), false)
             command_setHolds(slot, pend.key, "ritiro fallito")
-            command_announce(slot, nome .. ": Riprova fallito, FERMO")
+            command_announce(slot, nome .. ": Riprova fallito, Non Attivata")
         end
         return
     end
@@ -407,7 +424,7 @@ function command_resolve(slot, pend, valoreDado)
     g.tiro = valoreDado
     if riuscito then
         g.stato = COMMAND_STATO.ATTIVA
-        command_outcome(slot, string.format("%d su %d: ATTIVA", valoreDado, pend.valore), true)
+        command_outcome(slot, string.format("%d su %d: Attivata", valoreDado, pend.valore), true)
         command_announce(slot, nome .. ": attivata")
         return
     end
@@ -415,14 +432,14 @@ function command_resolve(slot, pend, valoreDado)
     g.stato = COMMAND_STATO.FALLITA
     local puo, motivo = command_canReroll(slot, pend.key)
     if puo then
-        command_outcome(slot, string.format("%d su %d: fallito", valoreDado, pend.valore), false,
-            "Riprova (CiC) o Fermo")
+        command_outcome(slot, string.format("%d su %d: Non Attivata", valoreDado, pend.valore), false,
+            "Riprova (CiC) o lascia Non Attivata")
         command_announce(slot, nome .. ": test fallito")
     else
-        command_outcome(slot, string.format("%d su %d: FERMO", valoreDado, pend.valore), false,
+        command_outcome(slot, string.format("%d su %d: Non Attivata", valoreDado, pend.valore), false,
             "Niente Riprova: " .. tostring(motivo))
         command_setHolds(slot, pend.key, "test fallito")
-        command_announce(slot, nome .. ": test fallito, FERMO (" .. tostring(motivo) .. ")")
+        command_announce(slot, nome .. ": test fallito, Non Attivata (" .. tostring(motivo) .. ")")
     end
 end
 -- ============================================================
@@ -435,7 +452,7 @@ function command_accept(player, slot, key)
     if COMMAND_ROLLING then return end
     if COMMAND_PENDING and COMMAND_PENDING.key == key then COMMAND_PENDING = nil end
     command_setHolds(slot, key, "test fallito")
-    command_announce(slot, command_groupLabel(slot, key) .. ": FERMO")
+    command_announce(slot, command_groupLabel(slot, key) .. ": Non Attivata")
     command_redrawPanel()
 end
 -- ============================================================
