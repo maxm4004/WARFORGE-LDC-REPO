@@ -64,6 +64,27 @@ function engine_uiSet(id, attr, valore)
     return UI.setAttribute(id, attr, valore)
 end
 -- ============================================================
+-- FUNZIONE: engine_uiSetButtonText(id, testo, textColor)
+-- Testo di un BOTTONE: TTS al cambio del testo rimette il
+-- textColor di default (nero). Se il testo cambia, il colore si
+-- riapplica subito e un frame dopo.
+-- ============================================================
+function engine_uiSetButtonText(id, testo, textColor)
+    local c = ENGINE_UI_CACHE[id]
+    local cambia = not c or c.text ~= tostring(testo)
+    engine_uiSet(id, "text", testo)
+    if not textColor then return end
+    if cambia then
+        engine_uiSet(id, "textColor", textColor)
+        Wait.frames(function()
+            if ENGINE_UI_CACHE[id] then ENGINE_UI_CACHE[id].textColor = nil end
+            engine_uiSet(id, "textColor", textColor)
+        end, 1)
+    else
+        engine_uiSet(id, "textColor", textColor)
+    end
+end
+-- ============================================================
 -- FUNZIONE: engine_uiForget()
 -- ============================================================
 function engine_uiForget()

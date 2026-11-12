@@ -83,7 +83,7 @@ end
 -- Brigata; sul Generale di Divisione con le Brigate della sua
 -- Divisione (e le unità senza Brigata); sul CiC (Comandante)
 -- l'elenco completo. Il pannello si apre SOLO da qui (Max 12/11);
--- "Tutte" passa all'elenco completo, "Chiudi" lo nasconde.
+-- la X lo nasconde.
 -- ============================================================
 
 -- Pannello: nil = chiuso | { slot, tipo = "tutte" }
@@ -136,26 +136,6 @@ function command_clickAttivaGen(obj, player_color, alt_click)
     local f = command_genFilter(slot, u.meta)
     if not f then return end
     COMMAND_FILTRO = f
-    command_redrawPanel()
-end
--- ============================================================
--- FUNZIONE: command_clickTutte(player, value, id)
--- Torna al pannello completo (Divisioni e Brigate).
--- ============================================================
-function command_clickTutte(player, value, id)
-    if not ENGINE or ENGINE.phase ~= PHASE.COMMAND then return end
-    local slot = TURN.activeSide
-    if player and not main_colorInSide(player.color, slot) then return end
-    -- la Divisione vista resta aperta nell'elenco completo
-    local F = COMMAND_FILTRO
-    if F and F.slot == slot then
-        local divId = F.divId or (COMMAND_STATE[slot].gruppi[F.key] or {}).divId
-        if divId then
-            COMMAND_APERTE[slot] = COMMAND_APERTE[slot] or {}
-            COMMAND_APERTE[slot][divId] = true
-        end
-    end
-    COMMAND_FILTRO = { slot = slot, tipo = "tutte" }
     command_redrawPanel()
 end
 -- ============================================================

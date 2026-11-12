@@ -54,7 +54,7 @@ function command_panelXml()
                         color="%s" textColor="%s" onClick="command_clickTira" active="false"/>
                 <Button id="cmdRitira%d" text="Riprova" font="%s" fontSize="%d" preferredWidth="70" preferredHeight="%d"
                         color="%s" textColor="%s" onClick="command_clickRitira" active="false"
-                        tooltip="Il CiC ritira il dado" tooltipPosition="Above"/>
+                        tooltip="Ritira il dado" tooltipPosition="Above"/>
             </HorizontalLayout>
 ]], i, P.rowHeight, S.riga,
             i, P.rientro,
@@ -73,20 +73,16 @@ function command_panelXml()
             <HorizontalLayout preferredHeight="%d" childForceExpandWidth="false" childAlignment="MiddleCenter" spacing="6">
                 <Text id="cmdTitolo" ]] .. main_styleTextOutline() .. [[ text="Attivazione" font="%s" fontSize="%d" color="%s"
                       alignment="MiddleCenter" preferredWidth="%d"/>
-                <Button id="cmdTutte" text="Tutte" font="%s" fontSize="%d" preferredWidth="60" preferredHeight="%d"
-                        color="%s" textColor="%s" onClick="command_clickTutte" active="false"
-                        tooltip="Tutte le Divisioni" tooltipPosition="Above"/>
-                <Button id="cmdChiudi" text="Chiudi" font="%s" fontSize="%d" preferredWidth="60" preferredHeight="%d"
-                        color="%s" textColor="%s" onClick="command_clickChiudi"/>
+                <Button id="cmdChiudi" text="X" font="%s" fontSize="%d" preferredWidth="%d" preferredHeight="%d"
+                        color="%s" textColor="%s" onClick="command_clickChiudi" tooltip="Chiudi" tooltipPosition="Above"/>
             </HorizontalLayout>
 %s
         </VerticalLayout>
     </Panel>
 ]], P.rectAlignment, P.offsetXY, P.width, command_panelHeight(P.righeMax), main_stylePanelAttrs(),
         P.padding, P.padding, P.padding, P.padding, P.spacing,
-        P.headerHeight, S.font, M.titolo, S.titolo, P.width - 2 * P.padding - 132,
-        S.font, M.bottone, P.btnH, S.secondario, S.secondarioTesto,
-        S.font, M.bottone, P.btnH, S.secondario, S.secondarioTesto,
+        P.headerHeight, S.font, M.titolo, S.titolo, P.width - 2 * P.padding - P.btnH - 6,
+        S.font, M.bottone, P.btnH, P.btnH, S.secondario, S.secondarioTesto,
         righe)
 end
 -- ============================================================
@@ -215,8 +211,6 @@ function command_redrawPanel()
     engine_uiSet("cmdPanel", "active", "true")
     engine_uiSet("cmdPanel", "height", tostring(command_panelHeight(math.max(righe, 1))))
     engine_uiSet("cmdTitolo", "text", command_panelTitle(slot))
-    engine_uiSet("cmdTutte", "active", F.tipo ~= "tutte" and "true" or "false")
-    engine_uiSet("cmdTutte", "visibility", main_sideVisibility(slot))
     engine_uiSet("cmdChiudi", "visibility", main_sideVisibility(slot))
 
     local visibili = main_sideVisibility(slot)
@@ -235,8 +229,7 @@ function command_redrawPanel()
             engine_uiSet(row, "active", "true")
             engine_uiSet(row, "color", S.rigaLivello1)
             engine_uiSet("cmdInd" .. i, "active", "false")
-            engine_uiSet("cmdNome" .. i, "text", (r.aperta and "-  " or "+  ") .. (div and div.nome or tostring(r.divId)))
-            engine_uiSet("cmdNome" .. i, "textColor", S.titolo)
+            engine_uiSetButtonText("cmdNome" .. i, (r.aperta and "-  " or "+  ") .. (div and div.nome or tostring(r.divId)), S.titolo)
             engine_uiSet("cmdGen" .. i, "text", div and main_competenza(div.valore) or "")
             engine_uiSet("cmdStato" .. i, "text", r.aperta and "" or riassunto)
             engine_uiSet("cmdStato" .. i, "color", tutte and S.ok or S.tenue)
@@ -252,8 +245,7 @@ function command_redrawPanel()
             engine_uiSet(row, "active", "true")
             engine_uiSet(row, "color", focus and S.rigaScelta or S.riga)
             engine_uiSet("cmdInd" .. i, "active", r.piatta and "false" or "true")
-            engine_uiSet("cmdNome" .. i, "text", d.nome)
-            engine_uiSet("cmdNome" .. i, "textColor", S.testo)
+            engine_uiSetButtonText("cmdNome" .. i, d.nome, S.testo)
             engine_uiSet("cmdGen" .. i, "text", main_competenza(d.valore))
             engine_uiSet("cmdStato" .. i, "text", command_rowText(d))
             engine_uiSet("cmdStato" .. i, "color", P.statoColor[d.stato] or S.testo)
@@ -267,8 +259,8 @@ function command_redrawPanel()
                 engine_uiSet(nome .. i, "visibility", visibili)
             end
             -- bottone del tiro scelto: si tira coi dadi del vassoio
-            engine_uiSet("cmdTira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "tiro") and "Dadi" or "Attiva")
-            engine_uiSet("cmdRitira" .. i, "text", (scelta and COMMAND_PENDING.tipo == "ritiro") and "Dadi" or "Riprova")
+            engine_uiSetButtonText("cmdTira" .. i, (scelta and COMMAND_PENDING.tipo == "tiro") and "Dadi" or "Attiva", S.azioneTesto)
+            engine_uiSetButtonText("cmdRitira" .. i, (scelta and COMMAND_PENDING.tipo == "ritiro") and "Dadi" or "Riprova", S.azioneTesto)
             -- facce dei dadi tirati (asset d1..d6)
             engine_uiSet("cmdDado" .. i, "active", d.tiro and "true" or "false")
             if d.tiro then engine_uiSet("cmdDado" .. i, "image", "d" .. tostring(d.tiro)) end
