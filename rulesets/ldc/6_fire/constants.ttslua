@@ -32,7 +32,7 @@ FIRE_CONO_RIEMPI = {
     attivo   = true,
     passo    = 0.25,              -- distanza fra le righe (unità TTS)
     spessore = 0.25,              -- spessore delle righe
-    colore   = { 1, 0.8, 0.1, 0.18 },
+    colore   = { 1, 0.8, 0.1, 0.35 },   -- provato da Max in TTS (12/11)
 }
 
 -- ============================================================
