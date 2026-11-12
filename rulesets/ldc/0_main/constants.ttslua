@@ -304,7 +304,7 @@ MORALE_ESITO_SECONDS = 6
 -- Competenza dei Generali (regolamento 7.1): valore -> nome
 -- ------------------------------------------------------------
 GENERALE_COMPETENZA = {
-    [1] = "Imbecille",
+    [1] = "Scarso",       -- regolamento: Imbecille (Max 12/11)
     [2] = "Incompetente",
     [3] = "Affidabile",
     [4] = "Abile",
