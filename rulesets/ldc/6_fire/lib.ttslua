@@ -669,13 +669,18 @@ function fire_rollDo(ctx, slot, player, rec)
     shoot_infoStato("Tiro in corso...", SHOOTINFO.gold)
     engine_diceClearLastRoll(slot)
     engine_diceSetNext(slot, ctx.dadi, ctx.soglia)
+    -- fumo e suono al momento dello sparo, non dopo la lettura dei
+    -- dadi (Max 13/11: il suono partiva molto dopo)
+    if not ctx.fumo then
+        ctx.fumo = true
+        fire_spawnSmoke(ctx.shooterKey)
+    end
 
     engine_diceThrowFromBag(slot, nil, function(risultati, successi)
         ctx.inVolo = false
         if fire_rollRec(slot) ~= rec or rec.step ~= "TIRO" then return end
 
         FIRE_STATE.sparato[ctx.shooterKey] = true
-        fire_spawnSmoke(ctx.shooterKey)
 
         local colpi = successi or 0
         ctx.colpi = colpi

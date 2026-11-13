@@ -30,6 +30,7 @@ for obj in env.objects:
         print("clip", tt["m_Name"], tt["m_Resource"]["m_Offset"], tt["m_Resource"]["m_Size"], "->", 0, primo["m_Size"])
         tt["m_Resource"]["m_Offset"] = 0     # il .resource nuovo contiene solo quel suono
         tt["m_Resource"]["m_Size"] = primo["m_Size"]
+        tt["m_PreloadAudioData"] = True      # suono pronto al caricamento del bundle
         obj.save_typetree(tt)
     if obj.type.name == "AudioSource":
         tt = obj.read_typetree()
