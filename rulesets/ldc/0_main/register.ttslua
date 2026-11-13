@@ -35,6 +35,8 @@ registerHandler("afterRestoreState",         function(ss)
     callHandler("restorePlayersColors")
     callHandler("updateCenterPanel")
     main_refreshBaseButtons()
+    -- ovatta: via le copie nascoste e i vecchi fumi animati
+    Wait.frames(fire_preloadSmoke, 5)
 end)
 
 -- Giocatori e flusso

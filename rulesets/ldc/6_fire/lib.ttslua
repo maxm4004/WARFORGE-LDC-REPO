@@ -841,6 +841,10 @@ function fire_spawnSmokeAt(nome, basi)
             if i == 1 then fire_smokeEffects(o, false) end
         end
         if fonte.ovatta then
+            if i == 1 and not FIRE_OVATTA_ANNUNCIATA then
+                FIRE_OVATTA_ANNUNCIATA = true
+                printToAll("Fumo del tiro: ovatta", LOG_COLORE)
+            end
             -- fiocco statico appoggiato sul tavolo davanti alla base
             local O, k = FIRE_SMOKE.ovatta, fonte.scala
             spawnObjectData({
@@ -931,6 +935,10 @@ function fire_preloadSmoke()
     local O = FIRE_SMOKE.ovatta
     if FIRE_SMOKE.modo == "ovatta" and O and O.mesh ~= "" then
         for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.cacheTag) or {}) do o.destruct() end
+        -- fumi animati rimasti sul tavolo (partite salvate prima)
+        for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.tag) or {}) do
+            if o.AssetBundle or o.name == "Custom_AssetBundle" then o.destruct() end
+        end
         return
     end
     local presenti = {}
