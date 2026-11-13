@@ -146,8 +146,11 @@ STILE = STILI[STILE_NOME]
 -- filo del bordo. Uso: '<Panel ... ' .. main_stylePanelAttrs() .. '>'
 -- ============================================================
 function main_stylePanelAttrs(bg)
-    return string.format('color="%s" outline="%s" outlineSize="%d %d"',
-        bg or STILE.bg, STILE.bordo, STILE_MISURE.bordo, -STILE_MISURE.bordo)
+    -- niente outline sul Panel: in Unity l'Outline copia tutto il
+    -- rettangolo spostato di 1 px SOTTO lo sfondo, e con lo sfondo
+    -- trasparente il pannello si tinge del colore del bordo (stile A
+    -- tutto oro, Max 13/11)
+    return string.format('color="%s"', bg or STILE.bg)
 end
 -- ============================================================
 -- FUNZIONE: main_styleTitle(testo)
@@ -177,7 +180,7 @@ end
 -- Solo il filo del bordo (per i pannelli con sfondo già scritto).
 -- ============================================================
 function main_styleBorder()
-    return string.format('outline="%s" outlineSize="%d %d"', STILE.bordo, STILE_MISURE.bordo, -STILE_MISURE.bordo)
+    return ""   -- vedi main_stylePanelAttrs: l'outline tinge il pannello
 end
 -- ============================================================
 -- FUNZIONE: main_styleApply()
