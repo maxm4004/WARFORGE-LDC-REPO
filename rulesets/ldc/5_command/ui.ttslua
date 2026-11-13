@@ -210,7 +210,7 @@ function command_redrawPanel()
     local righe = math.min(#elenco, P.righeMax)
     engine_uiSet("cmdPanel", "active", "true")
     engine_uiSet("cmdPanel", "height", tostring(command_panelHeight(math.max(righe, 1))))
-    engine_uiSet("cmdTitolo", "text", command_panelTitle(slot))
+    engine_uiSet("cmdTitolo", "text", main_styleTitle(command_panelTitle(slot)))
     engine_uiSet("cmdChiudi", "visibility", main_sideVisibility(slot))
 
     local visibili = main_sideVisibility(slot)

@@ -790,12 +790,19 @@ end
 -- ============================================================
 -- FUNZIONE: fire_smokeSource(nome)
 -- Da dove si prende il fumo, in quest'ordine:
---   1. oggetto sul tavolo con quel nome o tag (si copia)
---   2. URL in FIRE_SMOKE.bundle
+--   1. ovatta (modello statico), se FIRE_SMOKE.modo = "ovatta"
+--      e c'è l'URL del modello
+--   2. oggetto sul tavolo con quel nome o tag (si copia)
+--   3. URL in FIRE_SMOKE.bundle
 -- Il fumo NON va registrato fra gli asset della UI del mod.
 -- Ritorna { modello = obj } o { url, secondario, scala, da }, o nil.
 -- ============================================================
 function fire_smokeSource(nome)
+    -- ovatta per prima: se c'è l'URL vince sul fumo animato
+    local O = FIRE_SMOKE.ovatta
+    if FIRE_SMOKE.modo == "ovatta" and O and O.mesh ~= "" then
+        return { ovatta = true, scala = O.scala[nome] or { 1, 1, 1 }, da = "ovatta" }
+    end
     local modello = fire_smokeTemplate(nome)
     if modello then return { modello = modello, da = "oggetto sul tavolo" } end
     local b = FIRE_SMOKE.bundle[nome] or {}
@@ -833,7 +840,29 @@ function fire_spawnSmokeAt(nome, basi)
             -- suono: una volta per unità, non per ogni base
             if i == 1 then fire_smokeEffects(o, false) end
         end
-        if fonte.modello then
+        if fonte.ovatta then
+            -- fiocco statico appoggiato sul tavolo davanti alla base
+            local O, k = FIRE_SMOKE.ovatta, fonte.scala
+            spawnObjectData({
+                data = {
+                    Name = "Custom_Model",
+                    Nickname = nome,
+                    Locked = true,
+                    Transform = { posX = pos.x, posY = p.y, posZ = pos.z, rotX = 0, rotY = rot.y, rotZ = 0,
+                                  scaleX = k[1], scaleY = k[2], scaleZ = k[3] },
+                    ColorDiffuse = O.colore,
+                    CustomMesh = {
+                        MeshURL = O.mesh, DiffuseURL = "", NormalURL = "", ColliderURL = "",
+                        Convex = true, MaterialIndex = 0, TypeIndex = 0, CastShadows = true,
+                    },
+                },
+                callback_function = function(o)
+                    o.addTag(S.tag)
+                    o.setLock(true)
+                    o.interactable = false
+                end,
+            })
+        elseif fonte.modello then
             local data = fonte.modello.getData()
             data.Tags = nil
             data.GUID = nil
@@ -898,6 +927,12 @@ end
 -- tiro compaiono subito. Una sola volta per partita.
 -- ============================================================
 function fire_preloadSmoke()
+    -- ovatta: niente copie nascoste (si toglie quelle dei bundle)
+    local O = FIRE_SMOKE.ovatta
+    if FIRE_SMOKE.modo == "ovatta" and O and O.mesh ~= "" then
+        for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.cacheTag) or {}) do o.destruct() end
+        return
+    end
     local presenti = {}
     for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.cacheTag) or {}) do
         presenti[o.getName()] = true

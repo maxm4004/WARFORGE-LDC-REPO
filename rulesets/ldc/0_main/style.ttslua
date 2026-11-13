@@ -2,16 +2,47 @@
 -- WARFORGE LDC — 0_main/style.ttslua
 -- Stile dei pannelli: un solo posto per colori, carattere e
 -- misure del testo. Tre stili da provare in partita con il
--- comando in chat !stile A / B / C (Max 12/11/2026).
---   A  classico: come il pannello centrale originale
+-- comando in chat !stile A / B / C / D (Max 12/11/2026).
+--   A  come IEF, rifinito: il primo disegno della tela (nero,
+--      filo e titoli oro, bottoni oro) (rimesso il 13/11)
 --   B  stato maggiore (carta e inchiostro)
 --   C  moderno pulito (antracite, blu)
+--   D  classico: come il pannello centrale originale
 -- Regola d'oro: nessun testo in grassetto nei pannelli.
 -- Colori XML: "rgba(r,g,b,a)" con valori 0..1 oppure "#RRGGBB".
 -- ============================================================
 
 STILI = {
     A = {
+        -- tela "Pannelli LDC", tavola A: nero 86%, filo oro,
+        -- titoli oro in maiuscolo, bottoni oro col testo scuro
+        nome         = "Come IEF",
+        font         = "warforge_font",
+        maiuscolo    = true,                          -- titoli in maiuscolo
+        bg           = "rgba(0.047,0.047,0.047,0.86)",
+        bordo        = "rgba(1,0.847,0.2,0.28)",
+        titolo       = "#FFD833",
+        sezione      = "#C9A64A",
+        testo        = "#F2EEE3",
+        tenue        = "#B9B3A3",
+        azione       = "#B8902E",
+        azioneTesto  = "#14110A",
+        secondario   = "#4A4A4A",
+        secondarioTesto = "#F2EEE3",
+        scelto       = "#2E6DA4",
+        sceltoTesto  = "#FFFFFF",
+        spento       = "#2A2A2A",
+        spentoTesto  = "#777777",
+        riga         = "rgba(1,1,1,0.05)",
+        rigaScelta   = "rgba(1,0.847,0.2,0.14)",
+        rigaLivello1 = "rgba(0,0,0,0.55)",
+        ok           = "#8DBF7E",
+        ko           = "#E26B5E",
+        avviso       = "#F0A33A",
+        attesaBg     = "rgba(0,0,0,0.35)",
+        attesaTesto  = "Yellow",
+    },
+    D = {
         -- come il pannello centrale originale (Max 12/11): nero
         -- trasparente, poco coprente, titoli gialli e arancio
         nome         = "Classico",
@@ -119,6 +150,20 @@ function main_stylePanelAttrs(bg)
         bg or STILE.bg, STILE.bordo, STILE_MISURE.bordo, -STILE_MISURE.bordo)
 end
 -- ============================================================
+-- FUNZIONE: main_styleTitle(testo)
+-- Titolo di un pannello nello stile (A: maiuscolo).
+-- ============================================================
+function main_styleTitle(testo)
+    testo = tostring(testo or "")
+    if not STILE.maiuscolo then return testo end
+    -- string.upper non tocca le lettere accentate (UTF-8)
+    local accenti = { ["à"] = "À", ["è"] = "È", ["é"] = "É", ["ì"] = "Ì", ["ò"] = "Ò", ["ù"] = "Ù",
+                      ["â"] = "Â", ["ê"] = "Ê", ["î"] = "Î", ["ô"] = "Ô", ["û"] = "Û", ["ç"] = "Ç",
+                      ["ë"] = "Ë", ["ï"] = "Ï", ["ü"] = "Ü", ["ö"] = "Ö", ["ä"] = "Ä" }
+    testo = testo:gsub("\195[\128-\191]", function(c) return accenti[c] or c end)
+    return (testo:upper())
+end
+-- ============================================================
 -- FUNZIONE: main_styleTextOutline()
 -- Contorno del testo dove lo stile lo vuole (A: nero, come il
 -- pannello centrale originale); "" altrimenti.
@@ -219,7 +264,7 @@ end
 function main_styleSet(nome, player)
     nome = string.upper(tostring(nome or ""))
     if not STILI[nome] then
-        local msg = "Stili disponibili: A (Classico), B (Stato maggiore), C (Moderno)"
+        local msg = "Stili disponibili: A (Come IEF), B (Stato maggiore), C (Moderno), D (Classico)"
         if player then warningToColor(msg, player, "Yellow", 5, true) else printToAll(msg, LOG_AVVISO) end
         return
     end

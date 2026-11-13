@@ -327,7 +327,7 @@ function move_panelRedraw()
     local carica = MOVE_STATE.cariche[u.key] ~= nil
     engine_uiSet("move_panel", "visibility", main_sideVisibility(slot))
     engine_uiSet("move_panel", "active", "true")
-    engine_uiSet("move_panel_title", "text", u.meta.nomeDisplay or u.key)
+    engine_uiSet("move_panel_title", "text", main_styleTitle(u.meta.nomeDisplay or u.key))
     local _, nota = move_unitLimit(slot, u)
     if sch then
         engine_uiSet("move_panel_info", "text", "Schieramento - formazione: " .. main_formationName(main_unitFormation(u)))

@@ -76,6 +76,21 @@ SHOOTINFO = SHOOTINFO or {
 -- l'oggetto non si vede.
 -- ------------------------------------------------------------
 FIRE_SMOKE = {
+    -- "ovatta": fiocco statico (modello 3D leggero, come l'ovatta
+    -- sul tavolo vero; Max 13/11); "bundle": fumo animato col
+    -- suono (lento da caricare)
+    modo      = "ovatta",
+    ovatta = {
+        -- URL del modello ovatta.obj caricato nel cloud di Steam
+        -- (vuoto = si usa il bundle)
+        mesh   = "",
+        colore = { r = 0.93, g = 0.93, b = 0.90 },
+        -- scala del fiocco: larghezza, altezza, profondità
+        scala  = {
+            musket_smoke = { 0.9, 0.55, 0.8 },
+            cannon_smoke = { 1.3, 0.8, 1.2 },
+        },
+    },
     moschetto = "musket_smoke",
     cannone   = "cannon_smoke",
     -- AssetBundle (se non c'è l'oggetto sul tavolo da copiare)

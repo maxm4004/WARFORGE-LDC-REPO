@@ -288,7 +288,7 @@ function main_unitInfoRedraw(slot)
     engine_uiSet(pre .. "_foto", "active", foto and "true" or "false")
     if foto then engine_uiSet(pre .. "_foto", "image", foto) end
     engine_uiSet(pre, "visibility", main_sideVisibility(slot))
-    engine_uiSet(pre .. "_title", "text", main_unitInfoTitle(key))
+    engine_uiSet(pre .. "_title", "text", main_styleTitle(main_unitInfoTitle(key)))
     engine_uiSet(pre .. "_sub", "text", main_unitInfoSub(key))
     for i = 1, U.maxRows do
         local r = righe[i]

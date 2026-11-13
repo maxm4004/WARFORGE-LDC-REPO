@@ -712,3 +712,15 @@ function debug_cono(passo, spessore, alfa)
     if alfa then F.colore = { F.colore[1], F.colore[2], F.colore[3], alfa } end
     printToAll(string.format("Cono: passo %.2f, spessore %.2f, alfa %.2f", F.passo, F.spessore, F.colore[4]), LOG_COLORE)
 end
+-- ============================================================
+-- FUNZIONE: debug_ovatta(url)
+-- Prova del fumo come ovatta senza cambiare il codice:
+-- /execute debug_ovatta("https://steamusercontent.../")
+-- Vale fino al ricaricamento; poi l'URL va in FIRE_SMOKE.ovatta.mesh.
+-- debug_ovatta("") torna al fumo animato (bundle).
+-- ============================================================
+function debug_ovatta(url)
+    FIRE_SMOKE.ovatta.mesh = url or ""
+    FIRE_SMOKE.modo = (url and url ~= "") and "ovatta" or "bundle"
+    printToAll("Fumo del tiro: " .. FIRE_SMOKE.modo, LOG_COLORE)
+end
