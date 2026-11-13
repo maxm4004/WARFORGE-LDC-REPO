@@ -792,8 +792,8 @@ end
 -- Da dove si prende il fumo, in quest'ordine:
 --   1. ovatta (modello statico), se FIRE_SMOKE.modo = "ovatta"
 --      e c'è l'URL del modello
---   2. oggetto sul tavolo con quel nome o tag (si copia)
---   3. URL in FIRE_SMOKE.bundle
+--   2. URL in FIRE_SMOKE.bundle
+--   3. oggetto sul tavolo con quel nome o tag (si copia)
 -- Il fumo NON va registrato fra gli asset della UI del mod.
 -- Ritorna { modello = obj } o { url, secondario, scala, da }, o nil.
 -- ============================================================
@@ -803,12 +803,13 @@ function fire_smokeSource(nome)
     if FIRE_SMOKE.modo == "ovatta" and O and O.mesh ~= "" then
         return { ovatta = true, scala = O.scala[nome] or { 1, 1, 1 }, da = "ovatta" }
     end
-    local modello = fire_smokeTemplate(nome)
-    if modello then return { modello = modello, da = "oggetto sul tavolo" } end
+    -- poi l'URL del bundle (vince su un vecchio oggetto sul tavolo)
     local b = FIRE_SMOKE.bundle[nome] or {}
     if b.url and b.url ~= "" then
         return { url = b.url, secondario = b.secondario, scala = b.scala or 1, da = "URL in FIRE_SMOKE" }
     end
+    local modello = fire_smokeTemplate(nome)
+    if modello then return { modello = modello, da = "oggetto sul tavolo" } end
     -- Niente asset della UI: un AssetBundle registrato fra gli
     -- asset della UI resta caricato da Unity e lo stesso bundle
     -- non si carica più come oggetto (prova di Max, 10/11/2026).
@@ -941,9 +942,18 @@ function fire_preloadSmoke()
         end
         return
     end
+    -- copie nascoste: si tengono solo quelle con l'URL attuale
+    -- (bundle cambiato: via la vecchia copia)
     local presenti = {}
     for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.cacheTag) or {}) do
-        presenti[o.getName()] = true
+        local b = FIRE_SMOKE.bundle[o.getName()]
+        local c = o.getCustomObject and o.getCustomObject() or {}
+        local url = c.assetbundle or c.url
+        if b and url and url ~= b.url then
+            o.destruct()
+        else
+            presenti[o.getName()] = true
+        end
     end
     local y = ((TABLE_AREA and TABLE_AREA.y) or 1) - FIRE_SMOKE.cacheSotto
     for i, nome in ipairs({ FIRE_SMOKE.moschetto, FIRE_SMOKE.cannone }) do

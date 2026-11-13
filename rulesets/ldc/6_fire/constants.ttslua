@@ -79,7 +79,7 @@ FIRE_SMOKE = {
     -- "ovatta": fiocco statico (modello 3D leggero, come l'ovatta
     -- sul tavolo vero; Max 13/11); "bundle": fumo animato col
     -- suono (lento da caricare)
-    modo      = "ovatta",
+    modo      = "bundle",   -- prova dei bundle alleggeriti (Max 13/11); "ovatta" per il fiocco
     ovatta = {
         -- URL del modello ovatta.obj caricato nel cloud di Steam
         -- (vuoto = si usa il bundle)
@@ -95,8 +95,8 @@ FIRE_SMOKE = {
     cannone   = "cannon_smoke",
     -- AssetBundle (se non c'è l'oggetto sul tavolo da copiare)
     bundle = {
-        musket_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/10216868266385070597/6333980E1C48F5D0DF89886C3A0AC87379B2042F/", secondario = "", scala = 1 },
-        cannon_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/17443463942960264975/C45FFA02FEC54EF262C52C54262D8ABFEEFC7063/", secondario = "", scala = 1 },
+        musket_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/13818797593770319589/856CC699F3A394E733E3854D9806A4F6EC7390DF/", secondario = "", scala = 1 },
+        cannon_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/10401061488889334642/447311F307028B75DE0910E9D42248DFCB3CF479/", secondario = "", scala = 1 },
     },
     -- effetto del bundle da avviare (il suono): "trigger" o
     -- "looping" e indice; nil = il primo che c'è
