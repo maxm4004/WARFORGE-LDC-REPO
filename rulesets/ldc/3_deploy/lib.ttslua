@@ -355,7 +355,9 @@ function deploy_baseData(slot, army, voce)
                 posY = main_cmToTts(f.y or 0) / scalaBase,
                 posZ = main_cmToTts(f.z or 0) / scalaBase,
                 rotX = 0, rotY = (modello.rot_y or 0) + (f.rot_y or 0), rotZ = 0,
-                scaleX = scalaFig, scaleY = scalaFig, scaleZ = scalaFig,
+                -- "scala" della figura: moltiplica scala_figure (figure
+                -- di grandezze diverse sulla stessa base, es. pezzo e serventi)
+                scaleX = scalaFig * (f.scala or 1), scaleY = scalaFig * (f.scala or 1), scaleZ = scalaFig * (f.scala or 1),
             }))
         end
     end

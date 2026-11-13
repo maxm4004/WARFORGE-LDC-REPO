@@ -724,3 +724,128 @@ function debug_ovatta(url)
     FIRE_SMOKE.modo = (url and url ~= "") and "ovatta" or "bundle"
     printToAll("Fumo del tiro: " .. FIRE_SMOKE.modo, LOG_COLORE)
 end
+
+-- ============================================================
+-- FUNZIONE: debug_elemento(codice, fronte, profondita, descrizione)
+-- Dalla base selezionata (con le figure attaccate o appoggiate
+-- sopra) prepara l'elemento completo per il file esercito:
+-- base, scala_figure, modelli_figure, figure. Il JSON va in un
+-- blocco del Notebook di TTS (titolo = codice), da copiare.
+--   /execute debug_elemento("FRA_ART_CANNONE", 4, 4, "Cannone da 12 e serventi")
+-- fronte, profondita: misure della base in cm (default 4 x 3).
+-- I modelli delle figure prendono il nome che hanno in TTS
+-- (date un nome alle figure: CANNONE, SERVENTE, CAVALLO...);
+-- figure senza nome: FIGURA1, FIGURA2... uno per modello diverso.
+-- ============================================================
+function debug_elemento(codice, fronte, profondita, descrizione)
+    local sel = debug_selectedObjects()
+    if #sel ~= 1 then
+        print("[ELEMENTO] Seleziona UNA base (con le sue figure)")
+        return
+    end
+    codice = codice or "NUOVO_ELEMENTO"
+    local base = sel[1].obj
+    local dati = base.getData()
+    local scalaBase = base.getScale().x
+    local yawBase = base.getRotation().y
+
+    local function arrot(v, n) local m = 10 ^ (n or 2); return math.floor(v * m + 0.5) / m end
+    local function modelloDi(d, rotY)
+        if d.CustomAssetbundle then
+            local a = d.CustomAssetbundle
+            return { tipo_modello = "bundle", mesh = "", texture = "", normal = "", collider = "", convex = true,
+                     bundle = a.AssetbundleURL or "", bundle_secondario = a.AssetbundleSecondaryURL or "",
+                     materiale = a.MaterialIndex or 3, tipo_tts = a.TypeIndex or 0, rot_y = rotY or 0 }
+        elseif d.CustomMesh then
+            local m = d.CustomMesh
+            return { tipo_modello = "model", mesh = m.MeshURL or "", texture = m.DiffuseURL or "",
+                     normal = m.NormalURL or "", collider = m.ColliderURL or "", convex = m.Convex ~= false,
+                     bundle = "", bundle_secondario = "",
+                     materiale = m.MaterialIndex or 3, tipo_tts = m.TypeIndex or 0, rot_y = rotY or 0 }
+        end
+        return nil
+    end
+
+    -- figure: { dati, x, y, z (unità TTS nello spazio della base non
+    -- scalata), rotY relativa, scala nel mondo }
+    local figure = {}
+    local function visita(figli, ox, oy, oz, sc, rot)
+        for _, c in ipairs(figli or {}) do
+            local t = c.Transform or {}
+            local x = ox + (t.posX or 0) * sc
+            local y = oy + (t.posY or 0) * sc
+            local z = oz + (t.posZ or 0) * sc
+            local r = (rot + (t.rotY or 0)) % 360
+            local s2 = sc * (t.scaleX or 1)
+            if c.CustomMesh or c.CustomAssetbundle then
+                table.insert(figure, { dati = c, nome = c.Nickname, x = x, y = y, z = z, rot = r, scala = s2 * scalaBase })
+            end
+            visita(c.ChildObjects, x, y, z, s2, r)
+        end
+    end
+    visita(dati.ChildObjects, 0, 0, 0, 1, 0)
+
+    local b = base.getBounds()
+    local giaAttaccati = {}
+    for _, a in ipairs(base.getAttachments and base.getAttachments() or {}) do
+        if a.guid then giaAttaccati[a.guid] = true end
+    end
+    for _, o in ipairs(getAllObjects()) do
+        if o ~= base and not giaAttaccati[o.getGUID()]
+            and not o.hasTag(DEPLOY_TAG_BASE) and not o.hasTag(PIANO_VERDE_TAG) and not o.hasTag(TAVOLO_TAG) then
+            local p = o.getPosition()
+            local dentro = math.abs(p.x - b.center.x) <= b.size.x / 2
+                and math.abs(p.z - b.center.z) <= b.size.z / 2
+                and p.y >= b.center.y - b.size.y / 2
+            if dentro then
+                local d = o.getData()
+                if d.CustomMesh or d.CustomAssetbundle then
+                    local l = base.positionToLocal(p)
+                    table.insert(figure, { dati = d, nome = o.getName(), x = l.x, y = l.y, z = l.z,
+                        rot = (o.getRotation().y - yawBase) % 360, scala = o.getScale().x })
+                end
+            end
+        end
+    end
+
+    -- modelli: uno per mesh/bundle diverso, col nome della figura
+    local modelli, perChiave, senzaNome = {}, {}, 0
+    local scalaFig = figure[1] and figure[1].scala or 1
+    local righe = {}
+    for _, f in ipairs(figure) do
+        local m = modelloDi(f.dati, 0)
+        local chiave = (m.mesh ~= "" and m.mesh or m.bundle) .. "|" .. m.texture
+        local nome = perChiave[chiave]
+        if not nome then
+            nome = (f.nome and f.nome ~= "") and f.nome:upper():gsub("[^%w_]", "_") or nil
+            if not nome or modelli[nome] then senzaNome = senzaNome + 1; nome = "FIGURA" .. senzaNome end
+            perChiave[chiave] = nome
+            modelli[nome] = m
+        end
+        local riga = { modello = nome,
+            x = arrot(main_ttsToCm(f.x * scalaBase)), y = arrot(main_ttsToCm(f.y * scalaBase)), z = arrot(main_ttsToCm(f.z * scalaBase)) }
+        local rot = arrot(f.rot, 1)
+        if rot > 0.5 and rot < 359.5 then riga.rot_y = rot end
+        local k = arrot(f.scala / scalaFig, 3)
+        if math.abs(k - 1) > 0.005 then riga.scala = k end
+        table.insert(righe, riga)
+    end
+
+    local elemento = {
+        descrizione = descrizione or "",
+        base = {
+            base_cm = { fronte = fronte or 4, profondita = profondita or 3 },
+            scala = arrot(scalaBase, 3),
+            modello = modelloDi(dati, 0),
+        },
+        scala_figure = arrot(scalaFig, 3),
+        modelli_figure = modelli,
+        figure = righe,
+    }
+    local testo = '"' .. codice .. '": ' .. JSON.encode_pretty(elemento)
+    Notes.addNotebookTab({ title = codice, body = testo, color = "Grey" })
+    local nModelli = 0
+    for _ in pairs(modelli) do nModelli = nModelli + 1 end
+    print(string.format("[ELEMENTO] %s: %d figure, %d modelli, scala_figure %s. JSON nel Notebook, scheda \"%s\"",
+        codice, #righe, nModelli, debug_fmt(scalaFig), codice))
+end
