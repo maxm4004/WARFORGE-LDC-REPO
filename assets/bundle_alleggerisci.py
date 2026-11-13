@@ -17,14 +17,18 @@ for obj in env.objects:
         d.save()
         print("texture", d.m_Name, d.m_Width, d.m_Height, TextureFormat(d.m_TextureFormat).name)
 # 2) audio: le tre varianti usano la prima (il .resource tiene solo quella)
+# si tiene il suono più leggero
 primo = None
 for obj in env.objects:
     if obj.type.name == "AudioClip":
+        r = obj.read_typetree()["m_Resource"]
+        if primo is None or r["m_Size"] < primo["m_Size"]:
+            primo = dict(r)
+for obj in env.objects:
+    if obj.type.name == "AudioClip":
         tt = obj.read_typetree()
-        if primo is None:
-            primo = dict(tt["m_Resource"])
-        print("clip", tt["m_Name"], tt["m_Resource"]["m_Offset"], tt["m_Resource"]["m_Size"], "->", primo["m_Offset"], primo["m_Size"])
-        tt["m_Resource"]["m_Offset"] = primo["m_Offset"]
+        print("clip", tt["m_Name"], tt["m_Resource"]["m_Offset"], tt["m_Resource"]["m_Size"], "->", 0, primo["m_Size"])
+        tt["m_Resource"]["m_Offset"] = 0     # il .resource nuovo contiene solo quel suono
         tt["m_Resource"]["m_Size"] = primo["m_Size"]
         obj.save_typetree(tt)
     if obj.type.name == "AudioSource":
