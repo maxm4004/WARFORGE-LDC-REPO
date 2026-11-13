@@ -83,7 +83,7 @@ FIRE_SMOKE = {
     ovatta = {
         -- URL del modello ovatta.obj caricato nel cloud di Steam
         -- (vuoto = si usa il bundle)
-        mesh   = "",
+        mesh   = "https://steamusercontent-a.akamaihd.net/ugc/10536444511985845720/396156C0A5AFC8E254A98E19C9D590506AFBDD83/",
         colore = { r = 0.93, g = 0.93, b = 0.90 },
         -- scala del fiocco: larghezza, altezza, profondità
         scala  = {
