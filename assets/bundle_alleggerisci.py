@@ -2,6 +2,9 @@ import sys, UnityPy
 from UnityPy.enums import TextureFormat
 from UnityPy.streams import EndianBinaryReader
 src, dst, tex_max = sys.argv[1], sys.argv[2], int(sys.argv[3])
+# nuvola: fattore sulla grandezza delle particelle e sul loro numero
+k_size = float(sys.argv[4]) if len(sys.argv) > 4 else 1.0
+k_num  = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0
 env = UnityPy.load(src)
 bf = list(env.files.values())[0]
 cab = [k for k in bf.files if not k.endswith(('.resS', '.resource'))][0]
@@ -16,6 +19,18 @@ for obj in env.objects:
         d.set_image(img, target_format=d.m_TextureFormat, mipmap_count=1)
         d.save()
         print("texture", d.m_Name, d.m_Width, d.m_Height, TextureFormat(d.m_TextureFormat).name)
+# 1b) nuvola più grande: particelle più grandi e un po' più numerose
+for obj in env.objects:
+    if obj.type.name == "ParticleSystem" and (k_size != 1 or k_num != 1):
+        tt = obj.read_typetree()
+        ss = tt["InitialModule"]["startSize"]
+        ss["scalar"] *= k_size
+        ss["minScalar"] *= k_size
+        for b in tt["EmissionModule"]["m_Bursts"]:
+            b["countCurve"]["scalar"] = float(round(b["countCurve"]["scalar"] * k_num))
+            b["countCurve"]["minScalar"] = float(round(b["countCurve"].get("minScalar", 0) * k_num))
+        obj.save_typetree(tt)
+        print("particelle", ss["minScalar"], ss["scalar"], [b["countCurve"]["scalar"] for b in tt["EmissionModule"]["m_Bursts"]])
 # 2) audio: le tre varianti usano la prima (il .resource tiene solo quella)
 # si tiene il suono più leggero
 primo = None
