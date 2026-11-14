@@ -602,7 +602,7 @@ end
 function fire_Confirm(player, value, id)
     local p = FIRE_PREP
     if not p or not player or not main_colorInSide(player.color, p.slot) then return end
-    -- Tiro veloce (camera ferma, dadi subito) o Tiro al vassoio
+    -- Tiro veloce (camera ferma, dadi subito) o Tiro classico
     local veloce = id == "btnShootVeloce"
     engine_diceSetModo(player, veloce)
     if fire_rollRec(p.slot) then

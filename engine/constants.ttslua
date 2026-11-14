@@ -83,7 +83,7 @@ DICEPANEL = DICEPANEL or {
 -- vassoio e Roll come prima. I dadi si tirano sempre allo stesso modo.
 DADI_ETICHETTE = {
     veloce  = "Tiro veloce",
-    vassoio = "Tiro al vassoio",
+    vassoio = "Tiro classico",
 }
 
 SUBPANEL = {

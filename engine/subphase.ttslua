@@ -361,7 +361,7 @@ function engine_subView(slot)
     local view = renderer(rec, def or {}, step or {}, slot, isActor)
     if view == false then return nil end
     view = view or {}
-    -- step con un tiro: coppia Tiro veloce / Tiro al vassoio
+    -- step con un tiro: coppia Tiro veloce / Tiro classico
     if isActor and step and step.onRoll and view.button and not view.buttons and DADI_ETICHETTE then
         view.buttons = {
             { label = DADI_ETICHETTE.veloce,  icon = view.icon or step.icon, veloce = true },
