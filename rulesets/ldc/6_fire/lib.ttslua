@@ -1019,7 +1019,7 @@ function fire_playShotSound(nome, basi)
             CustomAssetbundle = { AssetbundleURL = url, AssetbundleSecondaryURL = "", MaterialIndex = 0, TypeIndex = 0 },
         },
         callback_function = function(o)
-            o.addTag(FIRE_SMOKE.tag)
+            o.addTag(FIRE_SMOKE.tagSuono or "ldc_suono")
             o.interactable = false
             Wait.time(function() if o and not o.isDestroyed() then o.destruct() end end, S.durata or 12)
         end,
@@ -1031,5 +1031,6 @@ end
 function fire_clearSmoke()
     local lista = {}
     for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.tag) or {}) do table.insert(lista, o) end
+    for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.tagSuono or "ldc_suono") or {}) do table.insert(lista, o) end
     for _, o in ipairs(lista) do o.destruct() end
 end
