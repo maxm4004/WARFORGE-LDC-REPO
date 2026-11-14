@@ -1006,6 +1006,19 @@ end
 -- ============================================================
 function fire_playShotSound(nome, basi)
     local S = FIRE_SMOKE.suono
+    -- 1) MP3 nel lettore musicale di TTS: lo sentono tutti, ovunque
+    --    sia la camera (Max 14/11: i bundle solo audio non si caricano)
+    local mp3 = S and S.mp3 and S.mp3[nome]
+    if mp3 and mp3 ~= "" and MusicPlayer then
+        pcall(function()
+            MusicPlayer.repeat_track = false
+            MusicPlayer.setCurrentAudioclip({ url = mp3, title = (nome == FIRE_SMOKE.cannone) and "Cannone" or "Moschetti" })
+        end)
+        Wait.condition(function() pcall(function() MusicPlayer.play() end) end,
+            function() return MusicPlayer.loaded end, 5)
+        return
+    end
+    -- 2) bundle solo audio
     local url = S and S[nome]
     if not url or url == "" or not basi or not basi[1] then return end
     local p = basi[1].getPosition()
