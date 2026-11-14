@@ -138,6 +138,7 @@ function command_start(slot)
     COMMAND_PENDING = nil
     COMMAND_ROLLING = false
     COMMAND_APERTE[slot] = {}     -- Divisioni chiuse (primo livello)
+    COMMAND_ANELLI_SLOT = slot    -- anelli di stato: quelli di chi comanda ora
     -- si apre sul pannello del Comandante in Capo (Max 14/11); poi
     -- ATTIVA sui Generali
     COMMAND_FILTRO = { slot = slot, tipo = "tutte" }
@@ -175,6 +176,7 @@ function command_start(slot)
     if #ordine == 0 then
         main_warningToSide(slot, "Nessuna Brigata sul tavolo", "Yellow", 5)
     end
+    command_drawStatusRings()
 end
 -- ============================================================
 -- FUNZIONE: command_group(slot, key)
@@ -235,6 +237,8 @@ function command_closeFailed(slot)
     for key, d in pairs(st.gruppi) do
         if d.stato == COMMAND_STATO.FALLITA then
             command_setHolds(slot, key, "test fallito")
+        elseif d.stato == COMMAND_STATO.DA_TIRARE then
+            command_setHolds(slot, key, "non attivata")
         end
     end
 end
@@ -249,6 +253,8 @@ function command_reset()
     COMMAND_FORCED_HOLDS = { [1] = {}, [2] = {} }
     COMMAND_PENDING      = nil
     COMMAND_ROLLING      = false
+    COMMAND_ANELLI_SLOT  = nil
+    command_drawStatusRings()
     command_redrawPanel()
 end
 
@@ -286,9 +292,6 @@ function command_canReroll(slot, key)
     local g  = command_group(slot, key)
     if not st or not g or g.stato ~= COMMAND_STATO.FALLITA then
         return false, "nessun test fallito"
-    end
-    if g.ritiro ~= nil then
-        return false, "Riprova gia' usato"
     end
     if not st.cic then
         return false, "nessun CiC"
@@ -417,10 +420,19 @@ function command_resolve(slot, pend, valoreDado)
             command_outcome(slot, string.format("Ritiro %d su %d: Attivata", valoreDado, pend.valore), true)
             command_announce(slot, nome .. ": Riprova riuscito, Attivata")
         else
+            -- si può riprovare ancora finché restano Riprova (anche
+            -- tutti sulla stessa Brigata, Max 14/11)
+            g.stato = COMMAND_STATO.FALLITA
+            local ancora = command_canReroll(slot, pend.key)
             command_outcome(slot, string.format("Riprova %d su %d: Non Attivata", valoreDado, pend.valore), false)
-            command_setHolds(slot, pend.key, "ritiro fallito")
-            command_announce(slot, nome .. ": Riprova fallito, Non Attivata")
+            if ancora then
+                command_announce(slot, nome .. ": Riprova fallito")
+            else
+                command_setHolds(slot, pend.key, "ritiro fallito")
+                command_announce(slot, nome .. ": Riprova fallito, Non Attivata")
+            end
         end
+        command_drawStatusRings()
         return
     end
 
@@ -429,6 +441,7 @@ function command_resolve(slot, pend, valoreDado)
         g.stato = COMMAND_STATO.ATTIVA
         command_outcome(slot, string.format("%d su %d: Attivata", valoreDado, pend.valore), true)
         command_announce(slot, nome .. ": attivata")
+        command_drawStatusRings()
         return
     end
 
@@ -444,6 +457,7 @@ function command_resolve(slot, pend, valoreDado)
         command_setHolds(slot, pend.key, "test fallito")
         command_announce(slot, nome .. ": test fallito, Non Attivata (" .. tostring(motivo) .. ")")
     end
+    command_drawStatusRings()
 end
 -- ============================================================
 -- FUNZIONE: command_accept(player, slot, key)
@@ -466,6 +480,7 @@ function command_setHolds(slot, key, motivo)
     if not g then return end
     g.stato  = COMMAND_STATO.HOLDS
     g.motivo = motivo
+    command_drawStatusRings()
     command_spawnMarker(slot, key)
 end
 -- ============================================================
@@ -607,4 +622,60 @@ function command_clearMarkers(slot)
     for _, o in ipairs(lista) do
         o.destruct()
     end
+end
+
+-- ============================================================
+--        ESITO VISIBILE SUL TAVOLO (Max 14/11/2026)
+-- Attorno al Generale che attiva (di Brigata, o di Divisione per
+-- le unità senza Brigata) un disco colorato trasparente con
+-- l'anello: verde Attivata, rosso Non Attivata, arancio test
+-- fallito con Riprova ancora possibile. Lo vedono tutti, per
+-- tutto il turno di chi ha comandato (si toglie al Comando
+-- successivo). Segue il Generale quando si muove.
+-- ============================================================
+COMMAND_ANELLI_SLOT = COMMAND_ANELLI_SLOT or nil
+
+function command_drawStatusRings()
+    local slot = COMMAND_ANELLI_SLOT
+    local st = slot and COMMAND_STATE[slot]
+    local A = COMMAND_ANELLI
+    if not st or not A or not A.attivo then
+        main_setLines("comandoStato", {})
+        return
+    end
+    local linee = {}
+    local fatti = {}
+    for _, key in ipairs(st.ordine or {}) do
+        local g = st.gruppi[key]
+        local colore = g and A.colori[g.stato]
+        local gen = colore and g.guid and not fatti[g.guid] and getObjectFromGUID(g.guid)
+        if gen then
+            -- Generale di Divisione che attiva più gruppi: un solo
+            -- anello, quello del primo gruppo
+            fatti[g.guid] = true
+            local p = gen.getPosition()
+            local meta = main_baseMeta(gen) or {}
+            local fx = main_cmToTts(meta.fronteCm or 4) / 2
+            local fz = main_cmToTts(meta.profonditaCm or 3) / 2
+            local r = math.sqrt(fx * fx + fz * fz) + main_cmToTts(A.margineCm)
+            local y = p.y + A.altezzaY
+            -- anello
+            local punti = {}
+            for i = 0, A.lati do
+                local a = 2 * math.pi * i / A.lati
+                punti[#punti + 1] = { p.x + r * math.cos(a), y, p.z + r * math.sin(a) }
+            end
+            table.insert(linee, { points = punti, color = colore, thickness = A.spessore })
+            -- disco trasparente: righe parallele
+            local tinta = { colore[1], colore[2], colore[3], A.alfa }
+            local z = -r + A.passo / 2
+            while z < r do
+                local w = math.sqrt(math.max(r * r - z * z, 0))
+                table.insert(linee, { points = { { p.x - w, y, p.z + z }, { p.x + w, y, p.z + z } },
+                    color = tinta, thickness = A.passo })
+                z = z + A.passo
+            end
+        end
+    end
+    main_setLines("comandoStato", linee)
 end

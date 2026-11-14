@@ -91,7 +91,8 @@
             }
           ]
         }
-      ]
+      ],
+      "unita": []
     },
     {
       "id": "D2",
@@ -136,12 +137,24 @@
       ],
       "unita": [
         {
-          "unit_name": "FRA_BAT1_ART",
-          "nome_display": "Batteria a piedi",
+          "unit_name": "FRA_BAT1_1_ART",
+          "nome_display": "Batteria a piedi, 1° pezzo",
           "tipo": "ART_PIEDI",
           "morale": 3,
           "taglia": "standard",
-          "num_basi": 2,
+          "num_basi": 1,
+          "arma": "cannone",
+          "formazione": "schierata",
+          "elemento": "FRA_ART_PIEDI",
+          "elemento_traino": "FRA_ART_TRASPORTO"
+        },
+        {
+          "unit_name": "FRA_BAT1_2_ART",
+          "nome_display": "Batteria a piedi, 2° pezzo",
+          "tipo": "ART_PIEDI",
+          "morale": 3,
+          "taglia": "standard",
+          "num_basi": 1,
           "arma": "cannone",
           "formazione": "schierata",
           "elemento": "FRA_ART_PIEDI",
@@ -572,7 +585,7 @@
           "bundle_secondario": "",
           "collider": "",
           "convex": true,
-          "materiale": 0,
+          "materiale": 3,
           "mesh": "https://steamusercontent-a.akamaihd.net/ugc/1800854600494551342/29F6D262AF03A05FEC70AC9845C3C22ECEBA76D4/",
           "normal": "",
           "rot_y": 0,

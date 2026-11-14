@@ -35,6 +35,9 @@ registerHandler("afterRestoreState",         function(ss)
     callHandler("restorePlayersColors")
     callHandler("updateCenterPanel")
     main_refreshBaseButtons()
+    -- anelli dell'esito del Comando di chi è di turno
+    COMMAND_ANELLI_SLOT = TURN and TURN.activeSide
+    if command_drawStatusRings then Wait.frames(command_drawStatusRings, 10) end
     -- ovatta: via le copie nascoste e i vecchi fumi animati
     Wait.frames(fire_preloadSmoke, 5)
 end)

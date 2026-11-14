@@ -14,11 +14,8 @@ function command_btn(player, value, id)
         warningToColor("Aspetta che i dadi si fermino", player, "Yellow", 3, false)
         return false
     end
-    if not command_allResolved(slot) then
-        warningToColor("Prima attiva tutte le Brigate", player, "Yellow", 5, false)
-        return false
-    end
-    -- niente Fermo (Max 12/11): i test falliti non ripresi vanno in HOLDS
+    -- non è obbligatorio attivare tutto (Max 14/11): chi non ha
+    -- tirato, e i test falliti non ripresi, restano Non Attivati (HOLDS)
     command_closeFailed(slot)
     return true
 end

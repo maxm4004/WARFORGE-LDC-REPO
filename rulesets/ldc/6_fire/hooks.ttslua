@@ -21,4 +21,6 @@ end
 function after_fire(phaseName, phase)
     fire_Reset()
     shoot_infoHide()
+    -- il fumo sparisce alla fine del Fuoco (Max 14/11)
+    fire_clearSmoke()
 end

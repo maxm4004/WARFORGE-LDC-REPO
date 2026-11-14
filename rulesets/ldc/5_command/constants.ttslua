@@ -80,5 +80,22 @@ COMMAND_MARKER = {
     scala     = 1,
 }
 
+-- Esito dell'attivazione sul tavolo: disco e anello attorno al
+-- Generale che attiva (Max 14/11), visibili anche al nemico
+COMMAND_ANELLI = {
+    attivo    = true,
+    colori    = {
+        ATTIVA  = { 0.25, 0.85, 0.3 },     -- Attivata
+        HOLDS   = { 0.9, 0.2, 0.15 },      -- Non Attivata
+        FALLITA = { 1, 0.6, 0.1 },         -- fallito, Riprova possibile
+    },
+    alfa      = 0.30,     -- trasparenza del disco
+    passo     = 0.25,     -- righe del disco (come il cono di tiro)
+    spessore  = 0.12,     -- anello
+    lati      = 48,
+    margineCm = 0.6,      -- oltre gli angoli della base
+    altezzaY  = 0.05,     -- sopra il tavolo
+}
+
 -- Tag dei marker HOLDS, per schieramento
 COMMAND_MARKER_TAG = { [1] = "ldc_holds1", [2] = "ldc_holds2" }

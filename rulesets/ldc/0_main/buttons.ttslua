@@ -59,6 +59,8 @@ function main_refreshBaseButtons()
             end
         end
     end
+    -- gli anelli dell'esito del Comando seguono i Generali mossi
+    if command_drawStatusRings then command_drawStatusRings() end
 end
 -- ============================================================
 -- FUNZIONE: main_buttonsSignature(bottoni)
