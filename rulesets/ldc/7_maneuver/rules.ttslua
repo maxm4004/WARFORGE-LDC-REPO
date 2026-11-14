@@ -91,13 +91,21 @@ end
 -- ============================================================
 
 -- ============================================================
--- FUNZIONE: move_generalsStarted(slot)
--- Vero se un Generale dello schieramento ha già mosso: da quel
--- momento le unità non muovono più.
+-- FUNZIONE: move_generalsStarted(slot, u)
+-- Vero se ha già mosso un Generale che comanda l'unità u (Max
+-- 14/11/2026): il suo Generale di Brigata o di Divisione. Il CiC
+-- non blocca nessuno. Senza u: un Generale qualsiasi.
+-- Ritorna vero/falso e il Generale.
 -- ============================================================
-function move_generalsStarted(slot)
+function move_generalsStarted(slot, u)
     for key, g in pairs(main_generalsOfSide(slot)) do
-        if move_hasMoved(key) then return true, g end
+        local m = g.meta
+        local comanda = not u
+            or (m.ruolo == DEPLOY_RUOLO.GEN_BRIGATA and m.brigata ~= nil
+                and m.divisione == u.meta.divisione and m.brigata == u.meta.brigata)
+            or (m.ruolo == DEPLOY_RUOLO.GEN_DIVISIONE and m.divisione ~= nil
+                and m.divisione == u.meta.divisione)
+        if comanda and move_hasMoved(key) then return true, g end
     end
     return false
 end
@@ -151,7 +159,7 @@ function move_formationCanChange(slot, u)
     if not next(main_formationsOf(u)) then return false, "nessuna formazione" end
     if u.meta.morale and u.meta.morale <= 1 then return false, "marmaglia" end
     if MOVE_STATE.cariche[u.key] then return false, "in carica" end
-    if move_generalsStarted(slot) then return false, "i Generali hanno gia' mosso" end
+    if move_generalsStarted(slot, u) then return false, "il suo Generale ha gia' mosso" end
     if main_unitFormation(u) == "quadrato" then
         local cav = main_squareCavalryNear(u)
         if cav then return false, "cavalleria nemica entro 1D" end

@@ -98,8 +98,8 @@ function move_unitLimitBase(slot, u)
     end
 
     -- 9.1 / 11: i Generali muovono dopo tutte le altre unità
-    if move_generalsStarted(slot) then
-        return nil, "i Generali hanno gia' mosso"
+    if move_generalsStarted(slot, u) then
+        return nil, "il suo Generale ha gia' mosso"
     end
     -- 9.2: la fanteria in quadrato non muove
     if main_unitFormation(u) == "quadrato" then
@@ -155,7 +155,7 @@ function move_canCharge(slot, u)
     if move_hasMoved(u.key) then return false, "ha gia' mosso" end
     if main_unitFormation(u) == "quadrato" then return false, "in quadrato" end
     if MOVE_STATE.formazione and MOVE_STATE.formazione[u.key] then return false, "ha cambiato formazione (9.1)" end
-    if move_generalsStarted(slot) then return false, "i Generali hanno gia' mosso" end
+    if move_generalsStarted(slot, u) then return false, "il suo Generale ha gia' mosso" end
     return true, nil
 end
 
