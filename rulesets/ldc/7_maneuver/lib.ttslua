@@ -47,8 +47,29 @@ end
 -- ============================================================
 -- FUNZIONE: move_outOfCommand(slot, u)
 -- Fuori comando (7.3)? Ritorna vero/falso e la distanza in D.
+-- Lo stato si fissa all'inizio della Manovra (Max 14/11/2026):
+-- chi era in comando muove alla sua velocità anche se finisce
+-- lontano dal Generale (che muove per ultimo e lo raggiunge);
+-- chi era fuori resta HOLDS per tutto il turno.
 -- ============================================================
 function move_outOfCommand(slot, u)
+    local fisso = MOVE_STATE and MOVE_STATE.side == slot and MOVE_STATE.fuori and MOVE_STATE.fuori[u.key]
+    if fisso then return fisso.fuori, fisso.d end
+    return move_outOfCommandLive(slot, u)
+end
+-- ============================================================
+-- FUNZIONE: move_fixCommand(slot)
+-- Fotografa chi è fuori comando (inizio della Manovra).
+-- ============================================================
+function move_fixCommand(slot)
+    MOVE_STATE.fuori = {}
+    for key, u in pairs(main_unitsOfSide(slot) or {}) do
+        local f, d = move_outOfCommandLive(slot, u)
+        MOVE_STATE.fuori[key] = { fuori = f and true or false, d = d }
+    end
+end
+-- misura dalla posizione attuale
+function move_outOfCommandLive(slot, u)
     local g = move_commandGeneral(slot, u)
     if not g then return true, nil end
     local raggio = LDC_COMANDO_RAGGIO.tipi[u.meta.tipo or ""] or LDC_COMANDO_RAGGIO.default

@@ -13,6 +13,7 @@ function before_maneuver(phaseName, phase)
     MOVE_PANEL, MOVE_MANUAL, MOVE_PIVOT, MOVE_CHARGE_PREP = nil, nil, nil, nil
     MOVE_CIRCLE = {}
     MOVE_DRAG = {}
+    move_fixCommand(TURN.activeSide)
     callHandler("updateCenterPanel")
 end
 -- ============================================================
