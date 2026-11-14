@@ -16,8 +16,6 @@ for obj in env.objects:
     elif t == "AudioClip":
         tt = obj.read_typetree()
         tt["m_PreloadAudioData"] = False
-        tt["m_Resource"]["m_Offset"] = 0
-        tt["m_Resource"]["m_Size"] = 0       # niente audio nel file
         obj.save_typetree(tt)
     elif t == "ParticleSystem":
         tt = obj.read_typetree()
@@ -55,9 +53,5 @@ for obj in env.objects:
         obj.save_typetree(tt)
         print("particelle: vita", L, "crescita entro", FORMA, "s, poi ferme")
 from UnityPy.streams import EndianBinaryReader
-for k in list(bf.files):
-    if k.endswith(".resource"):
-        r = EndianBinaryReader(b""); r.flags = bf.files[k].flags
-        bf.files[k] = r
 open(dst, "wb").write(bf.save(packer="lz4"))
 print("salvato", dst)
