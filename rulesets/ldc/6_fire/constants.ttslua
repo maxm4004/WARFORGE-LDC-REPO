@@ -102,8 +102,8 @@ FIRE_SMOKE = {
     -- suono dello sparo: bundle solo audio (assets/*_suono), uno per
     -- unità; vuoto = niente suono
     suono = {
-        musket_smoke = "",
-        cannon_smoke = "",
+        musket_smoke = "https://steamusercontent-a.akamaihd.net/ugc/10969817226930433182/1987B8C083C0DA2E7B31FCBBE7C9B1B3398F6054/",
+        cannon_smoke = "https://steamusercontent-a.akamaihd.net/ugc/12540003479764734175/C2853FCE5F3EFEA845A174452AF773E835A685BF/",
         durata = 12,     -- secondi, poi l'oggetto si toglie
     },
     -- effetto del bundle da avviare (il suono): "trigger" o
