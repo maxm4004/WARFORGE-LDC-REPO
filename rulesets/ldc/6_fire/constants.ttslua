@@ -97,7 +97,7 @@ FIRE_SMOKE = {
     bundle = {
         musket_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/11350658864073046023/C959AA1AE096E71F0C00093DF96F8101C7AFA856/", secondario = "", scala = 1 },
         -- davantiCm: il fumo del cannone un po' più vicino (Max 14/11)
-        cannon_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/16737035121159087751/3F9245921FBDF22EE6DFC85FD3D967ECB8592DE1/", secondario = "", scala = 1, davantiCm = -1.0 },
+        cannon_smoke = { url = "https://steamusercontent-a.akamaihd.net/ugc/17303125448639348511/72AE8795A99651291D39EFF4D54D2F8028217E03/", secondario = "", scala = 1, davantiCm = -1.0 },
     },
     -- suono dello sparo: bundle solo audio (assets/*_suono), uno per
     -- unità; vuoto = niente suono
