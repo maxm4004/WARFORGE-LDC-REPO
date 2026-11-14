@@ -403,12 +403,13 @@ function fire_confirmPanelXml()
     return [[
         <Panel id="confirm_panel_shoot"
         rectAlignment="LowerCenter"
-        width="300" height="50"
+        width="440" height="50"
         color="rgba(0,0,0,0.00)"
         offsetXY="0 100"
         active="false">
         <HorizontalLayout spacing="8" padding="10 10 10 10" childAlignment="MiddleCenter" childForceExpandWidth="false" position="0 -100 0">
-            <Button id="btnShoot" text="Tiro" font="]] .. STILE.font .. [[" fontSize="13" color="]] .. CONFIRMPANEL.actionBg .. [[" textColor="]] .. CONFIRMPANEL.actionText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Confirm"/>
+            <Button id="btnShootVeloce" text="]] .. DADI_ETICHETTE.veloce .. [[" font="]] .. STILE.font .. [[" fontSize="13" color="]] .. CONFIRMPANEL.actionBg .. [[" textColor="]] .. CONFIRMPANEL.actionText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Confirm" tooltip="La camera resta qui, i dadi partono subito" tooltipPosition="Above"/>
+            <Button id="btnShoot" text="]] .. DADI_ETICHETTE.vassoio .. [[" font="]] .. STILE.font .. [[" fontSize="13" color="]] .. CONFIRMPANEL.actionBg .. [[" textColor="]] .. CONFIRMPANEL.actionText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Confirm" tooltip="Camera sul vassoio, poi Roll" tooltipPosition="Above"/>
             <Button id="btnShootCancel" text="Chiudi" font="]] .. STILE.font .. [[" fontSize="13" color="]] .. CONFIRMPANEL.closeBg .. [[" textColor="]] .. CONFIRMPANEL.closeText .. [[" preferredWidth="130" preferredHeight="34" onClick="fire_Chiudi"/>
         </HorizontalLayout>
         </Panel>
@@ -601,6 +602,9 @@ end
 function fire_Confirm(player, value, id)
     local p = FIRE_PREP
     if not p or not player or not main_colorInSide(player.color, p.slot) then return end
+    -- Tiro veloce (camera ferma, dadi subito) o Tiro al vassoio
+    local veloce = id == "btnShootVeloce"
+    engine_diceSetModo(player, veloce)
     if fire_rollRec(p.slot) then
         warningToColor("Completa prima il tiro in corso", player, "Yellow", 5, true)
         return
@@ -632,7 +636,11 @@ function fire_Confirm(player, value, id)
         return
     end
     engine_diceCameraZoom(player)
-    shoot_infoStato(string.format("Premi Roll: tira %dD6 (%s)", ctx.dadi, ctx.sogliaTesto), SHOOTINFO.gold)
+    if veloce then
+        engine_diceTiroVeloce(player)
+    else
+        shoot_infoStato(string.format("Premi Roll: tira %dD6 (%s)", ctx.dadi, ctx.sogliaTesto), SHOOTINFO.gold)
+    end
     main_refreshBaseButtons()
 end
 
@@ -701,7 +709,10 @@ function fire_rollDo(ctx, slot, player, rec)
         if eccesso > 0 then
             ctx.rottura = eccesso
             engine_subStep("FIRE_ROLL", slot, "ROTTURA")
-            engine_uiSet("shootinfo_stato", "text", string.format("ROTTURA: premi Roll, %dD6, serve piu' di %d", eccesso, ctx.morale))
+            local auto = engine_diceVeloce(player)
+            engine_uiSet("shootinfo_stato", "text", string.format(auto and "ROTTURA: tiro automatico, %dD6, serve piu' di %d" or "ROTTURA: premi Roll, %dD6, serve piu' di %d", eccesso, ctx.morale))
+            -- tiro veloce: anche la rottura parte da sola
+            if auto then Wait.time(function() if fire_rollRec(slot) == rec and rec.step == "ROTTURA" then engine_diceRoll_start(player) end end, 1.5) end
             engine_uiSet("shootinfo_stato", "color", SHOOTINFO.malus)
             engine_uiSet("shootinfo_stato", "active", "true")
             shoot_infoAltezza(true, true, true)

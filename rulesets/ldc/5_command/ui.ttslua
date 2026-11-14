@@ -50,11 +50,18 @@ function command_panelXml()
                 <Text id="cmdStato%d" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleLeft" preferredWidth="104"/>
                 <Image id="cmdDado%d" image="" preserveAspect="true" preferredWidth="%d" preferredHeight="%d" active="false"/>
                 <Image id="cmdDadoR%d" image="" preserveAspect="true" preferredWidth="%d" preferredHeight="%d" active="false"/>
-                <Button id="cmdTira%d" text="Attiva" font="%s" fontSize="%d" preferredWidth="70" preferredHeight="%d"
-                        color="%s" textColor="%s" onClick="command_clickTira" active="false"/>
-                <Button id="cmdRitira%d" text="Riprova" font="%s" fontSize="%d" preferredWidth="70" preferredHeight="%d"
+                <Button id="cmdTiraV%d" text="Attiva" font="%s" fontSize="%d" preferredWidth="70" preferredHeight="%d"
+                        color="%s" textColor="%s" onClick="command_clickTiraVeloce" active="false"
+                        tooltip="Tiro veloce: la camera resta qui" tooltipPosition="Above"/>
+                <Button id="cmdTira%d" text="Vassoio" font="%s" fontSize="%d" preferredWidth="70" preferredHeight="%d"
+                        color="%s" textColor="%s" onClick="command_clickTira" active="false"
+                        tooltip="Tiro al vassoio: camera sui dadi, poi Roll" tooltipPosition="Above"/>
+                <Button id="cmdRitiraV%d" text="Riprova" font="%s" fontSize="%d" preferredWidth="70" preferredHeight="%d"
+                        color="%s" textColor="%s" onClick="command_clickRitiraVeloce" active="false"
+                        tooltip="Ritira il dado (tiro veloce)" tooltipPosition="Above"/>
+                <Button id="cmdRitira%d" text="Vassoio" font="%s" fontSize="%d" preferredWidth="70" preferredHeight="%d"
                         color="%s" textColor="%s" onClick="command_clickRitira" active="false"
-                        tooltip="Ritira il dado" tooltipPosition="Above"/>
+                        tooltip="Ritira il dado al vassoio" tooltipPosition="Above"/>
             </HorizontalLayout>
 ]], i, P.rowHeight, S.riga,
             i, P.rientro,
@@ -63,7 +70,9 @@ function command_panelXml()
             i, S.font, M.testo, S.tenue,
             i, P.dadoLato, P.dadoLato, i, P.dadoLato, P.dadoLato,
             i, S.font, M.bottone, P.btnH, S.azione, S.azioneTesto,
-            i, S.font, M.bottone, P.btnH, S.azione, S.azioneTesto)
+            i, S.font, M.bottone, P.btnH, S.secondario, S.secondarioTesto,
+            i, S.font, M.bottone, P.btnH, S.azione, S.azioneTesto,
+            i, S.font, M.bottone, P.btnH, S.secondario, S.secondarioTesto)
     end
 
     return string.format([[
@@ -233,7 +242,7 @@ function command_redrawPanel()
             engine_uiSet("cmdGen" .. i, "text", div and main_competenza(div.valore) or "")
             engine_uiSet("cmdStato" .. i, "text", r.aperta and "" or riassunto)
             engine_uiSet("cmdStato" .. i, "color", tutte and S.ok or S.tenue)
-            for _, nome in ipairs({ "cmdTira", "cmdRitira", "cmdDado", "cmdDadoR" }) do
+            for _, nome in ipairs({ "cmdTira", "cmdRitira", "cmdTiraV", "cmdRitiraV", "cmdDado", "cmdDadoR" }) do
                 engine_uiSet(nome .. i, "active", "false")
             end
         else
@@ -254,13 +263,17 @@ function command_redrawPanel()
             local scelta = COMMAND_PENDING and COMMAND_PENDING.key == key
             local tira   = d.stato == COMMAND_STATO.DA_TIRARE and (not inVolo or scelta)
             local ritira = d.stato == COMMAND_STATO.FALLITA and command_canReroll(slot, key) and (not inVolo or scelta)
-            for nome, acceso in pairs({ cmdTira = tira, cmdRitira = ritira }) do
+            for nome, acceso in pairs({ cmdTira = tira, cmdRitira = ritira, cmdTiraV = tira, cmdRitiraV = ritira }) do
                 engine_uiSet(nome .. i, "active", acceso and "true" or "false")
                 engine_uiSet(nome .. i, "visibility", visibili)
             end
             -- bottone del tiro scelto: si tira coi dadi del vassoio
-            engine_uiSetButtonText("cmdTira" .. i, (scelta and COMMAND_PENDING.tipo == "tiro") and "Dadi" or "Attiva", S.azioneTesto)
-            engine_uiSetButtonText("cmdRitira" .. i, (scelta and COMMAND_PENDING.tipo == "ritiro") and "Dadi" or "Riprova", S.azioneTesto)
+            -- coppia: veloce (Attiva / Riprova) e al vassoio (Vassoio,
+            -- "Dadi" mentre aspetta il Roll)
+            engine_uiSetButtonText("cmdTiraV" .. i, "Attiva", S.azioneTesto)
+            engine_uiSetButtonText("cmdRitiraV" .. i, "Riprova", S.azioneTesto)
+            engine_uiSetButtonText("cmdTira" .. i, (scelta and COMMAND_PENDING.tipo == "tiro") and "Dadi" or "Vassoio", S.secondarioTesto)
+            engine_uiSetButtonText("cmdRitira" .. i, (scelta and COMMAND_PENDING.tipo == "ritiro") and "Dadi" or "Vassoio", S.secondarioTesto)
             -- facce dei dadi tirati (asset d1..d6)
             engine_uiSet("cmdDado" .. i, "active", d.tiro and "true" or "false")
             if d.tiro then engine_uiSet("cmdDado" .. i, "image", "d" .. tostring(d.tiro)) end

@@ -78,6 +78,14 @@ DICEPANEL = DICEPANEL or {
 -- ------------------------------------------------------------
 -- Pannelli sottofase (engine/subphase.ttslua)
 -- ------------------------------------------------------------
+-- Coppia di bottoni per ogni tiro (Max 14/11/2026): veloce = la
+-- camera resta dov'è e i dadi partono subito; vassoio = camera sul
+-- vassoio e Roll come prima. I dadi si tirano sempre allo stesso modo.
+DADI_ETICHETTE = {
+    veloce  = "Tiro veloce",
+    vassoio = "Tiro al vassoio",
+}
+
 SUBPANEL = {
     offsetXY   = "0 -280",
     width      = 450,

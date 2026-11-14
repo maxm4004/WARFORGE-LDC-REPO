@@ -338,10 +338,12 @@ function engine_subButtonClick(player, value, id)
     if not opzione then return end
 
     local _, step = stepDef(rec)
+    if opzione.veloce or opzione.vassoio then engine_diceSetModo(player, opzione.veloce) end
     local handler = opzione.onClick or (step and step.onClick)
     if handler then
         callHandler(handler, rec.ctx, slot, player, rec, opzione.value)
     end
+    if opzione.veloce and step and step.onRoll then engine_diceTiroVeloce(player) end
 end
 
 -- ============================================================
@@ -359,6 +361,13 @@ function engine_subView(slot)
     local view = renderer(rec, def or {}, step or {}, slot, isActor)
     if view == false then return nil end
     view = view or {}
+    -- step con un tiro: coppia Tiro veloce / Tiro al vassoio
+    if isActor and step and step.onRoll and view.button and not view.buttons and DADI_ETICHETTE then
+        view.buttons = {
+            { label = DADI_ETICHETTE.veloce,  icon = view.icon or step.icon, veloce = true },
+            { label = DADI_ETICHETTE.vassoio, icon = view.icon or step.icon, vassoio = true },
+        }
+    end
     view.title = view.title or (def and def.title) or rec.name
     view.icon = view.icon or (step and step.icon) or "default"
     return view

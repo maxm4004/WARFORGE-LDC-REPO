@@ -44,14 +44,40 @@ end
 -- ============================================================
 function command_clickTira(player, value, id)
     local slot, key = command_rowClick(player, id, "cmdTira")
-    if slot then command_choose(player, slot, key, "tiro") end
+    if slot then
+        engine_diceSetModo(player, false)
+        command_choose(player, slot, key, "tiro")
+    end
+end
+-- ============================================================
+-- FUNZIONE: command_clickTiraVeloce / command_clickRitiraVeloce
+-- Tiro veloce: camera ferma, dadi subito (Max 14/11).
+-- ============================================================
+function command_clickTiraVeloce(player, value, id)
+    local slot, key = command_rowClick(player, id, "cmdTiraV")
+    if slot and not COMMAND_ROLLING then
+        engine_diceSetModo(player, true)
+        command_choose(player, slot, key, "tiro")
+        if COMMAND_PENDING and COMMAND_PENDING.key == key then engine_diceTiroVeloce(player) end
+    end
+end
+function command_clickRitiraVeloce(player, value, id)
+    local slot, key = command_rowClick(player, id, "cmdRitiraV")
+    if slot and not COMMAND_ROLLING then
+        engine_diceSetModo(player, true)
+        command_choose(player, slot, key, "ritiro")
+        if COMMAND_PENDING and COMMAND_PENDING.key == key then engine_diceTiroVeloce(player) end
+    end
 end
 -- ============================================================
 -- FUNZIONE: command_clickRitira(player, value, id)
 -- ============================================================
 function command_clickRitira(player, value, id)
     local slot, key = command_rowClick(player, id, "cmdRitira")
-    if slot then command_choose(player, slot, key, "ritiro") end
+    if slot then
+        engine_diceSetModo(player, false)
+        command_choose(player, slot, key, "ritiro")
+    end
 end
 -- ============================================================
 -- FUNZIONE: command_clickNome(player, value, id)

@@ -336,8 +336,28 @@ end
 -- FUNZIONE: engine_diceCameraZoom(player)
 -- Camera del giocatore sul vassoio della sua postazione.
 -- ============================================================
+-- Tiro veloce: per colore, camera ferma (niente zoom né ritorno)
+ENGINE_DICE_VELOCE = ENGINE_DICE_VELOCE or {}
+
+function engine_diceSetModo(player, veloce)
+    if player then ENGINE_DICE_VELOCE[player.color] = veloce and true or nil end
+end
+function engine_diceVeloce(player)
+    return player ~= nil and ENGINE_DICE_VELOCE[player.color] == true
+end
+-- ============================================================
+-- FUNZIONE: engine_diceTiroVeloce(player)
+-- Lancia subito, come il Roll del vassoio (un frame dopo, a
+-- scelta già registrata).
+-- ============================================================
+function engine_diceTiroVeloce(player)
+    if not player then return end
+    Wait.frames(function() engine_diceRoll_start(player) end, 1)
+end
+
 function engine_diceCameraZoom(player)
     if not player then return end
+    if engine_diceVeloce(player) then return end
     local slot = main_sideOfColor(player.color)
     local st   = main_diceStation(player.color)
     local tray = st and getObjectFromGUID(st.tray)
@@ -354,6 +374,7 @@ end
 -- Dopo il tiro, camera di nuovo sulla vista home.
 -- ============================================================
 function engine_diceCameraReturn(player, secondi)
+    if engine_diceVeloce(player) then return end
     Wait.time(function()
         engine_cameraByName(player, nil, CAMERA_ZONE.ARMY_HOME)
     end, secondi or 2)
