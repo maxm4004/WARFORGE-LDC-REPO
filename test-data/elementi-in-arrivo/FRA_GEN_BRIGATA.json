@@ -1,0 +1,12 @@
+{"FRA_GEN_BRIGATA": {
+  "base": {"base_cm": {"fronte": 4, "profondita": 3},
+    "modello": {"bundle": "", "bundle_secondario": "", "collider": "https://steamusercontent-a.akamaihd.net/ugc/18070486669829587996/3BC64450F8901555004F13DA67359BCC1C1693BD/", "convex": true, "materiale": 3, "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11873322286155503702/49B81ED7AA3D6155A49B4675AC2EF0EE3FACB8D3/", "normal": "http://i.imgur.com/RG2RKHX.png", "rot_y": 0, "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/", "tipo_modello": "model", "tipo_tts": 0},
+    "scala": 1},
+  "descrizione": "1 Cavaliere e 1 Cavallo",
+  "figure": [
+    {"modello": "OLD_GUARD_GRENADIERS__GDD_COMTE_LOUIS_FRIANT", "x": -0.01, "y": 0.02, "z": 0},
+    {"modello": "9TH_DIVISION__GDD_FOY", "scala": 1.065, "x": 0.04, "y": 2.24, "z": 0.03}],
+  "modelli_figure": {
+    "9TH_DIVISION__GDD_FOY": {"bundle": "", "bundle_secondario": "", "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1", "convex": true, "materiale": 1, "mesh": "https://www.dropbox.com/s/97dkjfuxsryqya6/NTW_officer_french_general_mtd.obj?dl=1", "normal": "", "rot_y": 0, "texture": "https://www.dropbox.com/s/tfee6nvil45go89/NTW_officer_french_general.png?dl=1", "tipo_modello": "model", "tipo_tts": 1},
+    "OLD_GUARD_GRENADIERS__GDD_COMTE_LOUIS_FRIANT": {"bundle": "", "bundle_secondario": "", "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1", "convex": true, "materiale": 3, "mesh": "https://www.dropbox.com/s/p71y7b0sgcccju6/NTW_horse_general.obj?dl=1", "normal": "", "rot_y": 0, "texture": "https://i.imgur.com/KKkBHMb.png", "tipo_modello": "model", "tipo_tts": 1}},
+  "scala_figure": 0.95}}
