@@ -59,6 +59,7 @@ function main_refreshBaseButtons()
             end
         end
     end
+    art_refreshTrainoButtons()
     -- gli anelli dell'esito del Comando seguono i Generali mossi
     if command_drawStatusRings then command_drawStatusRings() end
 end
@@ -116,6 +117,7 @@ function main_baseButtonsOf(obj, u, slot, lista)
     table.insert(tutti, { label = "INFO", click = "main_unitInfoOpen",
         tooltip = "Scheda dell'unita' (alt-click chiude)" })
     for _, btn in ipairs(lista) do table.insert(tutti, btn) end
+    for _, btn in ipairs(art_baseButtons(u, slot)) do table.insert(tutti, btn) end
     local out = {}
 
     local colore = main_sideMainColor(slot)

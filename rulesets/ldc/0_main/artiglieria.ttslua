@@ -1,0 +1,213 @@
+-- ============================================================
+-- WARFORGE LDC — 0_main/artiglieria.ttslua
+-- Artiglieria agganciata / sganciata (Max 14/11/2026, tab. 9.2)
+--   sganciata : il traino sta dietro, fuori dalle regole; il
+--               pezzo muove solo a spinta (½ D) e può sparare
+--   agganciata: traino davanti, cannone dietro con la canna
+--               girata; muove alla sua velocità (piedi 2D,
+--               cavallo 3D, cavallo che ha sparato 2D), non spara
+-- Bottoni: AGGANCIA sul traino, SGANCIA sul cannone. Solo nello
+-- Schieramento e nella Manovra del proprio lato.
+-- Agganciata, il traino è attaccato alla base (addAttachment) e
+-- la segue quando la si trascina; le figure del cannone ruotano
+-- di 180° attorno al centro della base. Il fronte della base non
+-- cambia: "avanti" resta la direzione di marcia.
+-- UNIT_STATE[key].agganciata = true
+-- ============================================================
+
+ART_TRAINO = {
+    gapCm   = 0.5,    -- fra il cannone e il traino agganciato
+    spintaD = 0.5,    -- artiglieria sganciata: a spinta (9.2)
+    profDefaultCm = 5,
+}
+
+-- ============================================================
+-- FUNZIONE: art_isArt(u) / art_agganciata(u)
+-- ============================================================
+function art_isArt(u)
+    return u and not u.generale and main_unitCategory(u.meta) == CATEGORIA.ARTIGLIERIA
+end
+function art_agganciata(u)
+    local s = u and UNIT_STATE[u.key]
+    return (s and s.agganciata) and true or false
+end
+-- ============================================================
+-- FUNZIONE: art_puoCambiare(slot, u)
+-- Si aggancia / sgancia? Ritorna vero/falso e il motivo.
+-- Schieramento: sempre; Manovra: lato attivo. AGGANCIA solo se
+-- l'unità potrebbe muovere (non HOLDS, fuori comando, dopo i
+-- Generali, a piedi che ha sparato); SGANCIA sempre, anche a fine
+-- movimento lontano dal Generale.
+-- ============================================================
+function art_puoCambiare(slot, u, sgancio)
+    if not art_isArt(u) then return false, "non e' artiglieria" end
+    local fase = ENGINE and ENGINE.phase
+    if fase == PHASE.DEPLOY then return true end
+    if fase ~= PHASE.MANEUVER then return false, "solo nello Schieramento e nella Manovra" end
+    if slot ~= TURN.activeSide then return false, "non e' la tua Manovra" end
+    if MOVE_STATE.cariche and MOVE_STATE.cariche[u.key] then return false, "in carica" end
+    if sgancio then return true end
+    local limite, motivo = move_unitLimitBase(slot, u)
+    if limite == nil then return false, motivo or "non puo' muovere" end
+    return true
+end
+-- ============================================================
+-- FUNZIONE: art_unitOfTraino(obj)
+-- Unità (e lato) del traino dalle sue GMNotes.
+-- ============================================================
+function art_unitOfTraino(obj)
+    local ok, g = pcall(JSON.decode, obj.getGMNotes() or "")
+    if not ok or type(g) ~= "table" or g.ruolo ~= "traino" then return nil end
+    for _, u in pairs(main_unitsOfSide(g.side) or {}) do
+        if u.meta.unitName == g.unitName then return u, g.side, g end
+    end
+    return nil, g.side, g
+end
+local function art_trainoProf(g)
+    return main_cmToTts((g and g.profonditaCm) or ART_TRAINO.profDefaultCm)
+end
+-- figure del cannone: mezzo giro attorno al centro della base
+local function art_giraFigure(base, figure)
+    local c = base.getPosition()
+    for _, f in ipairs(figure) do
+        local p, r = f.getPosition(), f.getRotation()
+        f.setPosition({ x = 2 * c.x - p.x, y = p.y, z = 2 * c.z - p.z })
+        f.setRotation({ x = r.x, y = (r.y + 180) % 360, z = r.z })
+    end
+end
+-- ============================================================
+-- FUNZIONE: art_aggancia(u, traino)
+-- Traino davanti al cannone, canna girata, traino attaccato.
+-- ============================================================
+function art_aggancia(u, traino)
+    if art_agganciata(u) then return false end
+    local base = u.comando
+    local _, _, g = art_unitOfTraino(traino)
+    local c, f = base.getPosition(), main_baseForward(base)
+    local profC = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
+    local d = profC / 2 + main_cmToTts(ART_TRAINO.gapCm) + art_trainoProf(g) / 2
+    local figure = base.removeAttachments() or {}
+    art_giraFigure(base, figure)
+    for _, o in ipairs(figure) do base.addAttachment(o) end
+    -- attaccato, il traino perde i suoi bottoni: si dimentica la firma
+    if traino.clearButtons then traino.clearButtons() end
+    MAIN_BTN_FIRMA[traino.getGUID()] = nil
+    traino.setRotation({ x = 0, y = base.getRotation().y, z = 0 })
+    traino.setPosition({ x = c.x + f.x * d, y = c.y, z = c.z + f.z * d })
+    base.addAttachment(traino)
+    UNIT_STATE[u.key] = UNIT_STATE[u.key] or { disordini = 0 }
+    UNIT_STATE[u.key].agganciata = true
+    return true
+end
+-- ============================================================
+-- FUNZIONE: art_sgancia(u)
+-- Traino staccato e messo dietro, canna di nuovo in avanti.
+-- ============================================================
+function art_sgancia(u)
+    if not art_agganciata(u) then return false end
+    local base = u.comando
+    local staccati = base.removeAttachments() or {}
+    local figure, traino, g = {}, nil, nil
+    for _, o in ipairs(staccati) do
+        local ok, n = pcall(JSON.decode, o.getGMNotes and o.getGMNotes() or "")
+        if ok and type(n) == "table" and n.ruolo == "traino" then traino, g = o, n
+        else table.insert(figure, o) end
+    end
+    art_giraFigure(base, figure)
+    for _, o in ipairs(figure) do base.addAttachment(o) end
+    if traino then
+        local c, f = base.getPosition(), main_baseForward(base)
+        local profC = main_cmToTts(u.meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
+        local d = profC / 2 + main_cmToTts(DEPLOY_LAYOUT.gapTrainoCm) + art_trainoProf(g) / 2
+        traino.setRotation({ x = 0, y = base.getRotation().y, z = 0 })
+        traino.setPosition({ x = c.x - f.x * d, y = c.y, z = c.z - f.z * d })
+        if traino.addTag then traino.addTag(DEPLOY_TAG_TRAINO) end
+        MAIN_BTN_FIRMA[traino.getGUID()] = nil
+    end
+    UNIT_STATE[u.key].agganciata = nil
+    return true
+end
+-- dopo un cambio: budget del pannello (lo speso resta speso),
+-- bottoni, pannello, log
+local function art_dopo(u, slot, prima, testo)
+    local B = MOVE_STATE and MOVE_STATE.budget
+    if ENGINE.phase == PHASE.MANEUVER and B and B[u.key] ~= nil then
+        local speso = (prima or 0) - B[u.key]
+        B[u.key] = math.max(0, (move_unitLimit(slot, u) or 0) - speso)
+    end
+    printToAll(string.format("[Artiglieria] %s: %s", u.meta.nomeDisplay or u.key, testo), LOG_COLORE)
+    if MOVE_PANEL and MOVE_PANEL.key == u.key and move_panelRedraw then move_panelRedraw() end
+    main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: art_clickAggancia(obj, player_color) — sul traino
+-- ============================================================
+function art_clickAggancia(obj, player_color, alt_click)
+    local u, slot = art_unitOfTraino(obj)
+    if not u then return end
+    if not main_colorInSide(player_color, slot) then return end
+    local ok, motivo = art_puoCambiare(slot, u)
+    if not ok then
+        warningToColor("Aggancia: " .. tostring(motivo), Player[player_color], "Yellow", 4, false)
+        return
+    end
+    local prima = move_unitLimit(slot, u)
+    if art_aggancia(u, obj) then art_dopo(u, slot, prima, "agganciata") end
+end
+-- ============================================================
+-- FUNZIONE: art_clickSgancia(obj, player_color) — sul cannone
+-- ============================================================
+function art_clickSgancia(obj, player_color, alt_click)
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio then return end
+    local ok, motivo = art_puoCambiare(slot, u, true)
+    if not ok then
+        warningToColor("Sgancia: " .. tostring(motivo), Player[player_color], "Yellow", 4, false)
+        return
+    end
+    local prima = move_unitLimit(slot, u)
+    if art_sgancia(u) then art_dopo(u, slot, prima, "sganciata") end
+end
+-- ============================================================
+-- FUNZIONE: art_baseButtons(u, slot)
+-- SGANCIA sul cannone agganciato (in coda ai bottoni della base).
+-- ============================================================
+function art_baseButtons(u, slot)
+    if not art_agganciata(u) or not art_puoCambiare(slot, u, true) then return {} end
+    return { { label = "SGANCIA", click = "art_clickSgancia",
+        tooltip = "Stacca il traino: il pezzo torna in batteria (muove solo a spinta, 1/2 D)" } }
+end
+-- ============================================================
+-- FUNZIONE: art_refreshTrainoButtons()
+-- AGGANCIA sui traini staccati (dietro, come i bottoni delle
+-- basi, colore del lato).
+-- ============================================================
+function art_refreshTrainoButtons()
+    local B = BASE_BUTTONS
+    for _, t in ipairs(getObjectsWithTag(DEPLOY_TAG_TRAINO) or {}) do
+        local u, slot, g = art_unitOfTraino(t)
+        local bottoni = {}
+        if u and art_puoCambiare(slot, u) and not art_agganciata(u) then
+            local prof = art_trainoProf(g)
+            local fronte = main_cmToTts((g and g.fronteCm) or 4)
+            local label = "AGGANCIA"
+            local w = math.max(B.width, #label * B.larghezzaPerLettera)
+            local mezza = w / B.unitaPerTts / 2
+            table.insert(bottoni, {
+                click_function = "art_clickAggancia", function_owner = Global, label = label,
+                position = { x = fronte / 2 - mezza, y = B.y, z = -(prof / 2 + B.dietro) },
+                rotation = { x = 0, y = 180, z = 0 },
+                width = w, height = B.height, font_size = B.fontSize,
+                color = main_sideMainColor(slot), font_color = B.textColor,
+                tooltip = "Aggancia il pezzo: traino davanti, muove alla velocita' piena e non spara",
+            })
+        end
+        local guid = t.getGUID()
+        local firma = main_buttonsSignature(bottoni)
+        if MAIN_BTN_FIRMA[guid] ~= firma then
+            if t.clearButtons then t.clearButtons() end
+            for _, p in ipairs(bottoni) do t.createButton(p) end
+            MAIN_BTN_FIRMA[guid] = firma
+        end
+    end
+end

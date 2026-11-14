@@ -434,6 +434,9 @@ function fire_baseButtons(obj, u, slot)
     if FIRE_STATE.sparato[u.key] then
         return {}   -- il fumo davanti alle basi segna chi ha sparato
     end
+    if art_agganciata(u) then
+        return {}   -- agganciata non spara: prima SGANCIA (Manovra)
+    end
     if fire_weapon(u) and not FIRE_SEL and not FIRE_PREP and not fire_rollRec(slot) then
         return { { label = "FUOCO", click = "fire_clickFuoco",
                    tooltip = string.format("Spara (gittata %s)", main_formatD(fire_maxRangeD(u))) } }

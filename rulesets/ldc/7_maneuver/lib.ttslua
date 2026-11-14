@@ -61,6 +61,15 @@ end
 -- può muovere. Ritorna limite, motivo (o nota).
 -- ============================================================
 function move_unitLimit(slot, u)
+    local limite, motivo = move_unitLimitBase(slot, u)
+    -- artiglieria sganciata: solo a spinta (9.2, Max 14/11)
+    if limite and limite > ART_TRAINO.spintaD and art_isArt(u) and not art_agganciata(u) then
+        return ART_TRAINO.spintaD, "sganciata: a spinta"
+    end
+    return limite, motivo
+end
+-- limite senza la regola del traino (serve anche per AGGANCIA)
+function move_unitLimitBase(slot, u)
     local tipo = u.meta.tipo or ""
     local v = LDC_VELOCITA[tipo] or {}
     if u.generale then

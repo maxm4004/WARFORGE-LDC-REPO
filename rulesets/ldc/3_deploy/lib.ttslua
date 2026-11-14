@@ -464,7 +464,10 @@ function deploy_spawnArmy(slot, army)
         local data = deploy_baseData(slot, army, voce)
         if data then
             data.Tags = { DEPLOY_TAG_TRAINO }
-            data.GMNotes = JSON.encode({ ruolo = "traino", side = slot, unitName = voce.unita.unit_name })
+            local ok, m = pcall(JSON.decode, data.GMNotes or "")
+            m = (ok and type(m) == "table") and m or {}
+            data.GMNotes = JSON.encode({ ruolo = "traino", side = slot, unitName = voce.unita.unit_name,
+                fronteCm = m.fronteCm, profonditaCm = m.profonditaCm })
             data.Description = "Traino - " .. (voce.unita.nome_display or "")
             data.Transform.posX = voce.x
             data.Transform.posY = y
