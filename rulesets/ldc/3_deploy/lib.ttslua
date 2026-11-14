@@ -299,7 +299,7 @@ function deploy_meshData(modello)
 
     if modello.tipo_modello == "bundle" then
         if not modello.bundle or modello.bundle == "" then return nil end
-        return "Custom_Assetbundle", {
+        return "Custom_AssetBundle", {
             AssetbundleURL          = modello.bundle,
             AssetbundleSecondaryURL = modello.bundle_secondario or "",
             MaterialIndex           = modello.materiale or 3,
@@ -329,7 +329,7 @@ function deploy_objectData(nome, campi, nickname, transform)
         Nickname  = nickname or "",
         Transform = transform,
     }
-    if nome == "Custom_Assetbundle" then
+    if nome == "Custom_AssetBundle" then
         data.CustomAssetbundle = campi
     else
         data.CustomMesh = campi

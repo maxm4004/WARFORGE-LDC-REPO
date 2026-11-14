@@ -1011,7 +1011,7 @@ function fire_playShotSound(nome, basi)
     local p = basi[1].getPosition()
     spawnObjectData({
         data = {
-            Name = "Custom_Assetbundle",
+            Name = "Custom_AssetBundle",
             Nickname = "suono_" .. nome,
             Locked = true,
             Transform = { posX = p.x, posY = p.y - 3, posZ = p.z, rotX = 0, rotY = 0, rotZ = 0,
