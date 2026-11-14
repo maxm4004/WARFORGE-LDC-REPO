@@ -12,6 +12,12 @@ function before_command(phaseName, phase)
     if slot then
         command_start(slot)
         main_warningToSide(slot, "Tira per ogni Brigata dal pannello Comando", "Yellow", 5)
+        -- il pannello si apre sul CiC: camera sul CiC (Max 14/11);
+        -- al primo turno dopo il ritorno della camera dei dadi
+        local attesa = (ENGINE.turn or 1) <= 1 and 2.5 or 0.3
+        Wait.time(function()
+            if ENGINE.phase == PHASE.COMMAND and TURN.activeSide == slot then command_cameraToCic(slot) end
+        end, attesa)
     end
     callHandler("updateCenterPanel")
 end

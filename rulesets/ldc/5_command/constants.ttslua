@@ -28,7 +28,7 @@ COMMAND_DICEPANEL_CLOSE = 3
 -- STILE (0_main/style.ttslua, main_styleApply)
 COMMAND_PANEL = {
     righeMax      = 16,         -- righe al massimo (Divisioni + Brigate aperte)
-    width         = 700,       -- coppia Tiro veloce / Classico (Max 14/11)
+    width         = 780,       -- colonne allineate, coppia Tiro veloce / Classico (Max 14/11)
     rowHeight     = 30,
     headerHeight  = 24,
     padding       = 12,
@@ -36,6 +36,7 @@ COMMAND_PANEL = {
     rientro       = 28,         -- rientro delle Brigate sotto la Divisione
     nomeWidth     = 230,
     competenzaWidth = 120,      -- "Incompetente (2)", tabella 7.1 (Max 12/11, era "Gen 4")
+    statoWidth    = 130,        -- "Non Attivata", "2 di 3 attivate"
     btnH          = 24,
     font          = "warforge_font",
     rowBg         = "rgba(1,1,1,0.06)",

@@ -503,6 +503,7 @@ function deploy_clearAll()
     for _, obj in ipairs(getObjectsWithTag(DEPLOY_TAG_TRAINO) or {}) do
         table.insert(basi, obj)
     end
+    deploy_hiddenZonesDestroy()
     for _, obj in ipairs(basi) do
         obj.destruct()
     end
@@ -511,4 +512,48 @@ function deploy_clearAll()
         tag     = { [1] = nil,   [2] = nil },
     }
     main_basesForget()
+end
+
+-- ============================================================
+--      HIDDEN ZONE DELLO SCHIERAMENTO (Max 14/11/2026, come IEF)
+-- Una per lato, dal bordo del tavolo alla linea del fronte della
+-- zona di schieramento, larga quanto il tavolo: l'avversario non
+-- vede lo schieramento. Si tolgono a fine Schieramento.
+-- ============================================================
+DEPLOY_TAG_HIDDEN = "ldc_hidden"
+
+function deploy_hiddenZonesCreate()
+    deploy_hiddenZonesDestroy()
+    local area, tavolo = main_gameArea(), TABLE_AREA
+    if not area or not tavolo then return end
+    local prof = main_dToTts(DEPLOY_ZONA.profonditaD)
+    local y0 = tavolo.y or area.y or 1
+    local alto = 5
+    for slot = 1, 2 do
+        local bordo = main_sideEdgeZ(slot)
+        local fronte = (slot == 1) and (bordo + prof) or (bordo - prof)
+        local zTav = (slot == 1) and tavolo.minZ or tavolo.maxZ
+        local z1, z2 = math.min(fronte, zTav), math.max(fronte, zTav)
+        local c = Color.fromString(main_sideMainColor(slot))
+        spawnObjectData({ data = {
+            Name = "FogOfWarTrigger",
+            Nickname = "LDC_HIDDEN_ARMY" .. slot,
+            Tags = { DEPLOY_TAG_HIDDEN },
+            Transform = { posX = (tavolo.minX + tavolo.maxX) / 2, posY = y0 + alto / 2, posZ = (z1 + z2) / 2,
+                          rotX = 0, rotY = 0, rotZ = 0,
+                          scaleX = tavolo.maxX - tavolo.minX, scaleY = alto, scaleZ = z2 - z1 },
+            ColorDiffuse = { r = c.r, g = c.g, b = c.b, a = 0.25 },
+            Locked = true,
+            FogColor = main_sideMainColor(slot),
+            FogHidePointers = true,
+            FogReverseHiding = false,
+            FogSeethrough = false,
+        } })
+    end
+end
+
+function deploy_hiddenZonesDestroy()
+    local zone = {}
+    for _, o in ipairs(getObjectsWithTag(DEPLOY_TAG_HIDDEN) or {}) do table.insert(zone, o) end
+    for _, o in ipairs(zone) do o.destruct() end
 end

@@ -9,6 +9,7 @@
 function before_deploy(phaseName, phase)
     main_resetCompleted()
     main_drawDeployLines(true)
+    deploy_hiddenZonesCreate()
     for slot = 1, 2 do
         if not DEPLOY_STATE.spawned[slot] then
             deploy_loadAndSpawn(slot)
@@ -21,5 +22,6 @@ end
 -- ============================================================
 function after_deploy(phaseName, phase)
     main_drawDeployLines(false)
+    deploy_hiddenZonesDestroy()
     if MOVE_PANEL then move_panelClose() end
 end

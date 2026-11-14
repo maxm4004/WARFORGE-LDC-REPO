@@ -34,7 +34,7 @@ MOVE = {
 -- Pannello di movimento (IEF MOVEPANEL)
 MOVEPANEL = {
     -- più piccolo (Max 12/11): colori da STILE (0_main/style)
-    width    = 512,
+    width    = 600,    -- formazioni leggibili (Max 14/11, era 512)
     height   = 222,
     padding  = 14,
     gap      = 6,      -- fra i bottoni

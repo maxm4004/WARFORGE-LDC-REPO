@@ -295,8 +295,8 @@ function move_panelXml()
         riga(btn("move_btn_Avanti", "Avanti", "move_btnManual", w4) .. btn("move_btn_AvantiMax", "Avanti Max", "move_btnMoveMax", w4)
           .. btn("move_btn_PernoSn", "Perno Sn", "move_btnPivotSx", w4) .. btn("move_btn_PernoDs", "Perno Ds", "move_btnPivotDx", w4)),
         sezione("Formazione"),
-        riga(btn("move_btn_F_linea", "Linea", "move_btnFormation", w5) .. btn("move_btn_F_colonna_attacco", "Col. d'attacco", "move_btnFormation", w5)
-          .. btn("move_btn_F_colonna_marcia", "Col. di marcia", "move_btnFormation", w5) .. btn("move_btn_F_quadrato", "Quadrato", "move_btnFormation", w5)
+        riga(btn("move_btn_F_linea", "Linea", "move_btnFormation", w5) .. btn("move_btn_F_colonna_attacco", "Col. Attacco", "move_btnFormation", w5)
+          .. btn("move_btn_F_colonna_marcia", "Col. Marcia", "move_btnFormation", w5) .. btn("move_btn_F_quadrato", "Quadrato", "move_btnFormation", w5)
           .. btn("move_btn_F_ordine_aperto", "Ordine aperto", "move_btnFormation", w5)),
         riga(sec("move_btn_UndoLast", "Annulla ultimo", "move_btnUndoLast", w3) .. sec("move_btn_UndoAll", "Annulla tutto", "move_btnUndoAll", w3)
           .. sec("move_btn_Close", "Chiudi", "move_btnClose", w3)))
@@ -352,7 +352,7 @@ function move_panelRedraw()
     local muove = residuo > 0.001 and not carica
     setBtn("move_btn_Avanti", muove, MOVE_MANUAL ~= nil)
     setBtn("move_btn_AvantiMax", muove and not MOVE_MANUAL and not MOVE_PIVOT)
-    local perno = #u.basi >= 2 and not carica and not u.generale and not sch
+    local perno = (#u.basi >= 2 or art_isArt(u)) and not carica and not u.generale and not sch
         and main_unitFormation(u) ~= "quadrato"
     setBtn("move_btn_PernoSn", perno, MOVE_PIVOT and MOVE_PIVOT.soloDir == "left")
     setBtn("move_btn_PernoDs", perno, MOVE_PIVOT and MOVE_PIVOT.soloDir == "right")
@@ -777,7 +777,8 @@ end
 -- ============================================================
 function move_pivotOn(dir)
     local u, slot = move_panelUnit()
-    if not u or #u.basi < 2 then return end
+    -- il pezzo d'artiglieria (una base) ruota a spinta (Max 14/11)
+    if not u or (#u.basi < 2 and not art_isArt(u)) then return end
     if MOVE_MANUAL then move_manualOff() end
     local sx, dx, f = move_frontCorners(u)
     if not sx then return end

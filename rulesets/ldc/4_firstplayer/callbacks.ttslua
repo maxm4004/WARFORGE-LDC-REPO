@@ -16,7 +16,6 @@ function firstplayer_btn_all(player, value, id, buttonConfig)
     if not engine_dicePanelIsOpen(slot) then
         firstplayer_dicePanelOpen(slot)
     end
-    warningToColor("Premi Roll sul vassoio dei dadi", player, "Yellow", 4, false)
     return false
 end
 -- ============================================================

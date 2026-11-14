@@ -555,6 +555,20 @@ function command_cameraToGroup(player, slot, key)
         yaw = (slot == 1) and 0 or 180, distance = 30 })
 end
 -- ============================================================
+-- FUNZIONE: command_cameraToCic(slot)
+-- Camera dei giocatori dello schieramento sul CiC.
+-- ============================================================
+function command_cameraToCic(slot)
+    local st = COMMAND_STATE[slot]
+    local cic = st and st.cic and getObjectFromGUID(st.cic.guid)
+    if not cic or cic.isDestroyed() then return end
+    local p = cic.getPosition()
+    for _, player in ipairs(main_sidePlayers(slot)) do
+        player.lookAt({ position = { x = p.x, y = p.y + 2, z = p.z }, pitch = 45,
+            yaw = (slot == 1) and 0 or 180, distance = 30 })
+    end
+end
+-- ============================================================
 -- FUNZIONE: command_announce(slot, testo)
 -- Esito in chat a tutti, col colore dello schieramento.
 -- ============================================================

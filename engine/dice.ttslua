@@ -54,14 +54,8 @@ function engine_diceReadResults(slot, dadi, sogliaSuccesso, onComplete)
                     end
                 end
 
-                local testo = {}
-                for _, v in ipairs(risultati) do
-                    table.insert(testo, tostring(v))
-                end
-
-                for _, p in ipairs(main_sidePlayers(slot)) do
-                    warningToColor("Dadi: " .. table.concat(testo, ", "), p, "Yellow", 3, true)
-                end
+                -- niente scritta "Dadi: N" a schermo: copriva i
+                -- pannelli (Max 14/11); i risultati sono nei pannelli
                 engine_dicePanelResults(slot, risultati)
 
                 Wait.time(function()

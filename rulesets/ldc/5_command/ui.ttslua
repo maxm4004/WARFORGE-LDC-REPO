@@ -47,7 +47,7 @@ function command_panelXml()
                 <Button id="cmdNome%d" text="" font="%s" fontSize="%d" textColor="%s" color="rgba(0,0,0,0)"
                         textAlignment="MiddleLeft" preferredWidth="%d" onClick="command_clickNome"/>
                 <Text id="cmdGen%d" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleLeft" preferredWidth="%d"/>
-                <Text id="cmdStato%d" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleLeft" preferredWidth="104"/>
+                <Text id="cmdStato%d" text="" font="%s" fontSize="%d" color="%s" alignment="MiddleLeft" preferredWidth="%d"/>
                 <Image id="cmdDado%d" image="" preserveAspect="true" preferredWidth="%d" preferredHeight="%d" active="false"/>
                 <Image id="cmdDadoR%d" image="" preserveAspect="true" preferredWidth="%d" preferredHeight="%d" active="false"/>
                 <Button id="cmdTiraV%d" text="Attiva" font="%s" fontSize="%d" preferredWidth="70" preferredHeight="%d"
@@ -67,7 +67,7 @@ function command_panelXml()
             i, P.rientro,
             i, S.font, M.testo, S.testo, P.nomeWidth,
             i, S.font, M.piccolo, S.tenue, P.competenzaWidth,
-            i, S.font, M.testo, S.tenue,
+            i, S.font, M.testo, S.tenue, P.statoWidth,
             i, P.dadoLato, P.dadoLato, i, P.dadoLato, P.dadoLato,
             i, S.font, M.bottone, P.btnH, S.azione, S.azioneTesto,
             i, S.font, M.bottone, P.btnH, S.secondario, S.secondarioTesto,
@@ -91,7 +91,7 @@ function command_panelXml()
 ]], P.rectAlignment, P.offsetXY, P.width, command_panelHeight(P.righeMax), main_stylePanelAttrs(),
         P.padding, P.padding, P.padding, P.padding, P.spacing,
         P.headerHeight, S.font, M.titolo, S.titolo, P.width - 2 * P.padding - P.btnH - 6,
-        S.font, M.bottone, P.btnH, P.btnH, S.secondario, S.secondarioTesto,
+        S.font, M.bottone, P.btnH, P.btnH, "rgba(0,0,0,0.55)", "#FFFFFF",   -- X sempre bianca su scuro (Max 14/11)
         righe)
 end
 -- ============================================================
@@ -238,6 +238,8 @@ function command_redrawPanel()
             engine_uiSet(row, "active", "true")
             engine_uiSet(row, "color", S.rigaLivello1)
             engine_uiSet("cmdInd" .. i, "active", "false")
+            -- colonne allineate: senza rientro il nome prende il suo posto
+            engine_uiSet("cmdNome" .. i, "preferredWidth", tostring(P.nomeWidth + P.rientro + 6))
             engine_uiSetButtonText("cmdNome" .. i, (r.aperta and "-  " or "+  ") .. (div and div.nome or tostring(r.divId)), S.titolo)
             engine_uiSet("cmdGen" .. i, "text", div and main_competenza(div.valore) or "")
             engine_uiSet("cmdStato" .. i, "text", r.aperta and "" or riassunto)
@@ -254,6 +256,7 @@ function command_redrawPanel()
             engine_uiSet(row, "active", "true")
             engine_uiSet(row, "color", focus and S.rigaScelta or S.riga)
             engine_uiSet("cmdInd" .. i, "active", r.piatta and "false" or "true")
+            engine_uiSet("cmdNome" .. i, "preferredWidth", tostring(P.nomeWidth + (r.piatta and (P.rientro + 6) or 0)))
             engine_uiSetButtonText("cmdNome" .. i, d.nome, S.testo)
             engine_uiSet("cmdGen" .. i, "text", main_competenza(d.valore))
             engine_uiSet("cmdStato" .. i, "text", command_rowText(d))
@@ -275,9 +278,13 @@ function command_redrawPanel()
             engine_uiSetButtonText("cmdTira" .. i, (scelta and COMMAND_PENDING.tipo == "tiro") and "Dadi" or "Classico", S.secondarioTesto)
             engine_uiSetButtonText("cmdRitira" .. i, (scelta and COMMAND_PENDING.tipo == "ritiro") and "Dadi" or "Classico", S.secondarioTesto)
             -- facce dei dadi tirati (asset d1..d6)
-            engine_uiSet("cmdDado" .. i, "active", d.tiro and "true" or "false")
+            -- sempre al loro posto (trasparenti senza dado), così i
+            -- bottoni restano in colonna
+            engine_uiSet("cmdDado" .. i, "active", "true")
+            engine_uiSet("cmdDado" .. i, "color", d.tiro and "#FFFFFF" or "rgba(1,1,1,0)")
             if d.tiro then engine_uiSet("cmdDado" .. i, "image", "d" .. tostring(d.tiro)) end
-            engine_uiSet("cmdDadoR" .. i, "active", d.ritiro and "true" or "false")
+            engine_uiSet("cmdDadoR" .. i, "active", "true")
+            engine_uiSet("cmdDadoR" .. i, "color", d.ritiro and "#FFFFFF" or "rgba(1,1,1,0)")
             if d.ritiro then engine_uiSet("cmdDadoR" .. i, "image", "d" .. tostring(d.ritiro)) end
         end
     end
