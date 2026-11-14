@@ -6,7 +6,7 @@
     "unit_name": "FRA_CIC_GEN",
     "nome_display": "Comandante di Corpo",
     "valore": 4,
-    "elemento": "FRA_GEN"
+    "elemento": "FRA_GEN_CIC"
   },
   "divisioni": [
     {
@@ -16,7 +16,7 @@
         "unit_name": "FRA_D1_GEN",
         "nome_display": "Generale della 1a Divisione Morand",
         "valore": 3,
-        "elemento": "FRA_GEN"
+        "elemento": "FRA_GEN_DIVISIONE"
       },
       "brigate": [
         {
@@ -26,7 +26,7 @@
             "unit_name": "FRA_D1B1_GEN",
             "nome_display": "Generale della Brigata d'Honnières",
             "valore": 3,
-            "elemento": "FRA_GEN"
+            "elemento": "FRA_GEN_BRIGATA"
           },
           "reggimenti": [
             {
@@ -68,7 +68,7 @@
             "unit_name": "FRA_D1B2_GEN",
             "nome_display": "Generale della Brigata Gilly",
             "valore": 2,
-            "elemento": "FRA_GEN"
+            "elemento": "FRA_GEN_BRIGATA"
           },
           "reggimenti": [
             {
@@ -100,7 +100,7 @@
         "unit_name": "FRA_D2_GEN",
         "nome_display": "Generale della 2a Divisione Friant",
         "valore": 3,
-        "elemento": "FRA_GEN"
+        "elemento": "FRA_GEN_DIVISIONE"
       },
       "brigate": [
         {
@@ -110,7 +110,7 @@
             "unit_name": "FRA_D2B1_GEN",
             "nome_display": "Generale della Brigata Kister",
             "valore": 2,
-            "elemento": "FRA_GEN"
+            "elemento": "FRA_GEN_BRIGATA"
           },
           "reggimenti": [
             {
@@ -137,16 +137,55 @@
       "unita": [
         {
           "unit_name": "FRA_BAT1_ART",
-          "nome_display": "Batteria a piedi (segnaposto)",
+          "nome_display": "Batteria a piedi",
           "tipo": "ART_PIEDI",
           "morale": 3,
           "taglia": "standard",
           "num_basi": 2,
           "arma": "cannone",
           "formazione": "schierata",
-          "elemento": "FRA_LIGNE"
+          "elemento": "FRA_ART_PIEDI",
+          "elemento_traino": "FRA_ART_TRASPORTO"
         }
       ]
+    },
+    {
+      "id": "D3",
+      "nome": "3a Divisione di cavalleria Milhaud",
+      "generale": {
+        "unit_name": "FRA_D3_GEN",
+        "nome_display": "Generale della 3a Divisione Milhaud",
+        "valore": 3,
+        "elemento": "FRA_GEN_DIVISIONE"
+      },
+      "brigate": [
+        {
+          "id": "B1",
+          "nome": "Brigata Maupetit",
+          "generale": {
+            "unit_name": "FRA_D3B1_GEN",
+            "nome_display": "Generale della Brigata Maupetit",
+            "valore": 3,
+            "elemento": "FRA_GEN_BRIGATA"
+          },
+          "reggimenti": [],
+          "unita": [
+            {
+              "unit_name": "FRA_DR5_CAV",
+              "nome_display": "5e Dragons",
+              "tipo": "CAV_DRAGONI",
+              "morale": 3,
+              "taglia": "standard",
+              "num_basi": 4,
+              "arma": "",
+              "formazione": "linea",
+              "elemento": "FRA_CAV_DRAGOONS",
+              "elemento_comando": "FRA_CAV_DRAGOONS_COMANDO"
+            }
+          ]
+        }
+      ],
+      "unita": []
     }
   ],
   "elementi": {
@@ -467,6 +506,659 @@
           "z": 0.0
         }
       ]
+    },
+    "FRA_ART_PIEDI": {
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 5
+        },
+        "modello": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://steamusercontent-a.akamaihd.net/ugc/18070486669829587996/3BC64450F8901555004F13DA67359BCC1C1693BD/",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/18070486669829587996/3BC64450F8901555004F13DA67359BCC1C1693BD/",
+          "normal": "https://steamusercontent-a.akamaihd.net/ugc/14433510763722843597/98B73B0C6595A60811980BA92D0252E69BF0C1C6/",
+          "rot_y": 0,
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
+          "tipo_modello": "model",
+          "tipo_tts": 0
+        },
+        "scala": 1
+      },
+      "descrizione": "Cannone da 12 e 3 serventi",
+      "figure": [
+        {
+          "modello": "CANNONE",
+          "x": 0.06,
+          "y": 0.03,
+          "z": 2.51
+        },
+        {
+          "modello": "SERVENTE_1",
+          "rot_y": 30,
+          "x": -0.72,
+          "y": 0.02,
+          "z": -1.45
+        },
+        {
+          "modello": "SERVENTE_2",
+          "rot_y": 285,
+          "x": 1.45,
+          "y": 0.04,
+          "z": -0.29
+        },
+        {
+          "modello": "MUNIZIONI",
+          "rot_y": 90,
+          "scala": 0.684,
+          "x": 1.34,
+          "y": 0.03,
+          "z": 1.84
+        },
+        {
+          "modello": "SERVENTE_3",
+          "rot_y": 89.9,
+          "x": -1.08,
+          "y": 0.02,
+          "z": 0.8
+        }
+      ],
+      "modelli_figure": {
+        "MUNIZIONI": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "",
+          "convex": true,
+          "materiale": 0,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/1800854600494551342/29F6D262AF03A05FEC70AC9845C3C22ECEBA76D4/",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/1800854600494450555/320A8815B95BAAE64B133F9C032288C64CBB6EF5/",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "CANNONE": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://steamusercontent-a.akamaihd.net/ugc/9630236331752447118/993A615FB114B97CAB0D5441B2670CACE6446E02/",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/9380142841244848612/1EC463BC0A8B4F8F258C060BA33A4271AF44E627/",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/16328269600073592710/B36BFB2781E899CD3484065701D9E3F1DF6E602C/",
+          "tipo_modello": "model",
+          "tipo_tts": 0
+        },
+        "SERVENTE_1": {
+          "bundle": "https://steamusercontent-a.akamaihd.net/ugc/13448226722166968187/A2826A517153C06EAC5CA17F48E8A45FC251866F/",
+          "bundle_secondario": "",
+          "collider": "",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "",
+          "tipo_modello": "bundle",
+          "tipo_tts": 0
+        },
+        "SERVENTE_2": {
+          "bundle": "https://steamusercontent-a.akamaihd.net/ugc/12929952867998054481/8BCB6AB9E424A6BE3270CF413E1493B10AE25B46/",
+          "bundle_secondario": "",
+          "collider": "",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "",
+          "tipo_modello": "bundle",
+          "tipo_tts": 0
+        },
+        "SERVENTE_3": {
+          "bundle": "https://steamusercontent-a.akamaihd.net/ugc/12131134444959680453/9686DBF206094FF1027905F3613E9FDE86BA0CE9/",
+          "bundle_secondario": "",
+          "collider": "",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "",
+          "tipo_modello": "bundle",
+          "tipo_tts": 0
+        }
+      },
+      "scala_figure": 0.95
+    },
+    "FRA_ART_TRASPORTO": {
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 5
+        },
+        "modello": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://steamusercontent-a.akamaihd.net/ugc/18070486669829587996/3BC64450F8901555004F13DA67359BCC1C1693BD/",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/18070486669829587996/3BC64450F8901555004F13DA67359BCC1C1693BD/",
+          "normal": "https://steamusercontent-a.akamaihd.net/ugc/14433510763722843597/98B73B0C6595A60811980BA92D0252E69BF0C1C6/",
+          "rot_y": 0,
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
+          "tipo_modello": "model",
+          "tipo_tts": 0
+        },
+        "scala": 1
+      },
+      "descrizione": "Carro e 2 cavalli",
+      "figure": [
+        {
+          "modello": "CARRO",
+          "x": 0,
+          "y": 0.08,
+          "z": -1.44
+        },
+        {
+          "modello": "CAVALLO_TRAINO",
+          "scala": 0.585,
+          "x": -0.68,
+          "y": 0.02,
+          "z": 1.29
+        },
+        {
+          "modello": "CAVALLO_TRAINO",
+          "scala": 0.585,
+          "x": 0.74,
+          "y": 0.02,
+          "z": 1.29
+        }
+      ],
+      "modelli_figure": {
+        "CAVALLO_TRAINO": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://www.dropbox.com/s/l2mqfumqg7bimz0/NTW_horse_french_medium_high.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/zqgz95uvse4xe9r/NTW_horse_french_medium.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "CARRO": {
+          "bundle": "https://steamusercontent-a.akamaihd.net/ugc/939434324564329441/6E0886AA161F049D306DF45E0AFCFE798A79A0B5/",
+          "bundle_secondario": "",
+          "collider": "",
+          "convex": true,
+          "materiale": 1,
+          "mesh": "",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "",
+          "tipo_modello": "bundle",
+          "tipo_tts": 1
+        }
+      },
+      "scala_figure": 1.625
+    },
+    "FRA_GEN_BRIGATA": {
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 3
+        },
+        "modello": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://steamusercontent-a.akamaihd.net/ugc/18070486669829587996/3BC64450F8901555004F13DA67359BCC1C1693BD/",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11873322286155503702/49B81ED7AA3D6155A49B4675AC2EF0EE3FACB8D3/",
+          "normal": "http://i.imgur.com/RG2RKHX.png",
+          "rot_y": 0,
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
+          "tipo_modello": "model",
+          "tipo_tts": 0
+        },
+        "scala": 1
+      },
+      "descrizione": "1 Cavaliere e 1 Cavallo",
+      "figure": [
+        {
+          "modello": "CAVALLO_GENERALE",
+          "x": -0.01,
+          "y": 0.02,
+          "z": 0
+        },
+        {
+          "modello": "GENERALE_A_CAVALLO",
+          "scala": 1.065,
+          "x": 0.04,
+          "y": 2.24,
+          "z": 0.03
+        }
+      ],
+      "modelli_figure": {
+        "GENERALE_A_CAVALLO": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1",
+          "convex": true,
+          "materiale": 1,
+          "mesh": "https://www.dropbox.com/s/97dkjfuxsryqya6/NTW_officer_french_general_mtd.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/tfee6nvil45go89/NTW_officer_french_general.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "CAVALLO_GENERALE": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://www.dropbox.com/s/p71y7b0sgcccju6/NTW_horse_general.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://i.imgur.com/KKkBHMb.png",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        }
+      },
+      "scala_figure": 0.95
+    },
+    "FRA_GEN_DIVISIONE": {
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 3
+        },
+        "modello": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://steamusercontent-a.akamaihd.net/ugc/18070486669829587996/3BC64450F8901555004F13DA67359BCC1C1693BD/",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11873322286155503702/49B81ED7AA3D6155A49B4675AC2EF0EE3FACB8D3/",
+          "normal": "http://i.imgur.com/RG2RKHX.png",
+          "rot_y": 0,
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
+          "tipo_modello": "model",
+          "tipo_tts": 0
+        },
+        "scala": 1
+      },
+      "descrizione": "2 Cavalieri e 2 Cavalli",
+      "figure": [
+        {
+          "modello": "CAVALLO_GENERALE",
+          "x": 1.16,
+          "y": 0.02,
+          "z": 0.09
+        },
+        {
+          "modello": "GENERALE_A_CAVALLO",
+          "x": 1.18,
+          "y": 2.23,
+          "z": 0.1
+        },
+        {
+          "modello": "CAVALLO",
+          "x": -0.96,
+          "y": 0.02,
+          "z": 0.02
+        },
+        {
+          "modello": "USSARO",
+          "x": -0.95,
+          "y": 2.23,
+          "z": 0.12
+        }
+      ],
+      "modelli_figure": {
+        "CAVALLO_GENERALE": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://www.dropbox.com/s/p71y7b0sgcccju6/NTW_horse_general.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://i.imgur.com/KKkBHMb.png",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "GENERALE_A_CAVALLO": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1",
+          "convex": true,
+          "materiale": 1,
+          "mesh": "https://www.dropbox.com/s/97dkjfuxsryqya6/NTW_officer_french_general_mtd.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/tfee6nvil45go89/NTW_officer_french_general.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "CAVALLO": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://www.dropbox.com/s/l2mqfumqg7bimz0/NTW_horse_french_medium_high.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/zqgz95uvse4xe9r/NTW_horse_french_medium.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "USSARO": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1",
+          "convex": true,
+          "materiale": 1,
+          "mesh": "https://www.dropbox.com/s/b443gp1qyy74fji/NTW_unit_french_hussar_high.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/0na9d21gp4gpwns/NTW_unit_french_hussar.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        }
+      },
+      "scala_figure": 0.95
+    },
+    "FRA_GEN_CIC": {
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 3
+        },
+        "modello": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://steamusercontent-a.akamaihd.net/ugc/18070486669829587996/3BC64450F8901555004F13DA67359BCC1C1693BD/",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11873322286155503702/49B81ED7AA3D6155A49B4675AC2EF0EE3FACB8D3/",
+          "normal": "http://i.imgur.com/RG2RKHX.png",
+          "rot_y": 0,
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
+          "tipo_modello": "model",
+          "tipo_tts": 0
+        },
+        "scala": 1
+      },
+      "descrizione": "2 cavalieri e 2 cavalli, 1 Generale a piedi",
+      "figure": [
+        {
+          "modello": "GENERALE_A_PIEDI",
+          "rot_y": 15,
+          "x": 1.47,
+          "y": 0.07,
+          "z": 0.17
+        },
+        {
+          "modello": "CAVALLO_GENERALE",
+          "x": 0.38,
+          "y": 0.02,
+          "z": 0.26
+        },
+        {
+          "modello": "GENERALE_A_CAVALLO",
+          "x": 0.34,
+          "y": 2.23,
+          "z": 0.16
+        },
+        {
+          "modello": "CAVALLO_CACCIATORE_GUARDIA",
+          "x": -1.06,
+          "y": 0.02,
+          "z": 0.16
+        },
+        {
+          "modello": "CACCIATORE_GUARDIA",
+          "x": -1.06,
+          "y": 2.23,
+          "z": 0.23
+        }
+      ],
+      "modelli_figure": {
+        "GENERALE_A_CAVALLO": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1",
+          "convex": true,
+          "materiale": 1,
+          "mesh": "https://www.dropbox.com/s/97dkjfuxsryqya6/NTW_officer_french_general_mtd.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/tfee6nvil45go89/NTW_officer_french_general.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "CAVALLO_CACCIATORE_GUARDIA": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://www.dropbox.com/s/wibuk4knwx51cdl/NTW_horse_french_chasseur_high.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/tqxumolljwjlhhw/NTW_horse_french_chasseur_guard.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "CACCIATORE_GUARDIA": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1",
+          "convex": true,
+          "materiale": 1,
+          "mesh": "https://www.dropbox.com/s/oyzkawfom4im7jd/NTW_unit_french_chasseur_a_la_garde.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/ibozw80pod5poh7/NTW_unit_french_chasseur_a_cheval_de_la_garde.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "CAVALLO_GENERALE": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://www.dropbox.com/s/p71y7b0sgcccju6/NTW_horse_general.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://i.imgur.com/KKkBHMb.png",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "GENERALE_A_PIEDI": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://www.dropbox.com/s/3rxsn7kk75yz1uo/NTW_officer_french_general_foot.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/tfee6nvil45go89/NTW_officer_french_general.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        }
+      },
+      "scala_figure": 0.95
+    },
+    "FRA_CAV_DRAGOONS_COMANDO": {
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 3
+        },
+        "modello": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://steamusercontent-a.akamaihd.net/ugc/11873322286155503702/49B81ED7AA3D6155A49B4675AC2EF0EE3FACB8D3/",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11873322286155503702/49B81ED7AA3D6155A49B4675AC2EF0EE3FACB8D3/",
+          "normal": "https://steamusercontent-a.akamaihd.net/ugc/14433510763722843597/98B73B0C6595A60811980BA92D0252E69BF0C1C6/",
+          "rot_y": 0,
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
+          "tipo_modello": "model",
+          "tipo_tts": 0
+        },
+        "scala": 1
+      },
+      "descrizione": "Base di comando: 2 dragoni con spada e 2 cavalli",
+      "figure": [
+        {
+          "modello": "CAVALLO_DRAGONE",
+          "x": -0.87,
+          "y": 0.02,
+          "z": 0.16
+        },
+        {
+          "modello": "DRAGONE_SPADA",
+          "x": -0.85,
+          "y": 2.23,
+          "z": 0.1
+        },
+        {
+          "modello": "CAVALLO_DRAGONE",
+          "x": 1.32,
+          "y": 0.02,
+          "z": 0.16
+        },
+        {
+          "modello": "DRAGONE_SPADA",
+          "x": 1.34,
+          "y": 2.23,
+          "z": 0.1
+        }
+      ],
+      "modelli_figure": {
+        "CAVALLO_DRAGONE": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://www.dropbox.com/s/k69h4w3agi77slc/NTW_horse_french_cuirassier_high.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/wjlzmsaotgfqrip/NTW_horse_french_dragoon.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "DRAGONE_SPADA": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1",
+          "convex": true,
+          "materiale": 1,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/16292203352807584680/042C8985B6C38D7E34A925195F91EB20609203CE/",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://i.imgur.com/jBxB3Ch.png",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        }
+      },
+      "scala_figure": 0.95
+    },
+    "FRA_CAV_DRAGOONS": {
+      "base": {
+        "base_cm": {
+          "fronte": 4,
+          "profondita": 3
+        },
+        "modello": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://steamusercontent-a.akamaihd.net/ugc/11873322286155503702/49B81ED7AA3D6155A49B4675AC2EF0EE3FACB8D3/",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11873322286155503702/49B81ED7AA3D6155A49B4675AC2EF0EE3FACB8D3/",
+          "normal": "https://steamusercontent-a.akamaihd.net/ugc/14433510763722843597/98B73B0C6595A60811980BA92D0252E69BF0C1C6/",
+          "rot_y": 0,
+          "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/",
+          "tipo_modello": "model",
+          "tipo_tts": 0
+        },
+        "scala": 1
+      },
+      "descrizione": "2 Cavalieri e 2 Cavalli",
+      "figure": [
+        {
+          "modello": "CAVALLO_DRAGONE",
+          "x": 1.29,
+          "y": 0.02,
+          "z": -0.02
+        },
+        {
+          "modello": "DRAGONE",
+          "x": 1.3,
+          "y": 2.22,
+          "z": 0.05
+        },
+        {
+          "modello": "CAVALLO_DRAGONE",
+          "x": -0.56,
+          "y": 0.02,
+          "z": -0.02
+        },
+        {
+          "modello": "DRAGONE",
+          "x": -0.55,
+          "y": 2.23,
+          "z": 0.04
+        }
+      ],
+      "modelli_figure": {
+        "CAVALLO_DRAGONE": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1",
+          "convex": true,
+          "materiale": 3,
+          "mesh": "https://www.dropbox.com/s/k69h4w3agi77slc/NTW_horse_french_cuirassier_high.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://www.dropbox.com/s/wjlzmsaotgfqrip/NTW_horse_french_dragoon.png?dl=1",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        },
+        "DRAGONE": {
+          "bundle": "",
+          "bundle_secondario": "",
+          "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1",
+          "convex": true,
+          "materiale": 1,
+          "mesh": "https://www.dropbox.com/s/k1ov477iu8y22th/NTW_unit_french_dragoon_high.obj?dl=1",
+          "normal": "",
+          "rot_y": 0,
+          "texture": "https://i.imgur.com/jBxB3Ch.png",
+          "tipo_modello": "model",
+          "tipo_tts": 1
+        }
+      },
+      "scala_figure": 0.95
     }
   }
 }
