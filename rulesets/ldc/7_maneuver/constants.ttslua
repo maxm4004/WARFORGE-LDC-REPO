@@ -16,6 +16,7 @@ MOVE = {
     tintaMirino = { 0.9, 0.4, 0.1 },
     cerchio     = { 1, 0.6, 0 },        -- cerchio del movimento dei Generali (IEF)
     muoviColor  = { r = 0.72, g = 0.56, b = 0.18 },
+    comandateColor = { r = 1, g = 0.85, b = 0.25 },   -- unita' del Generale in mano
     -- pannello di movimento (IEF 6_move)
     giallo         = { 1, 0.8, 0.1 },   -- corridoio, perno (giallo IEF)
     tickManuale    = 0.05,              -- IEF_MOVE_MANUAL_TICK

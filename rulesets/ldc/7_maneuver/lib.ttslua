@@ -258,6 +258,7 @@ end
 -- FUNZIONE: move_onPickUp(player_color, obj)
 -- ============================================================
 function move_onPickUp(player_color, obj)
+    move_evidenziaComandate(obj, true)
     if not ENGINE or ENGINE.phase ~= PHASE.MANEUVER then return end
     -- Generale spostato (SPOSTA): si trascina libero, non è movimento
     if move_spostatoDi(obj) then return end
@@ -293,6 +294,7 @@ end
 -- muovere alla partenza.
 -- ============================================================
 function move_onDrop(player_color, obj)
+    move_evidenziaComandate(obj, false)
     if move_spostatoDi(obj) then return end
     if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_manualOnDrop(player_color, obj) then return end
     local u, slot = move_baseOfActive(player_color, obj)
@@ -805,4 +807,50 @@ function move_drawSegnaposti()
         end
     end
     main_setLines("segnaposti", linee)
+end
+
+-- ============================================================
+-- FUNZIONE: move_evidenziaComandate(obj, acceso)
+-- Generale in mano: le unità sotto il suo comando si illuminano
+-- (Max 14/11/2026). Brigata → la sua Brigata, Divisione → la
+-- Divisione, CiC → tutto l'esercito. Al rilascio si spengono.
+-- ============================================================
+MOVE_EVIDENZIATE = MOVE_EVIDENZIATE or {}
+
+function move_unitsComandate(slot, g)
+    local m, out = g.meta, {}
+    for _, u in pairs(main_unitsOfSide(slot) or {}) do
+        local um = u.meta
+        local si = (m.ruolo == DEPLOY_RUOLO.COMANDANTE)
+            or (m.ruolo == DEPLOY_RUOLO.GEN_DIVISIONE and m.divisione ~= nil and um.divisione == m.divisione)
+            or (m.ruolo == DEPLOY_RUOLO.GEN_BRIGATA and m.brigata ~= nil
+                and um.divisione == m.divisione and um.brigata == m.brigata)
+        if si then table.insert(out, u) end
+    end
+    return out
+end
+
+function move_evidenziaComandate(obj, acceso)
+    local meta = obj and main_baseMeta(obj)
+    if not meta or not meta.unitKey or meta.ruolo == DEPLOY_RUOLO.UNITA then return end
+    local guid = obj.getGUID()
+    -- spegne quelle accese da questo Generale
+    for _, b in ipairs(MOVE_EVIDENZIATE[guid] or {}) do
+        pcall(function() b.highlightOff() end)
+    end
+    MOVE_EVIDENZIATE[guid] = nil
+    if not acceso then return end
+    -- solo dove i Generali si spostano davvero (altrove le basi
+    -- hanno già le loro evidenziazioni: Comando, Fuoco)
+    if not ENGINE or (ENGINE.phase ~= PHASE.MANEUVER and ENGINE.phase ~= PHASE.DEPLOY) then return end
+    local g = main_generalsOfSide(meta.side)[meta.unitKey]
+    if not g then return end
+    local basi = {}
+    for _, u in ipairs(move_unitsComandate(meta.side, g)) do
+        for _, b in ipairs(u.basi) do
+            pcall(function() b.highlightOn(MOVE.comandateColor) end)
+            table.insert(basi, b)
+        end
+    end
+    MOVE_EVIDENZIATE[guid] = basi
 end
