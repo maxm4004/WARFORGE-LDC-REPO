@@ -25,6 +25,7 @@ function maneuver_btn(player, value, id, buttonConfig)
     end
     main_mirinoStop()
     if MOVE_PANEL then move_panelClose() end
+    move_rimettiTutti()   -- carica eseguita: i Generali spostati tornano
     if MOVE_CHARGE_PREP then move_chargeChiudi(nil) end
     return true
 end

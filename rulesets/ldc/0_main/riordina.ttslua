@@ -80,10 +80,19 @@ function main_riordinaClick(obj, player_color, alt_click)
         warningToColor("Finisci prima l'avanti o il perno", player, "Yellow", 4, false)
         return
     end
-    if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_recordStart and slot == TURN.activeSide then
+    -- RIORDINA sempre possibile (Max 14/11), anche dopo i Generali:
+    -- se l'unità non ha ancora mosso non conta come movimento (la
+    -- posa riordinata diventa la sua partenza)
+    local inManovra = ENGINE and ENGINE.phase == PHASE.MANEUVER and move_recordStart and slot == TURN.activeSide
+    local giaMossa = inManovra and move_hasMoved(u.key)
+    if inManovra and giaMossa then
         move_recordStart(u)
     end
     if main_riordinaCore(u) then
+        if inManovra and not giaMossa then
+            MOVE_STATE.partenza[u.key] = nil
+            if MOVE_STATE.partenzaFz then MOVE_STATE.partenzaFz[u.key] = nil end
+        end
         if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_drawLines then move_drawLines(slot) end
         if MOVE_PANEL and MOVE_PANEL.key == u.key and move_panelRedraw then move_panelRedraw() end
         main_refreshBaseButtons()

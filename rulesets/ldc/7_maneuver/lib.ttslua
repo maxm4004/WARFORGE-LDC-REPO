@@ -168,10 +168,12 @@ end
 function move_hasMoved(unitKey)
     local posa = MOVE_STATE.partenza[unitKey]
     if not posa then return false end
+    -- Generale spostato (SPOSTA): conta il segnaposto, non dove sta ora
+    local sposta = MOVE_STATE.spostati and MOVE_STATE.spostati[unitKey]
     for guid, s in pairs(posa) do
         local b = getObjectFromGUID(guid)
         if b then
-            local p = b.getPosition()
+            local p = (sposta and sposta[guid]) or b.getPosition()
             if math.abs(p.x - s.x) > 0.01 or math.abs(p.z - s.z) > 0.01 then return true end
         end
     end
@@ -227,6 +229,8 @@ end
 -- ============================================================
 function move_onPickUp(player_color, obj)
     if not ENGINE or ENGINE.phase ~= PHASE.MANEUVER then return end
+    -- Generale spostato (SPOSTA): si trascina libero, non è movimento
+    if move_spostatoDi(obj) then return end
     -- pannello aperto sull'unità: prendere una base = avanti elastico
     local meta = main_baseMeta(obj)
     if MOVE_PANEL and meta and meta.unitKey == MOVE_PANEL.key and not MOVE_MANUAL and not MOVE_PIVOT
@@ -259,6 +263,7 @@ end
 -- muovere alla partenza.
 -- ============================================================
 function move_onDrop(player_color, obj)
+    if move_spostatoDi(obj) then return end
     if ENGINE and ENGINE.phase == PHASE.MANEUVER and move_manualOnDrop(player_color, obj) then return end
     local u, slot = move_baseOfActive(player_color, obj)
     if not u then return end
@@ -493,6 +498,15 @@ function move_baseButtons(obj, u, slot)
         end
     end
     if u.generale then
+        -- SPOSTA: toglie il Generale di mezzo per la manovra di
+        -- un'altra unità e lascia il segnaposto; RIMETTI lo riporta
+        if MOVE_STATE.spostati and MOVE_STATE.spostati[u.key] then
+            table.insert(lista, { label = "RIMETTI", click = "move_clickRimetti", color = MOVE.muoviColor, width = 560,
+                tooltip = "Rimette il Generale nel segnaposto" })
+            return lista
+        end
+        table.insert(lista, { label = "SPOSTA", click = "move_clickSposta", color = MOVE.muoviColor, width = 520,
+            tooltip = "Spostalo per far passare un'altra unita': torna al segnaposto finita la manovra" })
         table.insert(lista, { label = "MUOVI", click = "move_clickCerchio",
             color = MOVE.muoviColor, width = 480,
             tooltip = "Cerchio del movimento (" .. main_formatD(move_unitLimit(slot, u) or 0) .. "); alt-click: torna alla partenza" })
@@ -550,7 +564,7 @@ function move_clickCarica(obj, player_color, alt_click)
         return
     end
     local player = Player[player_color]
-    if MOVE_PANEL then move_panelClose() end
+    if MOVE_PANEL then move_panelClose(true) end   -- i Generali spostati restano fuori fino a carica finita
     main_mirinoStart(player, slot, u, {
         linee    = "carica",
         tinta    = MOVE.tintaMirino,
@@ -655,6 +669,7 @@ function move_clickCerchio(obj, player_color, alt_click)
     if not move_clickOk(player_color) then return end
     local u, slot, mio = main_baseOwnerClick(obj, player_color)
     if not u or not mio then return end
+    move_rimetti(u.key)   -- MUOVI: si parte dal posto vero
     if alt_click then
         move_restore(u)
     elseif MOVE_CIRCLE[u.key] then
@@ -664,4 +679,100 @@ function move_clickCerchio(obj, player_color, alt_click)
     end
     move_drawLines(slot)
     main_refreshBaseButtons()
+end
+
+-- ============================================================
+--      SPOSTA DEI GENERALI (Max 14/11/2026)
+-- Il Generale si toglie di mezzo per la manovra di un'altra
+-- unità: resta un segnaposto nel punto di partenza; finita la
+-- manovra (pannello chiuso, carica eseguita, RIMETTI, MUOVI o fine
+-- fase) torna dov'era. Lo spostamento non è movimento: non conta
+-- per "i Generali muovono per ultimi".
+-- MOVE_STATE.spostati[key] = { [guid] = { x, y, z, ry } }
+-- ============================================================
+
+-- Generale spostato a cui appartiene la base (chiave) o nil
+function move_spostatoDi(obj)
+    if not MOVE_STATE or not MOVE_STATE.spostati or not obj then return nil end
+    local meta = main_baseMeta(obj)
+    local key = meta and meta.unitKey
+    if key and MOVE_STATE.spostati[key] then return key end
+    return nil
+end
+
+function move_clickSposta(obj, player_color, alt_click)
+    if not move_clickOk(player_color) then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio or not u.generale then return end
+    MOVE_STATE.spostati = MOVE_STATE.spostati or {}
+    local posa = {}
+    for _, b in ipairs(u.basi) do
+        local p, r = b.getPosition(), b.getRotation()
+        posa[b.getGUID()] = { x = p.x, y = p.y, z = p.z, ry = r.y }
+    end
+    MOVE_STATE.spostati[u.key] = posa
+    MOVE_CIRCLE[u.key] = nil
+    move_drawSegnaposti()
+    move_drawLines(slot)
+    main_refreshBaseButtons()
+    warningToColor((u.meta.nomeDisplay or u.key) .. ": spostalo dove vuoi, torna al segnaposto finita la manovra",
+        Player[player_color], "White", 4, false)
+end
+
+function move_clickRimetti(obj, player_color, alt_click)
+    if not move_clickOk(player_color) then return end
+    local u, slot, mio = main_baseOwnerClick(obj, player_color)
+    if not u or not mio then return end
+    move_rimetti(u.key)
+end
+-- ============================================================
+-- FUNZIONE: move_rimetti(key) / move_rimettiTutti()
+-- Il Generale torna nel segnaposto (key nil: tutti).
+-- ============================================================
+function move_rimetti(key)
+    local sp = MOVE_STATE and MOVE_STATE.spostati
+    if not sp or not sp[key] then return end
+    for guid, s in pairs(sp[key]) do
+        local b = getObjectFromGUID(guid)
+        if b then
+            b.setPosition({ x = s.x, y = s.y, z = s.z })
+            b.setRotation({ x = 0, y = s.ry, z = 0 })
+        end
+    end
+    sp[key] = nil
+    move_drawSegnaposti()
+    main_refreshBaseButtons()
+end
+function move_rimettiTutti()
+    local sp = MOVE_STATE and MOVE_STATE.spostati
+    if not sp then return end
+    local chiavi = {}
+    for k in pairs(sp) do chiavi[#chiavi + 1] = k end
+    for _, k in ipairs(chiavi) do move_rimetti(k) end
+end
+-- ============================================================
+-- FUNZIONE: move_drawSegnaposti()
+-- Cerchio tratteggiato bianco dove stava ogni Generale spostato.
+-- ============================================================
+function move_drawSegnaposti()
+    local linee = {}
+    local sp = MOVE_STATE and MOVE_STATE.spostati or {}
+    for key, posa in pairs(sp) do
+        for guid, s in pairs(posa) do
+            local b = getObjectFromGUID(guid)
+            local meta = b and main_baseMeta(b) or {}
+            local fx = main_cmToTts(meta.fronteCm or 4) / 2
+            local fz = main_cmToTts(meta.profonditaCm or 3) / 2
+            local r = math.sqrt(fx * fx + fz * fz)
+            local n = 24
+            for i = 0, n - 1, 2 do
+                local a1, a2 = 2 * math.pi * i / n, 2 * math.pi * (i + 1) / n
+                table.insert(linee, { points = {
+                    { s.x + r * math.cos(a1), s.y + 0.05, s.z + r * math.sin(a1) },
+                    { s.x + r * math.cos(a2), s.y + 0.05, s.z + r * math.sin(a2) } },
+                    color = { 1, 1, 1 }, thickness = 0.1 })
+            end
+        end
+    end
+    main_setLines("segnaposti", linee)
 end

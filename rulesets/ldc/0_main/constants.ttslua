@@ -8,7 +8,7 @@
 -- Identità del ruleset (lette dal Global comune e dal motore)
 -- ------------------------------------------------------------
 RULESET_NAME = "LDC"
-VERSION      = "LA DERNIERE CHARGE - v0.2.14"   -- si aumenta a ogni gruppo di modifiche (Max 13/11)
+VERSION      = "LA DERNIERE CHARGE - v0.2.15"   -- si aumenta a ogni gruppo di modifiche (Max 13/11)
 
 -- ------------------------------------------------------------
 -- Debug

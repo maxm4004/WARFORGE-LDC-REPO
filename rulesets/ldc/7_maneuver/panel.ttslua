@@ -414,7 +414,7 @@ end
 -- main_movementOpenFromButton). Camera dietro l'unità.
 -- ============================================================
 function move_panelOpen(player, slot, u, schieramento)
-    if MOVE_PANEL and MOVE_PANEL.key ~= u.key then move_panelClose() end
+    if MOVE_PANEL and MOVE_PANEL.key ~= u.key then move_panelClose(true) end
     if not schieramento then
         local limite, motivo = move_unitLimit(slot, u)
         local formazione = move_formationCanChange(slot, u)
@@ -440,10 +440,12 @@ end
 -- FUNZIONE: move_panelClose()
 -- IEF move_close.
 -- ============================================================
-function move_panelClose()
+function move_panelClose(tieniSpostati)
     if MOVE_MANUAL then move_manualOff(true) end
     if MOVE_PIVOT then move_pivotOff() end
     MOVE_PANEL = nil
+    -- finita la manovra: i Generali spostati tornano al segnaposto
+    if move_rimettiTutti and not tieniSpostati then move_rimettiTutti() end
     engine_uiSet("move_panel", "active", "false")
     main_setLines("pannello", {})
     main_refreshBaseButtons()
