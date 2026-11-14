@@ -1,0 +1,18 @@
+{"FRA_GEN_CIC": {
+  "base": {"base_cm": {"fronte": 4, "profondita": 3},
+    "modello": {"bundle": "", "bundle_secondario": "", "collider": "https://steamusercontent-a.akamaihd.net/ugc/18070486669829587996/3BC64450F8901555004F13DA67359BCC1C1693BD/", "convex": true, "materiale": 3, "mesh": "https://steamusercontent-a.akamaihd.net/ugc/11873322286155503702/49B81ED7AA3D6155A49B4675AC2EF0EE3FACB8D3/", "normal": "http://i.imgur.com/RG2RKHX.png", "rot_y": 0, "texture": "https://steamusercontent-a.akamaihd.net/ugc/9561652461466983547/5A93931B987C33FA0D6445C71DD882155A5B1D5A/", "tipo_modello": "model", "tipo_tts": 0},
+    "scala": 1},
+  "descrizione": "2 Cavalieri e 2 Cavalli 1 Genearale a piedi",
+  "figure": [
+    {"modello": "FRENCH_GENERAL", "rot_y": 15, "x": 1.47, "y": 0.07, "z": 0.17},
+    {"modello": "FRENCH_COMMANDER_IN_CHIEF", "x": 0.38, "y": 0.02, "z": 0.26},
+    {"modello": "6TH_DIVISION__GDD_PRINCE_JEROME_BONAPARTE", "x": 0.34, "y": 2.23, "z": 0.16},
+    {"modello": "FIGURA1", "x": -1.06, "y": 0.02, "z": 0.16},
+    {"modello": "FRENCH_CHASSEUR_A_CHEVAL_DE_LA_GARDE", "x": -1.06, "y": 2.23, "z": 0.23}],
+  "modelli_figure": {
+    "6TH_DIVISION__GDD_PRINCE_JEROME_BONAPARTE": {"bundle": "", "bundle_secondario": "", "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1", "convex": true, "materiale": 1, "mesh": "https://www.dropbox.com/s/97dkjfuxsryqya6/NTW_officer_french_general_mtd.obj?dl=1", "normal": "", "rot_y": 0, "texture": "https://www.dropbox.com/s/tfee6nvil45go89/NTW_officer_french_general.png?dl=1", "tipo_modello": "model", "tipo_tts": 1},
+    "FIGURA1": {"bundle": "", "bundle_secondario": "", "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1", "convex": true, "materiale": 3, "mesh": "https://www.dropbox.com/s/wibuk4knwx51cdl/NTW_horse_french_chasseur_high.obj?dl=1", "normal": "", "rot_y": 0, "texture": "https://www.dropbox.com/s/tqxumolljwjlhhw/NTW_horse_french_chasseur_guard.png?dl=1", "tipo_modello": "model", "tipo_tts": 1},
+    "FRENCH_CHASSEUR_A_CHEVAL_DE_LA_GARDE": {"bundle": "", "bundle_secondario": "", "collider": "https://www.dropbox.com/s/ifv1gguwqep0z9h/NTW_cav_collider_box2.obj?dl=1", "convex": true, "materiale": 1, "mesh": "https://www.dropbox.com/s/oyzkawfom4im7jd/NTW_unit_french_chasseur_a_la_garde.obj?dl=1", "normal": "", "rot_y": 0, "texture": "https://www.dropbox.com/s/ibozw80pod5poh7/NTW_unit_french_chasseur_a_cheval_de_la_garde.png?dl=1", "tipo_modello": "model", "tipo_tts": 1},
+    "FRENCH_COMMANDER_IN_CHIEF": {"bundle": "", "bundle_secondario": "", "collider": "https://www.dropbox.com/s/pyb2vvfe2ugvu3n/NTW_cav_horse_collider_box.obj?dl=1", "convex": true, "materiale": 3, "mesh": "https://www.dropbox.com/s/p71y7b0sgcccju6/NTW_horse_general.obj?dl=1", "normal": "", "rot_y": 0, "texture": "https://i.imgur.com/KKkBHMb.png", "tipo_modello": "model", "tipo_tts": 1},
+    "FRENCH_GENERAL": {"bundle": "", "bundle_secondario": "", "collider": "https://www.dropbox.com/s/ntrhlunakahphfm/NTW_infantry_collision_box1.obj?dl=1", "convex": true, "materiale": 3, "mesh": "https://www.dropbox.com/s/3rxsn7kk75yz1uo/NTW_officer_french_general_foot.obj?dl=1", "normal": "", "rot_y": 0, "texture": "https://www.dropbox.com/s/tfee6nvil45go89/NTW_officer_french_general.png?dl=1", "tipo_modello": "model", "tipo_tts": 1}},
+  "scala_figure": 0.95}}
