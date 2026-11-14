@@ -564,7 +564,7 @@ function melee_result(ctx)
     if ctx["colpi" .. att] == ctx["colpi" .. dif] then
         ctx.esito = "Pareggio: " .. (uA.meta.nomeDisplay or uA.key) .. " si ritira"
         melee_message("Pareggio: " .. (uD.meta.nomeDisplay or uD.key) .. " resta, "
-            .. (uA.meta.nomeDisplay or uA.key) .. " si ritira di " .. melee_retreatD(uA) .. "D")
+            .. (uA.meta.nomeDisplay or uA.key) .. " si ritira di " .. main_formatD(melee_retreatD(uA)))
         melee_retreat(uA, uD)
         engine_subStep("MELEE_RESOLVE", nil, "ESCI")
         return
@@ -593,7 +593,7 @@ function melee_result(ctx)
         righe = { { "Hit inflitti", string.format("%d contro %d", ctx["colpi" .. perde], ctx["colpi" .. vince]) },
                   { "Morale", tostring(uP.meta.morale or 3) },
                   { "Fallito: un altro hit", "" },
-                  { "Poi ritirata di", melee_retreatD(uP) .. "D" } },
+                  { "Poi ritirata di", main_formatD(melee_retreatD(uP)) } },
         serve = string.format("Test di morale: serve %d o meno su 1D6", uP.meta.morale or 3),
     })
     melee_message((uP.meta.nomeDisplay or uP.key) .. " perde la mischia: test di morale, tira " .. main_sideName(perde))
@@ -631,7 +631,7 @@ function melee_moraleRoll(ctx, slot, player, rec)
             end
         end
         if u then
-            ctx.esito = (u.meta.nomeDisplay or u.key) .. " si ritira di " .. melee_retreatD(u) .. "D"
+            ctx.esito = (u.meta.nomeDisplay or u.key) .. " si ritira di " .. main_formatD(melee_retreatD(u))
             melee_message(ctx.esito .. " restando fronte al nemico")
             melee_retreat(u, v)
         else

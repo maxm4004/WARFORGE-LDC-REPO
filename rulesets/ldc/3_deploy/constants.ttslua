@@ -19,7 +19,8 @@ DEPLOY_LAYOUT = {
     gapUnitaCm      = 4,     -- fra due unità della stessa Brigata
     gapBrigataCm    = 8,     -- fra due Brigate della stessa Divisione
     gapDivisioneCm  = 12,    -- fra due Divisioni
-    gapGeneraliCm   = 3,     -- fra le file: unità, Gen di Brigata, Gen di Divisione, Comandante
+    gapGeneraliCm   = 3,
+    gapTrainoCm     = 2,     -- fra la batteria e il suo traino, dietro     -- fra le file: unità, Gen di Brigata, Gen di Divisione, Comandante
     distanzaVerdeCm = 1,     -- fra il fronte delle unità e il bordo della fascia lato verde
     cadutaY         = 0.3,   -- altezza di comparsa sopra il tavolo (unità TTS)
     -- rotazione Y delle basi: Army1 guarda verso Z positiva,
@@ -30,6 +31,9 @@ DEPLOY_LAYOUT = {
 -- Tag sulle basi spawnate: comune e per schieramento
 DEPLOY_TAG_BASE = "ldc_base"
 DEPLOY_TAG_SIDE = { [1] = "ldc_army1", [2] = "ldc_army2" }
+-- Traino dell'artiglieria (carro e cavalli): solo sul tavolo, fuori
+-- dalle regole finché non c'è la regola del traino (14/11/2026)
+DEPLOY_TAG_TRAINO = "ldc_traino"
 
 -- Ruoli delle basi nelle GMNotes
 DEPLOY_RUOLO = {

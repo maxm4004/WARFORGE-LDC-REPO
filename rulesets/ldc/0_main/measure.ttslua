@@ -116,7 +116,11 @@ end
 -- Distanza da mostrare: "2,4 D".
 -- ============================================================
 function main_formatD(d)
-    return (string.format("%.1f D", d or 0):gsub("%.", ","))
+    -- intero senza decimali ("2 D"), decimale con la virgola
+    -- ("1,5 D") (Max 14/11)
+    local v = math.floor((d or 0) * 10 + 0.5) / 10
+    if v == math.floor(v) then return string.format("%d D", math.floor(v)) end
+    return (string.format("%.1f D", v):gsub("%.", ","))
 end
 -- ============================================================
 -- FUNZIONE: main_baseRect(obj)

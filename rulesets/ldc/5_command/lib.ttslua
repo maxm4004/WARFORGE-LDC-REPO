@@ -138,7 +138,9 @@ function command_start(slot)
     COMMAND_PENDING = nil
     COMMAND_ROLLING = false
     COMMAND_APERTE[slot] = {}     -- Divisioni chiuse (primo livello)
-    COMMAND_FILTRO = nil          -- pannello chiuso: si apre da ATTIVA sui Generali
+    -- si apre sul pannello del Comandante in Capo (Max 14/11); poi
+    -- ATTIVA sui Generali
+    COMMAND_FILTRO = { slot = slot, tipo = "tutte" }
 
     local gruppi, divisioni, ordine, cic = command_readSide(slot)
     for _, g in pairs(gruppi) do

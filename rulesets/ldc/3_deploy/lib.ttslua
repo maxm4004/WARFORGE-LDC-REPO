@@ -158,6 +158,7 @@ function deploy_planLayout(slot, army)
 
     local piano = {}
     local generali = {}         -- { voce, centro (cm), fila }
+    local traini = {}           -- { voce, centro (cm), prof (cm) } dietro le batterie
     local cursore = 0           -- cm dall'inizio, verso destra
     local profMax = 0           -- profondità massima delle unità (cm)
 
@@ -172,6 +173,7 @@ function deploy_planLayout(slot, army)
             for u, voce in ipairs(G.unita) do
                 if u > 1 then cursore = cursore + L.gapUnitaCm end
                 local unita = voce.unita
+                local unitaInizio = cursore
                 for seq = 1, (unita.num_basi or 1) do
                     local elemento = (seq == 1 and unita.elemento_comando) or unita.elemento
                     local fronte, prof = deploy_baseCm(army, elemento)
@@ -189,6 +191,13 @@ function deploy_planLayout(slot, army)
                         prof = prof,
                     })
                     cursore = cursore + fronte
+                end
+                -- traino della batteria: dietro, al centro dell'unità
+                if unita.elemento_traino and army.elementi and army.elementi[unita.elemento_traino] then
+                    local _, profT = deploy_baseCm(army, unita.elemento_traino)
+                    table.insert(traini, { centro = (unitaInizio + cursore) / 2, prof = profT, voce = {
+                        ruolo = "traino", unita = unita, divisione = D, brigata = G, seq = 1,
+                        elemento = unita.elemento_traino } })
                 end
             end
 
@@ -214,9 +223,19 @@ function deploy_planLayout(slot, army)
     end
 
     -- Basi delle unità allineate sul fronte
+    local profUnita = profMax
     for _, voce in ipairs(piano) do
         voce.z = zFronte - dirZ * cm(voce.prof / 2)
         voce.prof = nil
+    end
+    -- Traini dietro le batterie (le file dei Generali più indietro)
+    piano.traini = {}
+    for _, t in ipairs(traini) do
+        local voce = t.voce
+        voce.x = xInizio + dirX * cm(t.centro)
+        voce.z = zFronte - dirZ * cm(profUnita + L.gapTrainoCm + t.prof / 2)
+        table.insert(piano.traini, voce)
+        profMax = math.max(profMax, profUnita + L.gapTrainoCm + t.prof)
     end
 
     -- File dei Generali: profondità di ogni fila
@@ -438,6 +457,22 @@ function deploy_spawnArmy(slot, army)
             fatte = fatte + 1
         end
     end
+    -- traini: stesso modello di una base, ma fuori dalle regole
+    -- (tag proprio, niente GMNotes di gioco)
+    for _, voce in ipairs(piano.traini or {}) do
+        voce.nickname = (voce.unita.unit_name or "ART") .. "_TRAINO"
+        local data = deploy_baseData(slot, army, voce)
+        if data then
+            data.Tags = { DEPLOY_TAG_TRAINO }
+            data.GMNotes = JSON.encode({ ruolo = "traino", side = slot, unitName = voce.unita.unit_name })
+            data.Description = "Traino - " .. (voce.unita.nome_display or "")
+            data.Transform.posX = voce.x
+            data.Transform.posY = y
+            data.Transform.posZ = voce.z
+            data.Transform.rotY = rot
+            spawnObjectData({ data = data })
+        end
+    end
 
     DEPLOY_STATE.spawned[slot] = true
     main_basesForget()
@@ -460,6 +495,9 @@ function deploy_clearAll()
     -- una lista mentre la si scorre
     local basi = {}
     for _, obj in ipairs(getObjectsWithTag(DEPLOY_TAG_BASE) or {}) do
+        table.insert(basi, obj)
+    end
+    for _, obj in ipairs(getObjectsWithTag(DEPLOY_TAG_TRAINO) or {}) do
         table.insert(basi, obj)
     end
     for _, obj in ipairs(basi) do

@@ -172,7 +172,7 @@
           "unita": [
             {
               "unit_name": "FRA_DR5_CAV",
-              "nome_display": "5e Dragons",
+              "nome_display": "5e Dragoons",
               "tipo": "CAV_DRAGONI",
               "morale": 3,
               "taglia": "standard",
@@ -1029,25 +1029,25 @@
       "figure": [
         {
           "modello": "CAVALLO_DRAGONE",
-          "x": -0.87,
+          "x": -1.095,
           "y": 0.02,
           "z": 0.16
         },
         {
           "modello": "DRAGONE_SPADA",
-          "x": -0.85,
+          "x": -1.075,
           "y": 2.23,
           "z": 0.1
         },
         {
           "modello": "CAVALLO_DRAGONE",
-          "x": 1.32,
+          "x": 1.095,
           "y": 0.02,
           "z": 0.16
         },
         {
           "modello": "DRAGONE_SPADA",
-          "x": 1.34,
+          "x": 1.115,
           "y": 2.23,
           "z": 0.1
         }
@@ -1107,25 +1107,25 @@
       "figure": [
         {
           "modello": "CAVALLO_DRAGONE",
-          "x": 1.29,
+          "x": 0.925,
           "y": 0.02,
           "z": -0.02
         },
         {
           "modello": "DRAGONE",
-          "x": 1.3,
+          "x": 0.935,
           "y": 2.22,
           "z": 0.05
         },
         {
           "modello": "CAVALLO_DRAGONE",
-          "x": -0.56,
+          "x": -0.925,
           "y": 0.02,
           "z": -0.02
         },
         {
           "modello": "DRAGONE",
-          "x": -0.55,
+          "x": -0.915,
           "y": 2.23,
           "z": 0.04
         }
