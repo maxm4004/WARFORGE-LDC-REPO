@@ -837,7 +837,8 @@ function fire_spawnSmokeAt(nome, basi)
         local prof = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
         local p, r = b.getPosition(), b.getRotation()
         local f = main_baseForward(b)
-        local d = prof / 2 + main_cmToTts(S.davantiCm)
+        local davanti = (S.bundle[nome] and S.bundle[nome].davantiCm) or S.davantiCm
+        local d = prof / 2 + main_cmToTts(davanti)
         local pos = { x = p.x + f.x * d, y = p.y + S.altezza, z = p.z + f.z * d }
         local rot = { x = 0, y = (r.y + S.rotY) % 360, z = 0 }
         local function pronto(o)
@@ -993,7 +994,36 @@ function fire_spawnSmoke(unitKey)
     local u = main_unit(unitKey)
     if not u then return end
     local nome = (u.meta.arma == "cannone") and FIRE_SMOKE.cannone or FIRE_SMOKE.moschetto
-    fire_spawnSmokeAt(nome, main_unitFirstRank(u))
+    local basi = main_unitFirstRank(u)
+    fire_spawnSmokeAt(nome, basi)
+    fire_playShotSound(nome, basi)
+end
+-- ============================================================
+-- FUNZIONE: fire_playShotSound(nome, basi)
+-- Suono dello sparo: un bundle a parte, solo audio 2D (si sente
+-- anche con la camera sul vassoio dei dadi), uno per unità,
+-- tolto dopo FIRE_SMOKE.suono.durata secondi (Max 14/11).
+-- ============================================================
+function fire_playShotSound(nome, basi)
+    local S = FIRE_SMOKE.suono
+    local url = S and S[nome]
+    if not url or url == "" or not basi or not basi[1] then return end
+    local p = basi[1].getPosition()
+    spawnObjectData({
+        data = {
+            Name = "Custom_Assetbundle",
+            Nickname = "suono_" .. nome,
+            Locked = true,
+            Transform = { posX = p.x, posY = p.y - 3, posZ = p.z, rotX = 0, rotY = 0, rotZ = 0,
+                          scaleX = 1, scaleY = 1, scaleZ = 1 },
+            CustomAssetbundle = { AssetbundleURL = url, AssetbundleSecondaryURL = "", MaterialIndex = 0, TypeIndex = 0 },
+        },
+        callback_function = function(o)
+            o.addTag(FIRE_SMOKE.tag)
+            o.interactable = false
+            Wait.time(function() if o and not o.isDestroyed() then o.destruct() end end, S.durata or 12)
+        end,
+    })
 end
 -- ============================================================
 -- FUNZIONE: fire_clearSmoke()
