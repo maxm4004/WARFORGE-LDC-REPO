@@ -130,7 +130,7 @@ FIRE_SMOKE = {
     -- url vuoto = si usa il fumo normale (bundle sopra).
     sparo = {
         cannon_smoke = {
-            url    = "",
+            url    = "https://steamusercontent-a.akamaihd.net/ugc/16035823057474092394/1B1E27289FC9D7EB110D39B9ECB8A57C0B4053B8/",
             scala  = 0.35,
             copie  = 2,              -- pronte sotto il tavolo, usate a turno
             bocca  = { y = 4.06, z = 1.72 },  -- bocca del pezzo nel bundle (scala 1)
