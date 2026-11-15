@@ -23,9 +23,21 @@ if tipo == "moschetto":
             clip = o.read_typetree()
     r = clip["m_Resource"]
     data = bytes(es.file.files[r["m_Source"].split("/")[-1]].bytes)[r["m_Offset"]:r["m_Offset"] + r["m_Size"]]
+byid = {o.path_id: o for o in env.objects}
+# TTS riaccende i renderer: il cannone si toglie rimpicciolendo a zero
+# le sue parti (affusto e scheletro di canna e ruote) (Max 15/11: si
+# vedeva il cannone nero)
+NASCOSTI = ("CannonRig", "CannonChassis", "CannonBarrel", "CannonWheels")
 for o in env.objects:
     t = o.type.name
-    if t in ("MeshRenderer", "SkinnedMeshRenderer", "MeshCollider"):
+    if t == "Transform":
+        tt = o.read_typetree()
+        nome = byid[tt['m_GameObject']['m_PathID']].read_typetree()['m_Name']
+        if nome in NASCOSTI:
+            tt['m_LocalScale'] = {'x': 0.0001, 'y': 0.0001, 'z': 0.0001}
+            o.save_typetree(tt)
+            print("nascosto", nome)
+    elif t in ("MeshRenderer", "SkinnedMeshRenderer", "MeshCollider"):
         tt = o.read_typetree(); tt['m_Enabled'] = 0; o.save_typetree(tt)
     elif t == "ParticleSystem":
         tt = o.read_typetree(); tt['scalingMode'] = 0; o.save_typetree(tt)
