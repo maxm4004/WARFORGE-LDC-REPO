@@ -160,6 +160,13 @@ function command_clickAttivaGen(obj, player_color, alt_click)
     if not f then return end
     COMMAND_FILTRO = f
     command_redrawPanel()
+    -- camera sul Generale cliccato (Max 15/11: dal CiC la camera
+    -- deve andare sul CiC)
+    local p = u.comando.getPosition()
+    if Player[player_color] then
+        Player[player_color].lookAt({ position = { x = p.x, y = p.y + 2, z = p.z }, pitch = 45,
+            yaw = (slot == 1) and 0 or 180, distance = 30 })
+    end
 end
 -- ============================================================
 -- FUNZIONE: command_clickChiudi(player, value, id)
