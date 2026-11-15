@@ -1204,3 +1204,15 @@ function fire_sparoRiponi()
         end
     end
 end
+
+-- ============================================================
+-- FUNZIONE: fire_unloadSmoke()
+-- Toglie le copie nascoste (fumi e sparo) dal tavolo.
+-- ============================================================
+function fire_unloadSmoke()
+    local lista = {}
+    for _, tag in ipairs({ FIRE_SMOKE.cacheTag, FIRE_SMOKE.tagSparo }) do
+        for _, o in ipairs(getObjectsWithTag(tag) or {}) do table.insert(lista, o) end
+    end
+    for _, o in ipairs(lista) do o.destruct() end
+end

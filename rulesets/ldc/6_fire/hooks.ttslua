@@ -23,4 +23,8 @@ function after_fire(phaseName, phase)
     shoot_infoHide()
     -- il fumo sparisce alla fine del Fuoco (Max 14/11)
     fire_clearSmoke()
+    -- via anche le copie nascoste: non restano nel salvataggio e
+    -- non si caricano all'apertura della partita (Max 15/11); si
+    -- rifanno all'inizio del prossimo Fuoco
+    fire_unloadSmoke()
 end
