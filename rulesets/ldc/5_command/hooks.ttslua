@@ -38,3 +38,26 @@ function after_command(phaseName, phase)
     end
     engine_uiSet("cmdPanel", "active", "false")
 end
+
+-- ============================================================
+-- FUNZIONE: resume_command(phaseName, phase)
+-- Partita caricata: Brigate attivate, fallite e Riprova usati
+-- restano; un tiro interrotto si rifà (la Brigata è ancora da
+-- tirare). Pannello del CiC riaperto.
+-- ============================================================
+function resume_command(phaseName, phase)
+    local slot = TURN.activeSide
+    if slot and not COMMAND_STATE[slot] then
+        return before_command(phaseName, phase)   -- salvataggio senza Comando: si parte
+    end
+    COMMAND_PENDING = nil
+    COMMAND_ROLLING = false
+    if slot then
+        COMMAND_APERTE[slot] = COMMAND_APERTE[slot] or {}
+        COMMAND_ANELLI_SLOT = slot
+        COMMAND_FILTRO = { slot = slot, tipo = "tutte" }
+        command_redrawPanel()
+        command_drawStatusRings()
+    end
+    callHandler("updateCenterPanel")
+end

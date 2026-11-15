@@ -11,6 +11,7 @@ function melee_phase()
             title  = "MISCHIE",
             desc   = "Risoluzione delle mischie",
             before = "before_melee",
+            resume = "resume_melee",
             after  = "after_melee",
             onRoll = "melee_onRoll",
             baseButtons = "melee_baseButtons",

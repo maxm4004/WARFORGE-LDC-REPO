@@ -45,7 +45,7 @@ function main_boot(save_state)
     -- già all'ingresso della prima fase
     callHandler("measureTable")
 
-    engine_init()
+    engine_init(restored)
     engine_diceButtons3DShow()
 
     if restored then

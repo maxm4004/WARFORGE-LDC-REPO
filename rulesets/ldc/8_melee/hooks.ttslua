@@ -23,3 +23,16 @@ function after_melee(phaseName, phase)
     fire_clearSmoke()
     main_endHalfTurn()
 end
+
+-- ============================================================
+-- FUNZIONE: resume_melee(phaseName, phase)
+-- Partita caricata: mischie fatte e da fare restano.
+-- ============================================================
+function resume_melee(phaseName, phase)
+    if not MELEE_STATE or MELEE_STATE.side ~= TURN.activeSide then
+        return before_melee(phaseName, phase)
+    end
+    MELEE_STATE.mischie = MELEE_STATE.mischie or {}
+    melee_listRefresh()
+    callHandler("updateCenterPanel")
+end

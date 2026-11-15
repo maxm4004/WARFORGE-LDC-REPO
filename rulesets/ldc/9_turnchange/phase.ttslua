@@ -14,6 +14,7 @@ function turnchange_phase()
             title  = "CAMBIO TURNO",
             desc   = "Lo schieramento di turno inizia quando è pronto",
             before = "before_turnchange",
+            resume = "resume_turnchange",
             after  = "after_turnchange",
             allowedActions = { ACTION.CONFIRM },
             render = "1BtnClick",

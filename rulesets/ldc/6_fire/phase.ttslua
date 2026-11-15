@@ -11,6 +11,7 @@ function fire_phase()
             title  = "FASE DI FUOCO",
             desc   = "Tiri di artiglieria e di moschetteria",
             before = "before_fire",
+            resume = "resume_fire",
             after  = "after_fire",
             onRoll = "fire_onRoll",
             baseButtons = "fire_baseButtons",

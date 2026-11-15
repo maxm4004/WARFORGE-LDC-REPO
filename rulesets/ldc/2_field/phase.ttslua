@@ -11,6 +11,7 @@ function field_phase()
             title  = "CAMPO DI BATTAGLIA",
             desc   = "Piazzamento del terreno (da sviluppare)",
             before = "before_field",
+            resume = "resume_field",
             after  = "after_field",
             allowedActions = { ACTION.ARMY1_CLICK, ACTION.ARMY2_CLICK },
             render = "2BtnClick",

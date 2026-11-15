@@ -13,6 +13,7 @@ function firstplayer_phase()
             title  = "CHI INIZIA",
             desc   = "Ogni esercito tira 1D6: il risultato più alto gioca per primo",
             before = "before_firstplayer",
+            resume = "resume_firstplayer",
             after  = "after_firstplayer",
             onRoll = "firstplayer_onRoll",
             allowedActions = { ACTION.ARMY1_CLICK, ACTION.ARMY2_CLICK },

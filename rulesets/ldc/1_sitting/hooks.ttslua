@@ -16,3 +16,11 @@ end
 function after_sitting(phaseName, phase)
     callHandler("engine_cameraResetAll")
 end
+
+-- ============================================================
+-- FUNZIONE: resume_sitting(phaseName, phase)
+-- Partita caricata: si riprende senza azzerare (engine_enterPhase).
+-- ============================================================
+function resume_sitting(phaseName, phase)
+    callHandler("updateCenterPanel")
+end

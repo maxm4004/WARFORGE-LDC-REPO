@@ -11,6 +11,7 @@ function sitting_phase()
             title  = "SCEGLI IL TUO ESERCITO",
             desc   = "",
             before = "before_sitting",
+            resume = "resume_sitting",
             after  = "after_sitting",
             allowedActions = { ACTION.ARMY1_CLICK, ACTION.ARMY2_CLICK },
             render = "2BtnClick",

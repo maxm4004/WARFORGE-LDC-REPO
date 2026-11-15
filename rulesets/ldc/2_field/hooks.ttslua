@@ -14,3 +14,10 @@ end
 -- ============================================================
 function after_field(phaseName, phase)
 end
+
+-- ============================================================
+-- FUNZIONE: resume_field(phaseName, phase)
+-- ============================================================
+function resume_field(phaseName, phase)
+    callHandler("updateCenterPanel")
+end

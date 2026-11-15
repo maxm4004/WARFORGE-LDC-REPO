@@ -28,3 +28,19 @@ function after_fire(phaseName, phase)
     -- rifanno all'inizio del prossimo Fuoco
     fire_unloadSmoke()
 end
+
+-- ============================================================
+-- FUNZIONE: resume_fire(phaseName, phase)
+-- Partita caricata: chi ha già sparato resta segnato; mirino e
+-- scheda del tiro chiusi (si riaprono con FUOCO).
+-- ============================================================
+function resume_fire(phaseName, phase)
+    if not FIRE_STATE or FIRE_STATE.side ~= TURN.activeSide then
+        return before_fire(phaseName, phase)
+    end
+    FIRE_STATE.sparato = FIRE_STATE.sparato or {}
+    FIRE_SEL  = nil
+    FIRE_PREP = nil
+    fire_preloadSmoke()
+    callHandler("updateCenterPanel")
+end

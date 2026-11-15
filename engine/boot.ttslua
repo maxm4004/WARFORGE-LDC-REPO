@@ -31,6 +31,10 @@ function engine_autoRegisterFromPhases()
             ENGINE.handlers[phase.after] = _G[phase.after]
         end
 
+        if phase.resume and _G[phase.resume] then
+            ENGINE.handlers[phase.resume] = _G[phase.resume]
+        end
+
         if phase.onRoll and _G[phase.onRoll] then
             ENGINE.handlers[phase.onRoll] = _G[phase.onRoll]
         end

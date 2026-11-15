@@ -25,3 +25,19 @@ function after_deploy(phaseName, phase)
     deploy_hiddenZonesDestroy()
     if MOVE_PANEL then move_panelClose() end
 end
+
+-- ============================================================
+-- FUNZIONE: resume_deploy(phaseName, phase)
+-- Partita caricata: linee, hidden zone e spawn mancanti, senza
+-- azzerare chi ha finito.
+-- ============================================================
+function resume_deploy(phaseName, phase)
+    main_drawDeployLines(true)
+    deploy_hiddenZonesCreate()
+    for slot = 1, 2 do
+        if not DEPLOY_STATE.spawned[slot] then
+            deploy_loadAndSpawn(slot)
+        end
+    end
+    callHandler("updateCenterPanel")
+end

@@ -13,3 +13,10 @@ end
 -- ============================================================
 function after_turnchange(phaseName, phase)
 end
+
+-- ============================================================
+-- FUNZIONE: resume_turnchange(phaseName, phase)
+-- ============================================================
+function resume_turnchange(phaseName, phase)
+    callHandler("updateCenterPanel")
+end

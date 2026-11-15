@@ -1,7 +1,9 @@
 -- ============================================================
 -- FUNZIONE: engine_init()
 -- ============================================================
-function engine_init()
+-- ripresa = true: partita caricata da un salvataggio (la fase
+-- si RIPRENDE, non si rientra: vedi engine_enterPhase)
+function engine_init(ripresa)
     if DEBUG then print("engine_init") end
 
     if not callHandler then
@@ -28,7 +30,7 @@ function engine_init()
     callHandler("initUI")
 
     Wait.frames(function()
-        engine_enterPhase(ENGINE.phase, nil)
+        engine_enterPhase(ENGINE.phase, nil, ripresa)
     end, 30)
 end
 
@@ -269,13 +271,20 @@ end
 -- ============================================================
 -- FUNZIONE: engine_enterPhase()
 -- ============================================================
-function engine_enterPhase(newPhaseName, oldPhaseName)
-    if DEBUG then print("engine_enterPhase: " .. tostring(newPhaseName)) end
+-- ripresa = true (caricamento di una partita salvata): si chiama
+-- phase.resume, che ridisegna senza toccare lo stato della fase;
+-- before_ azzererebbe quello appena caricato (15/11/2026). Una fase
+-- senza resume usa ancora before (come prima).
+-- ============================================================
+function engine_enterPhase(newPhaseName, oldPhaseName, ripresa)
+    if DEBUG then print("engine_enterPhase: " .. tostring(newPhaseName) .. (ripresa and " (ripresa)" or "")) end
 
     local phase = ENGINE.phases[newPhaseName]
     if not phase then return end
 
-    if phase.before then
+    if ripresa and phase.resume and ENGINE.handlers and ENGINE.handlers[phase.resume] then
+        callHandler(phase.resume, newPhaseName, phase)
+    elseif phase.before then
         callHandler(phase.before, newPhaseName, phase)
     end
 

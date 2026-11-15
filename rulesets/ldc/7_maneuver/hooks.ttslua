@@ -33,3 +33,27 @@ function after_maneuver(phaseName, phase)
     engine_uiSet("charge_list_army2", "active", "false")
     main_setLines("movimento", {})
 end
+
+-- ============================================================
+-- FUNZIONE: resume_maneuver(phaseName, phase)
+-- Partita caricata: partenze, budget, cariche, fuori comando
+-- fissato e Generali spostati restano; pannelli chiusi, linee e
+-- segnaposto ridisegnati.
+-- ============================================================
+function resume_maneuver(phaseName, phase)
+    if not MOVE_STATE or MOVE_STATE.side ~= TURN.activeSide then
+        return before_maneuver(phaseName, phase)
+    end
+    for _, k in ipairs({ "partenza", "cariche", "budget", "lati", "dopoCarica", "pannello",
+                         "pinnate", "perno", "formazione", "latiFini" }) do
+        MOVE_STATE[k] = MOVE_STATE[k] or {}
+    end
+    MOVE_PANEL, MOVE_MANUAL, MOVE_PIVOT, MOVE_CHARGE_PREP = nil, nil, nil, nil
+    MOVE_CIRCLE = {}
+    MOVE_DRAG = {}
+    if not MOVE_STATE.fuori then move_fixCommand(TURN.activeSide) end
+    move_drawSegnaposti()
+    move_drawLines(TURN.activeSide)
+    if move_chargeListRefresh then move_chargeListRefresh() end
+    callHandler("updateCenterPanel")
+end

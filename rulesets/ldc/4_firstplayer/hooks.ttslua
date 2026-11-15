@@ -30,3 +30,16 @@ function after_firstplayer(phaseName, phase)
 
     warning("Inizia " .. main_sideName(winner), "Yellow")
 end
+
+-- ============================================================
+-- FUNZIONE: resume_firstplayer(phaseName, phase)
+-- Partita caricata: i tiri già fatti restano; un tiro interrotto
+-- si rifà (pannelli dei dadi riaperti).
+-- ============================================================
+function resume_firstplayer(phaseName, phase)
+    FIRST_ROLL.rolled = FIRST_ROLL.rolled or {}
+    FIRSTPLAYER_ROLLING = { [1] = false, [2] = false }
+    for slot = 1, 2 do firstplayer_dicePanelOpen(slot) end
+    firstplayer_check()
+    callHandler("updateCenterPanel")
+end

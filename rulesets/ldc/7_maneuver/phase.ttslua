@@ -11,6 +11,7 @@ function maneuver_phase()
             title  = "CARICHE E MANOVRE",
             desc   = "Cariche, movimenti e cambi di formazione",
             before = "before_maneuver",
+            resume = "resume_maneuver",
             after  = "after_maneuver",
             baseButtons = "move_baseButtons",
             onRoll = "move_onRoll",
