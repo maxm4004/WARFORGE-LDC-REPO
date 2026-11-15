@@ -147,8 +147,8 @@ FIRE_SMOKE = {
         --   sparo .../ugc/17741845357431460566/D8595ACC6063A869A5D570D1D9D726B2F0B8EA56/
         --   muto  .../ugc/15136337735304543625/FE8A7DF57F3B87575A251B0ED3A78E1DB303C2FD/
         musket_smoke = {
-            url     = "",
-            urlMuto = "",
+            url     = "https://steamusercontent-a.akamaihd.net/ugc/10574969455950190965/CF08D4E651E5880811F1B2FD98221637DF24C040/",
+            urlMuto = "",    -- per la prova: sparo solo sulla prima base
             scala   = 0.15,
             copie   = 2,
             copieMuto = 6,
