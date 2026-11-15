@@ -28,7 +28,7 @@ function main_boot(save_state)
         for _, o in ipairs(getAllObjects()) do
             if nomi[o.getName()] then table.insert(via, o) end
         end
-        for _, o in ipairs(via) do o.destruct() end
+        for _, o in ipairs(via) do pcall(function() o.destruct() end) end
         if #via > 0 then printToAll(string.format("[FUOCO] tolti %d fumi rimasti sul tavolo", #via), LOG_COLORE) end
     end
 
