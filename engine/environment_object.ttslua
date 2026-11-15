@@ -1,0 +1,49 @@
+
+
+function engine_environment_object()
+
+   local tavolo = getObjectsWithTag("tavolo")[1]
+
+   if not tavolo then
+      printToAll("Environment object not found!", "Red")
+      return
+   end
+
+   tavolo.createButton({
+      click_function = "changeColor",
+      function_owner = self,
+      color          = "Green",
+      position       = {0.26, 1.31, -123.95},
+      rotation       = {0,180,0},
+      width          = 500,
+      height         = 500,
+      tooltip        = "Green"
+   })
+
+   tavolo.createButton({
+      click_function = "changeColor",
+      function_owner = self,
+      color          = "Red",
+      position       = {-0.26, 1.31, 123.95},
+      rotation       = {0,180,0},
+      width          = 500,
+      height         = 500,
+      tooltip        = "Red"
+   })
+end
+
+function changeColor(obj, clicker)
+    local col = Player[clicker].color
+
+    if col ~= "Red" then
+        if Player["Red"].seated == false then
+            Player[col].changeColor("Red")
+        end
+    end
+
+    if col ~= "Green" then
+        if Player["Green"].seated == false then
+            Player[col].changeColor("Green")
+        end
+    end
+end

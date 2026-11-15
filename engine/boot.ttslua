@@ -56,4 +56,6 @@ function engine_reset()
     ENGINE.conditions = ENGINE.conditions or {}
 
     TURN = nil
+
+    engine_environment_object()
 end
