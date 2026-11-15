@@ -712,10 +712,10 @@ function fire_rollDo(ctx, slot, player, rec)
         if eccesso > 0 then
             ctx.rottura = eccesso
             engine_subStep("FIRE_ROLL", slot, "ROTTURA")
-            local auto = engine_diceVeloce(player)
-            engine_uiSet("shootinfo_stato", "text", string.format(auto and "ROTTURA: tiro automatico, %dD6, serve piu' di %d" or "ROTTURA: premi Roll, %dD6, serve piu' di %d", eccesso, ctx.morale))
-            -- tiro veloce: anche la rottura parte da sola
-            if auto then Wait.time(function() if fire_rollRec(slot) == rec and rec.step == "ROTTURA" then engine_diceRoll_start(player) end end, 1.5) end
+            -- nessun dado senza un clic del giocatore (Max 15/11): la
+            -- rottura la tira lui, Tiro veloce o Tiro classico
+            engine_uiSet("shootinfo_stato", "text", string.format("ROTTURA: tira %dD6 (%s o %s), serve piu' di %d",
+                eccesso, DADI_ETICHETTE.veloce, DADI_ETICHETTE.vassoio, ctx.morale))
             engine_uiSet("shootinfo_stato", "color", SHOOTINFO.malus)
             engine_uiSet("shootinfo_stato", "active", "true")
             shoot_infoAltezza(true, true, true)
