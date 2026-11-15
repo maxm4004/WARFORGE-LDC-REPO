@@ -16,6 +16,10 @@ end
 -- Fasi → handler → condizioni → stato salvato → tavolo → motore.
 -- ============================================================
 function main_boot(save_state)
+    -- copie nascoste di fumo e sparo rimaste in un salvataggio vecchio:
+    -- via subito (si rifanno all'inizio del Fuoco), cosi' al prossimo
+    -- salvataggio non ci sono piu' (Max 15/11)
+    if fire_unloadSmoke then fire_unloadSmoke() end
 
     callHandler("initPhases")
     callHandler("autoRegisterFromPhases")

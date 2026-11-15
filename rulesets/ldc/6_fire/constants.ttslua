@@ -142,9 +142,13 @@ FIRE_SMOKE = {
         -- moschetti (Max 15/11): stesso sparo più piccolo, suono della
         -- salva (assets/musket_sparo); le basi dopo la prima usano la
         -- copia muta (assets/musket_sparo_muto)
+        -- SPENTO (Max 15/11): i due bundle non si caricano in TTS (scheda
+        -- di importazione). URL provati:
+        --   sparo .../ugc/17741845357431460566/D8595ACC6063A869A5D570D1D9D726B2F0B8EA56/
+        --   muto  .../ugc/15136337735304543625/FE8A7DF57F3B87575A251B0ED3A78E1DB303C2FD/
         musket_smoke = {
-            url     = "https://steamusercontent-a.akamaihd.net/ugc/17741845357431460566/D8595ACC6063A869A5D570D1D9D726B2F0B8EA56/",
-            urlMuto = "https://steamusercontent-a.akamaihd.net/ugc/15136337735304543625/FE8A7DF57F3B87575A251B0ED3A78E1DB303C2FD/",
+            url     = "",
+            urlMuto = "",
             scala   = 0.15,
             copie   = 2,
             copieMuto = 6,
