@@ -2,6 +2,11 @@ function engine_environment_object()
 
    local cuboRed = getObjectFromGUID("db126f")
    local cuboGreen = getObjectFromGUID("efd177")
+   -- senza i cubi (altro tavolo, simulatore) non fa niente; a ogni
+   -- reset si tolgono i bottoni vecchi per non duplicarli
+   if not cuboRed or not cuboGreen then return end
+   cuboRed.clearButtons()
+   cuboGreen.clearButtons()
 
     cuboGreen.createButton({
       click_function = "changeColorGreen",
