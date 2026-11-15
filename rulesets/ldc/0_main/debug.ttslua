@@ -980,3 +980,33 @@ function debug_sparoVia()
     if DEBUG_SPARO and not DEBUG_SPARO.isDestroyed() then DEBUG_SPARO.destruct() end
     DEBUG_SPARO = nil
 end
+
+-- ============================================================
+-- FUNZIONE: debug_camFuoco(pitch, distanza, alto, yawExtra, avanti)
+-- Prova della camera del Fuoco (Max 15/11): seleziona una base
+-- dell'unità che spara e prova i valori; la camera di chi ha
+-- selezionato va sull'unità, dietro di lei e girata verso il suo
+-- fronte (come IEF: pitch 30, distanza 15).
+--   pitch     inclinazione (gradi; 90 = dall'alto)
+--   distanza  distanza dal punto guardato
+--   alto      altezza del punto guardato sopra la base
+--   yawExtra  rotazione in più (gradi; 180 = di fronte all'unità)
+--   avanti    sposta il punto guardato avanti (D) verso il bersaglio
+-- Uso: /execute debug_camFuoco(30, 15, 2, 0, 0)
+-- ============================================================
+function debug_camFuoco(pitch, distanza, alto, yawExtra, avanti)
+    pitch, distanza, alto, yawExtra, avanti = pitch or 30, distanza or 15, alto or 2, yawExtra or 0, avanti or 0
+    local sel = debug_selectedObjects()[1]
+    if not sel then printToAll("[CAM FUOCO] seleziona una base dell'unita' che spara", LOG_AVVISO) return end
+    local meta = main_baseMeta(sel.obj)
+    local u = meta and meta.unitKey and main_unitOrGeneral(meta.side, meta.unitKey)
+    if not u then printToAll("[CAM FUOCO] l'oggetto selezionato non e' una base", LOG_AVVISO) return end
+    local c = main_unitCenter(u)
+    local f = main_baseForward(u.comando)
+    local d = main_dToTts(avanti)
+    local yaw = (u.comando.getRotation().y + yawExtra) % 360
+    sel.player.lookAt({ position = { x = c.x + f.x * d, y = u.comando.getPosition().y + alto, z = c.z + f.z * d },
+        pitch = pitch, yaw = yaw, distance = distanza })
+    printToAll(string.format("[CAM FUOCO] pitch=%s distanza=%s alto=%s yawExtra=%s avanti=%s",
+        tostring(pitch), tostring(distanza), tostring(alto), tostring(yawExtra), tostring(avanti)), LOG_COLORE)
+end
