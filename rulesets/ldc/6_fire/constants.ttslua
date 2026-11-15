@@ -123,4 +123,21 @@ FIRE_SMOKE = {
     -- caricati: al tiro il fumo (e il suono) compare subito
     cacheTag  = "ldc_smoke_cache",
     cacheSotto = 3,      -- unità sotto la superficie del tavolo
+    -- SPARO come il cannone di TTS (Max 15/11): bundle col solo
+    -- effetto di sparo (assets/cannon_sparo: fumo, vampa, boato,
+    -- trigger 0 "Fire"), già caricato sotto il tavolo; al tiro si
+    -- sposta davanti al pezzo e si chiama playTriggerEffect(0).
+    -- url vuoto = si usa il fumo normale (bundle sopra).
+    sparo = {
+        cannon_smoke = {
+            url    = "",
+            scala  = 0.35,
+            copie  = 2,              -- pronte sotto il tavolo, usate a turno
+            bocca  = { y = 4.06, z = 1.72 },  -- bocca del pezzo nel bundle (scala 1)
+            boccaCm = 1.2,           -- altezza della bocca sopra la base
+            davantiCm = 0,           -- bocca rispetto al bordo anteriore della base
+            rotY   = 0,              -- rispetto alla base
+        },
+    },
+    tagSparo = "ldc_sparo",
 }

@@ -840,6 +840,7 @@ end
 -- ============================================================
 function fire_spawnSmokeAt(nome, basi)
     local S = FIRE_SMOKE
+    if fire_sparoAt(nome, basi) then return { sparo = true } end
     local fonte = fire_smokeSource(nome)
     if not fonte then
         print("[FUOCO] fumo '" .. nome .. "' non trovato: ne' oggetto sul tavolo, ne' URL in FIRE_SMOKE.bundle")
@@ -952,6 +953,7 @@ end
 -- tiro compaiono subito. Una sola volta per partita.
 -- ============================================================
 function fire_preloadSmoke()
+    fire_sparoPreload()
     -- ovatta: niente copie nascoste (si toglie quelle dei bundle)
     local O = FIRE_SMOKE.ovatta
     if FIRE_SMOKE.modo == "ovatta" and O and O.mesh ~= "" then
@@ -1056,8 +1058,110 @@ end
 -- FUNZIONE: fire_clearSmoke()
 -- ============================================================
 function fire_clearSmoke()
+    fire_sparoRiponi()
     local lista = {}
     for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.tag) or {}) do table.insert(lista, o) end
     for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.tagSuono or "ldc_suono") or {}) do table.insert(lista, o) end
     for _, o in ipairs(lista) do o.destruct() end
+end
+
+-- ============================================================
+--      SPARO COME IL CANNONE DI TTS (Max 15/11/2026)
+-- FIRE_SMOKE.sparo[nome]: bundle col trigger "Fire" (fumo, vampa,
+-- boato). Copie già caricate e bloccate sotto il tavolo; al tiro
+-- una copia va davanti al pezzo e parte playTriggerEffect(0):
+-- niente spawn, niente attesa di caricamento.
+-- ============================================================
+FIRE_SPARO_TURNO = FIRE_SPARO_TURNO or {}
+
+local function fire_sparoConf(nome)
+    local c = FIRE_SMOKE.sparo and FIRE_SMOKE.sparo[nome]
+    if c and c.url and c.url ~= "" then return c end
+    return nil
+end
+local function fire_sparoCopie(nome)
+    local out = {}
+    for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.tagSparo) or {}) do
+        if o.getName() == nome then table.insert(out, o) end
+    end
+    return out
+end
+local function fire_sparoSotto(i)
+    local y = ((TABLE_AREA and TABLE_AREA.y) or 1) - FIRE_SMOKE.cacheSotto
+    return { x = -4 - 2 * i, y = y, z = 0 }
+end
+-- ============================================================
+-- FUNZIONE: fire_sparoPreload()
+-- Le copie sotto il tavolo (URL cambiato: si rifanno).
+-- ============================================================
+function fire_sparoPreload()
+    for nome, c in pairs(FIRE_SMOKE.sparo or {}) do
+        local copie = fire_sparoCopie(nome)
+        for _, o in ipairs(copie) do
+            local cu = o.getCustomObject and o.getCustomObject() or {}
+            if not c.url or c.url == "" or (cu.assetbundle and cu.assetbundle ~= c.url) then o.destruct() end
+        end
+        copie = (c.url and c.url ~= "") and fire_sparoCopie(nome) or {}
+        for i = #copie + 1, (c.url and c.url ~= "") and (c.copie or 2) or 0 do
+            local p = fire_sparoSotto(i)
+            spawnObjectData({
+                data = {
+                    Name = "Custom_AssetBundle", Nickname = nome, Locked = true,
+                    Transform = { posX = p.x, posY = p.y, posZ = p.z, rotX = 0, rotY = 0, rotZ = 0,
+                                  scaleX = c.scala, scaleY = c.scala, scaleZ = c.scala },
+                    CustomAssetbundle = { AssetbundleURL = c.url, AssetbundleSecondaryURL = "",
+                        MaterialIndex = 0, TypeIndex = 0, LoopingEffectIndex = 0 },
+                },
+                callback_function = function(o)
+                    o.addTag(FIRE_SMOKE.tagSparo)
+                    o.setLock(true)
+                    o.interactable = false
+                end,
+            })
+        end
+    end
+end
+-- ============================================================
+-- FUNZIONE: fire_sparoAt(nome, basi)
+-- Sparo davanti a ogni base. Falso se per questo fumo lo sparo
+-- non c'è (si usa il fumo normale).
+-- ============================================================
+function fire_sparoAt(nome, basi)
+    local c = fire_sparoConf(nome)
+    if not c then return false end
+    local copie = fire_sparoCopie(nome)
+    if #copie == 0 then
+        fire_sparoPreload()
+        return false     -- questa volta il fumo normale
+    end
+    for _, b in ipairs(basi) do
+        FIRE_SPARO_TURNO[nome] = ((FIRE_SPARO_TURNO[nome] or 0) % #copie) + 1
+        local o = copie[FIRE_SPARO_TURNO[nome]]
+        local meta = main_baseMeta(b) or {}
+        local prof = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
+        local p, r = b.getPosition(), b.getRotation()
+        local f = main_baseForward(b)
+        local s = c.scala or 1
+        -- l'origine del bundle è sotto il pezzo: la bocca va sul
+        -- bordo anteriore della base, all'altezza boccaCm
+        local d = prof / 2 + main_cmToTts(c.davantiCm or 0) - c.bocca.z * s
+        local y = p.y + main_cmToTts(c.boccaCm or 1.2) - c.bocca.y * s
+        o.setRotation({ x = 0, y = (r.y + (c.rotY or 0)) % 360, z = 0 })
+        o.setPosition({ x = p.x + f.x * d, y = y, z = p.z + f.z * d })
+        Wait.frames(function()
+            if o and not o.isDestroyed() and o.AssetBundle then
+                pcall(function() o.AssetBundle.playTriggerEffect(0) end)
+            end
+        end, 2)
+    end
+    return true
+end
+-- ============================================================
+-- FUNZIONE: fire_sparoRiponi()
+-- Le copie tornano sotto il tavolo (dopo il Fuoco).
+-- ============================================================
+function fire_sparoRiponi()
+    for nome in pairs(FIRE_SMOKE.sparo or {}) do
+        for i, o in ipairs(fire_sparoCopie(nome)) do o.setPosition(fire_sparoSotto(i)) end
+    end
 end
