@@ -143,8 +143,8 @@ FIRE_SMOKE = {
         -- salva (assets/musket_sparo); le basi dopo la prima usano la
         -- copia muta (assets/musket_sparo_muto)
         musket_smoke = {
-            url     = "",
-            urlMuto = "",
+            url     = "https://steamusercontent-a.akamaihd.net/ugc/13454658662892405904/CF4D07A4E7CBBCFEDC6FF6EC49BD93053235FA26/",
+            urlMuto = "https://steamusercontent-a.akamaihd.net/ugc/15136337735304543625/FE8A7DF57F3B87575A251B0ED3A78E1DB303C2FD/",
             scala   = 0.15,
             copie   = 2,
             copieMuto = 6,
