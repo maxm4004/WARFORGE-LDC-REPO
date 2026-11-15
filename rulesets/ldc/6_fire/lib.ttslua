@@ -1169,7 +1169,9 @@ function fire_sparoAt(nome, basi)
     for i, b in ipairs(basi) do
         -- la prima base col suono, le altre mute (se ci sono)
         local lista, nick = sonore, tipi[1].nick
-        if i > 1 and #mute > 0 then lista, nick = mute, tipi[2].nick end
+        if i > 1 and #mute > 0 then lista, nick = mute, tipi[2].nick
+        elseif i > 1 and tipi[2] then lista = nil end   -- senza le mute: solo la prima base
+        if lista then
         FIRE_SPARO_TURNO[nick] = ((FIRE_SPARO_TURNO[nick] or 0) % #lista) + 1
         local o = lista[FIRE_SPARO_TURNO[nick]]
         local meta = main_baseMeta(b) or {}
@@ -1188,6 +1190,7 @@ function fire_sparoAt(nome, basi)
                 pcall(function() o.AssetBundle.playTriggerEffect(0) end)
             end
         end, 2)
+        end
     end
     return true
 end
