@@ -362,7 +362,6 @@ function command_choose(player, slot, key, tipo)
     command_focus(slot, key, tipo == "ritiro")
 
     engine_diceCameraZoom(player)
-    warningToColor("Premi Roll sul vassoio dei dadi", player, "Yellow", 4, false)
     command_redrawPanel()
 end
 -- ============================================================
