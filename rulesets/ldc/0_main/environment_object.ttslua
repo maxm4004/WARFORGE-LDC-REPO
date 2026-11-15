@@ -1,0 +1,46 @@
+function engine_environment_object()
+
+   local cuboRed = getObjectFromGUID("db126f")
+   local cuboGreen = getObjectFromGUID("efd177")
+
+    cuboGreen.createButton({
+      click_function = "changeColorGreen",
+      function_owner = Self,
+      color          = "Green",
+      position       = {0, 0.5, 0},
+      rotation       = {0,0,0},
+      width          = 500,
+      height         = 500,
+      tooltip        = "Green"
+   })
+
+   cuboRed.createButton({
+      click_function = "changeColorRed",
+      function_owner = Self,
+      color          = "Red",
+      position       = {0, 0.5, 0},
+      rotation       = {0,0,0},
+      width          = 500,
+      height         = 500,
+      tooltip        = "Red"
+   })
+end
+
+function changeColorGreen(obj, clicker)
+    local col = Player[clicker].color
+
+    if col ~= "Green" then
+        if Player["Green"].seated == false then
+            Player[col].changeColor("Green")
+        end
+    end
+end
+function changeColorRed(obj, clicker)
+    local col = Player[clicker].color
+
+    if col ~= "Red" then
+        if Player["Red"].seated == false then
+            Player[col].changeColor("Red")
+        end
+    end
+end

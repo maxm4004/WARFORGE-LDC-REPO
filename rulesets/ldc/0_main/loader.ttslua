@@ -4,6 +4,7 @@
 --         → persistence → ui → debug → register → rulesetInit
 -- ============================================================
 
+require("rulesets.ldc.0_main.environment_object")
 require("rulesets.ldc.0_main.constants")
 require("rulesets.ldc.0_main.style")
 require("rulesets.ldc.0_main.state")

@@ -9,6 +9,7 @@ function before_sitting(phaseName, phase)
     TURN.activeSide = nil
     main_resetCompleted()
     callHandler("updateCenterPanel")
+    callHandler("environment_object")
 end
 -- ============================================================
 -- FUNZIONE: after_sitting(phaseName, phase)
