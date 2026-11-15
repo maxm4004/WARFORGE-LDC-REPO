@@ -161,3 +161,15 @@ FIRE_SMOKE = {
     },
     tagSparo = "ldc_sparo",
 }
+
+-- ============================================================
+-- Camera sull'unità al clic su FUOCO (Max 15/11/2026, provata con
+-- debug_camFuoco(45, 15, 5, 0, 0))
+-- ============================================================
+FIRE_CAMERA = {
+    pitch    = 45,
+    distanza = 15,
+    alto     = 5,     -- punto guardato sopra la base
+    yawExtra = 0,     -- 0 = da dietro l'unità
+    avantiD  = 0,
+}

@@ -471,8 +471,23 @@ function fire_clickFuoco(obj, player_color, alt_click)
         return
     end
     fire_Reset()
+    fire_cameraUnita(Player[player_color], u)
     fire_mirinoStart(Player[player_color], slot, u)
     main_refreshBaseButtons()
+end
+-- ============================================================
+-- FUNZIONE: fire_cameraUnita(player, u)
+-- Camera sull'unità che spara, da dietro verso il suo fronte
+-- (FIRE_CAMERA, tarata da Max con debug_camFuoco il 15/11).
+-- ============================================================
+function fire_cameraUnita(player, u)
+    if not player or not u or not u.comando then return end
+    local C = FIRE_CAMERA
+    local c = main_unitCenter(u)
+    local f = main_baseForward(u.comando)
+    local d = main_dToTts(C.avantiD or 0)
+    player.lookAt({ position = { x = c.x + f.x * d, y = u.comando.getPosition().y + C.alto, z = c.z + f.z * d },
+        pitch = C.pitch, yaw = (u.comando.getRotation().y + (C.yawExtra or 0)) % 360, distance = C.distanza })
 end
 -- ============================================================
 -- FUNZIONE: fire_clickAnnulla(obj, player_color, alt_click)
