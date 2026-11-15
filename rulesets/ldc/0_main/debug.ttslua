@@ -889,3 +889,33 @@ function debug_cannone()
     end
     if trovati == 0 then printToAll("[CANNONE] seleziona il cannone e riprova", LOG_AVVISO) end
 end
+
+-- ============================================================
+-- FUNZIONE: debug_selezionaTutti(colore, filtro)
+-- Seleziona tutti gli oggetti sul tavolo per il giocatore (colore,
+-- es. "Red"; senza: tutti i giocatori seduti) e li elenca in chat:
+-- GUID, nome, tipo, posizione, tag. filtro (facoltativo): solo gli
+-- oggetti col nome che contiene quel testo (es. "smoke").
+-- Uso: /execute debug_selezionaTutti("Red", "smoke")
+-- ============================================================
+function debug_selezionaTutti(colore, filtro)
+    local giocatori = {}
+    if colore then
+        table.insert(giocatori, colore)
+    else
+        for _, p in ipairs(Player.getPlayers()) do if p.seated then table.insert(giocatori, p.color) end end
+    end
+    local n = 0
+    for _, o in ipairs(getAllObjects()) do
+        local nome = o.getName() or ""
+        if not filtro or nome:lower():find(filtro:lower(), 1, true) then
+            n = n + 1
+            for _, c in ipairs(giocatori) do pcall(function() o.addToPlayerSelection(c) end) end
+            local p = o.getPosition()
+            local tag = table.concat(o.getTags() or {}, ",")
+            printToAll(string.format("[OGGETTI] %s  %-20s %-18s (%.1f, %.1f, %.1f) %s",
+                o.getGUID(), nome, tostring(o.name or o.type), p.x, p.y, p.z, tag ~= "" and ("tag " .. tag) or ""), LOG_COLORE)
+        end
+    end
+    printToAll(string.format("[OGGETTI] %d oggetti selezionati%s", n, filtro and (" (nome con \"" .. filtro .. "\")") or ""), LOG_COLORE)
+end
