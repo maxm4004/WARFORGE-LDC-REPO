@@ -24,6 +24,20 @@
         "JSON",
         "before_sitting",
         "after_sitting",
-        "engine_bannerShow"
+        "engine_bannerShow",
+        "fire_weapon",
+        "fire_maxRangeD",
+        "getObjectsWithTag",
+        "getAllObjects",
+        "MusicPlayer",
+        "spawnObject",
+        "Color",
+        "WebRequest"
+    ],
+    "Lua.diagnostics.disable": [
+        "need-check-nil",
+        "undefined-field",
+        "lowercase-global",
+        "undefined-global"
     ]
 }
