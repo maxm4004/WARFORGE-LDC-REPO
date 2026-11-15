@@ -919,3 +919,64 @@ function debug_selezionaTutti(colore, filtro)
     end
     printToAll(string.format("[OGGETTI] %d oggetti selezionati%s", n, filtro and (" (nome con \"" .. filtro .. "\")") or ""), LOG_COLORE)
 end
+
+-- ============================================================
+-- FUNZIONE: debug_sparo(nome, scala)
+-- Prova dello sparo da solo (Max 15/11): fa comparire il bundle di
+-- FIRE_SMOKE.sparo[nome] sopra l'oggetto selezionato (o al centro
+-- del tavolo), visibile e grande, dice se si carica e quali effetti
+-- ha, poi spara (trigger 0). debug_sparo() ripete lo sparo;
+-- debug_sparoVia() lo toglie.
+-- Uso: /execute debug_sparo("musket_smoke", 1)
+--      /execute debug_sparo("cannon_smoke", 1)
+-- ============================================================
+DEBUG_SPARO = DEBUG_SPARO or nil
+
+function debug_sparo(nome, scala)
+    -- senza nome: ripete lo sparo sull'oggetto di prova
+    if not nome then
+        local o = DEBUG_SPARO
+        if not o or o.isDestroyed() then printToAll("[SPARO] niente da ripetere: debug_sparo(\"musket_smoke\", 1)", LOG_AVVISO) return end
+        o.AssetBundle.playTriggerEffect(0)
+        printToAll("[SPARO] di nuovo", LOG_COLORE)
+        return
+    end
+    local c = FIRE_SMOKE.sparo and FIRE_SMOKE.sparo[nome]
+    local url = c and c.url or ""
+    if url == "" then printToAll("[SPARO] nessun URL per " .. tostring(nome), LOG_AVVISO) return end
+    debug_sparoVia()
+    local p = { x = 0, y = ((TABLE_AREA and TABLE_AREA.y) or 1) + 0.5, z = 0 }
+    for _, s in ipairs(debug_selectedObjects()) do p = s.obj.getPosition(); break end
+    scala = scala or 1
+    printToAll(string.format("[SPARO] %s scala %.2f: carico %s", nome, scala, url), LOG_COLORE)
+    spawnObjectData({
+        data = {
+            Name = "Custom_AssetBundle", Nickname = "PROVA_SPARO", Locked = true,
+            Transform = { posX = p.x, posY = p.y, posZ = p.z, rotX = 0, rotY = 0, rotZ = 0,
+                          scaleX = scala, scaleY = scala, scaleZ = scala },
+            CustomAssetbundle = { AssetbundleURL = url, AssetbundleSecondaryURL = "",
+                MaterialIndex = 0, TypeIndex = 0, LoopingEffectIndex = 0 },
+        },
+        callback_function = function(o)
+            DEBUG_SPARO = o
+            local t0 = os.time()
+            Wait.condition(function()
+                if not o or o.isDestroyed() then return end
+                if o.loading_custom then printToAll("[SPARO] non si e' caricato in 15 s", LOG_AVVISO) return end
+                local ab = o.AssetBundle
+                if not ab then printToAll("[SPARO] caricato ma senza AssetBundle", LOG_AVVISO) return end
+                local trig = ab.getTriggerEffects() or {}
+                local loop = ab.getLoopingEffects() or {}
+                printToAll(string.format("[SPARO] caricato: %d trigger, %d looping", #trig, #loop), LOG_COLORE)
+                for _, e in ipairs(trig) do printToAll("[SPARO]   trigger " .. tostring(e.index) .. " " .. tostring(e.name), LOG_COLORE) end
+                ab.playTriggerEffect(0)
+                printToAll("[SPARO] sparato (ripeti con /execute debug_sparo())", LOG_COLORE)
+            end, function() return o.isDestroyed() or not o.loading_custom end, 15)
+        end,
+    })
+end
+
+function debug_sparoVia()
+    if DEBUG_SPARO and not DEBUG_SPARO.isDestroyed() then DEBUG_SPARO.destruct() end
+    DEBUG_SPARO = nil
+end
