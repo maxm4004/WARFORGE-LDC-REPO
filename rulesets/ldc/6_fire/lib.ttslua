@@ -839,8 +839,24 @@ end
 -- Un fumo davanti a ogni base della lista. Ritorna la fonte.
 -- ============================================================
 function fire_spawnSmokeAt(nome, basi)
+    -- sparo (fumo, vampa, boato) e poi la nuvola che resta fino a
+    -- fine Fuoco, senza i suoi effetti (Max 15/11)
+    if fire_sparoAt(nome, basi) then
+        local dopo = FIRE_SMOKE.sparo[nome].nuvolaDopo or 1.5
+        Wait.time(function()
+            if ENGINE.phase == PHASE.FIRE then fire_spawnSmokeNormale(nome, basi, true) end
+        end, dopo)
+        return { sparo = true }
+    end
+    return fire_spawnSmokeNormale(nome, basi, false)
+end
+-- ============================================================
+-- FUNZIONE: fire_spawnSmokeNormale(nome, basi, senzaEffetti)
+-- La nuvola davanti alle basi (senzaEffetti: non avvia il suono
+-- del bundle, c'è già quello dello sparo).
+-- ============================================================
+function fire_spawnSmokeNormale(nome, basi, senzaEffetti)
     local S = FIRE_SMOKE
-    if fire_sparoAt(nome, basi) then return { sparo = true } end
     local fonte = fire_smokeSource(nome)
     if not fonte then
         print("[FUOCO] fumo '" .. nome .. "' non trovato: ne' oggetto sul tavolo, ne' URL in FIRE_SMOKE.bundle")
@@ -860,7 +876,7 @@ function fire_spawnSmokeAt(nome, basi)
             o.addTag(S.tag)
             o.setLock(true)
             -- suono: una volta per unità, non per ogni base
-            if i == 1 then fire_smokeEffects(o, false) end
+            if i == 1 and not senzaEffetti then fire_smokeEffects(o, false) end
         end
         if fonte.ovatta then
             if i == 1 and not FIRE_OVATTA_ANNUNCIATA then

@@ -137,6 +137,7 @@ FIRE_SMOKE = {
             boccaCm = 1.2,           -- altezza della bocca sopra la base
             davantiCm = 0,           -- bocca rispetto al bordo anteriore della base
             rotY   = 0,              -- rispetto alla base
+            nuvolaDopo = 1.5,        -- secondi: poi la nuvola che resta (fumo normale)
         },
     },
     tagSparo = "ldc_sparo",
