@@ -849,3 +849,43 @@ function debug_elemento(codice, fronte, profondita, descrizione)
     print(string.format("[ELEMENTO] %s: %d figure, %d modelli, scala_figure %s. JSON nel Notebook, scheda \"%s\"",
         codice, #righe, nModelli, debug_fmt(scalaFig), codice))
 end
+
+-- ============================================================
+-- FUNZIONE: debug_cannone()
+-- Cannone selezionato (Max 15/11/2026): che oggetto è, URL del
+-- bundle, effetti del bundle; poi fa partire l'effetto 0 (sparo,
+-- come lo script del cannone: playTriggerEffect(0)).
+-- Uso: seleziona il cannone, /execute debug_cannone()
+-- ============================================================
+function debug_cannone()
+    local trovati = 0
+    for _, p in ipairs(Player.getPlayers()) do
+        for _, o in ipairs(p.getSelectedObjects() or {}) do
+            trovati = trovati + 1
+            local d = o.getData()
+            local cab = d.CustomAssetbundle or {}
+            printToAll(string.format("[CANNONE] %s | Name=%s | Nickname=%s | GUID=%s",
+                p.color, tostring(d.Name), tostring(d.Nickname), o.getGUID()), LOG_COLORE)
+            printToAll("[CANNONE] bundle: " .. tostring(cab.AssetbundleURL or "-"), LOG_COLORE)
+            printToAll("[CANNONE] secondario: " .. tostring(cab.AssetbundleSecondaryURL or "-"), LOG_COLORE)
+            local ab = o.AssetBundle
+            if not ab then
+                printToAll("[CANNONE] nessun AssetBundle", LOG_AVVISO)
+            else
+                local ok, trig = pcall(function() return ab.getTriggerEffects() end)
+                if ok and trig then
+                    for _, t in ipairs(trig) do printToAll(string.format("[CANNONE] trigger %s = %s", tostring(t.index), tostring(t.name)), LOG_COLORE) end
+                end
+                local ok2, loop = pcall(function() return ab.getLoopingEffects() end)
+                if ok2 and loop then
+                    for _, t in ipairs(loop) do printToAll(string.format("[CANNONE] looping %s = %s", tostring(t.index), tostring(t.name)), LOG_COLORE) end
+                end
+                local ok3 = pcall(function() ab.playTriggerEffect(0) end)
+                printToAll("[CANNONE] playTriggerEffect(0): " .. (ok3 and "lanciato" or "errore"), LOG_COLORE)
+            end
+            -- il JSON completo nel Notebook, per i dettagli
+            pcall(function() Notes.addNotebookTab({ title = "CANNONE " .. o.getGUID(), body = JSON.encode_pretty(d) }) end)
+        end
+    end
+    if trovati == 0 then printToAll("[CANNONE] seleziona il cannone e riprova", LOG_AVVISO) end
+end
