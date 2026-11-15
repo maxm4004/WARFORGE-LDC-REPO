@@ -139,6 +139,21 @@ FIRE_SMOKE = {
             rotY   = 0,              -- rispetto alla base
             nuvolaDopo = 1.5,        -- secondi: poi la nuvola che resta (fumo normale)
         },
+        -- moschetti (Max 15/11): stesso sparo più piccolo, suono della
+        -- salva (assets/musket_sparo); le basi dopo la prima usano la
+        -- copia muta (assets/musket_sparo_muto)
+        musket_smoke = {
+            url     = "",
+            urlMuto = "",
+            scala   = 0.15,
+            copie   = 2,
+            copieMuto = 6,
+            bocca   = { y = 4.06, z = 1.72 },
+            boccaCm = 1.5,
+            davantiCm = 0,
+            rotY    = 0,
+            nuvolaDopo = 1.0,
+        },
     },
     tagSparo = "ldc_sparo",
 }

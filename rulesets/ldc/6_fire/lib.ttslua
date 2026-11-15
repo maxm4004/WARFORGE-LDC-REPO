@@ -1085,8 +1085,10 @@ end
 --      SPARO COME IL CANNONE DI TTS (Max 15/11/2026)
 -- FIRE_SMOKE.sparo[nome]: bundle col trigger "Fire" (fumo, vampa,
 -- boato). Copie già caricate e bloccate sotto il tavolo; al tiro
--- una copia va davanti al pezzo e parte playTriggerEffect(0):
+-- una copia va davanti a ogni base e parte playTriggerEffect(0):
 -- niente spawn, niente attesa di caricamento.
+-- urlMuto (moschetti): stesso sparo senza suono per le basi dopo
+-- la prima, così la salva si sente una volta sola.
 -- ============================================================
 FIRE_SPARO_TURNO = FIRE_SPARO_TURNO or {}
 
@@ -1095,45 +1097,57 @@ local function fire_sparoConf(nome)
     if c and c.url and c.url ~= "" then return c end
     return nil
 end
-local function fire_sparoCopie(nome)
+-- tipi di copia: { nick, url, quante }
+local function fire_sparoTipi(nome, c)
+    local t = { { nick = nome, url = c.url or "", quante = c.copie or 2 } }
+    if c.urlMuto ~= nil then
+        table.insert(t, { nick = nome .. "_muto", url = c.urlMuto or "", quante = c.copieMuto or 6 })
+    end
+    return t
+end
+local function fire_sparoCopie(nick)
     local out = {}
     for _, o in ipairs(getObjectsWithTag(FIRE_SMOKE.tagSparo) or {}) do
-        if o.getName() == nome then table.insert(out, o) end
+        if o.getName() == nick then table.insert(out, o) end
     end
     return out
 end
-local function fire_sparoSotto(i)
+local function fire_sparoSotto(i, k)
     local y = ((TABLE_AREA and TABLE_AREA.y) or 1) - FIRE_SMOKE.cacheSotto
-    return { x = -4 - 2 * i, y = y, z = 0 }
+    return { x = -4 - 2 * i, y = y, z = 3 * (k or 0) }
 end
 -- ============================================================
 -- FUNZIONE: fire_sparoPreload()
 -- Le copie sotto il tavolo (URL cambiato: si rifanno).
 -- ============================================================
 function fire_sparoPreload()
+    local k = 0
     for nome, c in pairs(FIRE_SMOKE.sparo or {}) do
-        local copie = fire_sparoCopie(nome)
-        for _, o in ipairs(copie) do
-            local cu = o.getCustomObject and o.getCustomObject() or {}
-            if not c.url or c.url == "" or (cu.assetbundle and cu.assetbundle ~= c.url) then o.destruct() end
-        end
-        copie = (c.url and c.url ~= "") and fire_sparoCopie(nome) or {}
-        for i = #copie + 1, (c.url and c.url ~= "") and (c.copie or 2) or 0 do
-            local p = fire_sparoSotto(i)
-            spawnObjectData({
-                data = {
-                    Name = "Custom_AssetBundle", Nickname = nome, Locked = true,
-                    Transform = { posX = p.x, posY = p.y, posZ = p.z, rotX = 0, rotY = 0, rotZ = 0,
-                                  scaleX = c.scala, scaleY = c.scala, scaleZ = c.scala },
-                    CustomAssetbundle = { AssetbundleURL = c.url, AssetbundleSecondaryURL = "",
-                        MaterialIndex = 0, TypeIndex = 0, LoopingEffectIndex = 0 },
-                },
-                callback_function = function(o)
-                    o.addTag(FIRE_SMOKE.tagSparo)
-                    o.setLock(true)
-                    o.interactable = false
-                end,
-            })
+        for _, tipo in ipairs(fire_sparoTipi(nome, c)) do
+            k = k + 1
+            local attivo = c.url and c.url ~= "" and tipo.url ~= ""
+            for _, o in ipairs(fire_sparoCopie(tipo.nick)) do
+                local cu = o.getCustomObject and o.getCustomObject() or {}
+                if not attivo or (cu.assetbundle and cu.assetbundle ~= tipo.url) then o.destruct() end
+            end
+            local copie = attivo and fire_sparoCopie(tipo.nick) or {}
+            for i = #copie + 1, attivo and tipo.quante or 0 do
+                local p = fire_sparoSotto(i, k)
+                spawnObjectData({
+                    data = {
+                        Name = "Custom_AssetBundle", Nickname = tipo.nick, Locked = true,
+                        Transform = { posX = p.x, posY = p.y, posZ = p.z, rotX = 0, rotY = 0, rotZ = 0,
+                                      scaleX = c.scala, scaleY = c.scala, scaleZ = c.scala },
+                        CustomAssetbundle = { AssetbundleURL = tipo.url, AssetbundleSecondaryURL = "",
+                            MaterialIndex = 0, TypeIndex = 0, LoopingEffectIndex = 0 },
+                    },
+                    callback_function = function(o)
+                        o.addTag(FIRE_SMOKE.tagSparo)
+                        o.setLock(true)
+                        o.interactable = false
+                    end,
+                })
+            end
         end
     end
 end
@@ -1145,14 +1159,19 @@ end
 function fire_sparoAt(nome, basi)
     local c = fire_sparoConf(nome)
     if not c then return false end
-    local copie = fire_sparoCopie(nome)
-    if #copie == 0 then
+    local tipi = fire_sparoTipi(nome, c)
+    local sonore = fire_sparoCopie(tipi[1].nick)
+    local mute = tipi[2] and tipi[2].url ~= "" and fire_sparoCopie(tipi[2].nick) or {}
+    if #sonore == 0 then
         fire_sparoPreload()
         return false     -- questa volta il fumo normale
     end
-    for _, b in ipairs(basi) do
-        FIRE_SPARO_TURNO[nome] = ((FIRE_SPARO_TURNO[nome] or 0) % #copie) + 1
-        local o = copie[FIRE_SPARO_TURNO[nome]]
+    for i, b in ipairs(basi) do
+        -- la prima base col suono, le altre mute (se ci sono)
+        local lista, nick = sonore, tipi[1].nick
+        if i > 1 and #mute > 0 then lista, nick = mute, tipi[2].nick end
+        FIRE_SPARO_TURNO[nick] = ((FIRE_SPARO_TURNO[nick] or 0) % #lista) + 1
+        local o = lista[FIRE_SPARO_TURNO[nick]]
         local meta = main_baseMeta(b) or {}
         local prof = main_cmToTts(meta.profonditaCm or CALIBRAZIONE.baseProfonditaCm)
         local p, r = b.getPosition(), b.getRotation()
@@ -1177,7 +1196,11 @@ end
 -- Le copie tornano sotto il tavolo (dopo il Fuoco).
 -- ============================================================
 function fire_sparoRiponi()
-    for nome in pairs(FIRE_SMOKE.sparo or {}) do
-        for i, o in ipairs(fire_sparoCopie(nome)) do o.setPosition(fire_sparoSotto(i)) end
+    local k = 0
+    for nome, c in pairs(FIRE_SMOKE.sparo or {}) do
+        for _, tipo in ipairs(fire_sparoTipi(nome, c)) do
+            k = k + 1
+            for i, o in ipairs(fire_sparoCopie(tipo.nick)) do o.setPosition(fire_sparoSotto(i, k)) end
+        end
     end
 end
