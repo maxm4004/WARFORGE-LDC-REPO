@@ -20,6 +20,15 @@ for o in env.objects:
         print("particelle", goname(tt), "scalingMode", tt['scalingMode'], "-> 0")
         tt['scalingMode'] = 0
         o.save_typetree(tt)
+    elif t == "MonoBehaviour":
+        # suono dello sparo 2D: si sente ovunque sia la camera (Max
+        # 15/11: col 3D, da lontano o sul vassoio dei dadi, non si sentiva)
+        tt = o.read_typetree()
+        if "TriggerEffects" in tt:
+            for e in tt["TriggerEffects"]:
+                print("trigger", e["Name"], "Positional3D", e["Sound"]["Positional3D"], "-> 0")
+                e["Sound"]["Positional3D"] = 0
+            o.save_typetree(tt)
     elif t == "Texture2D":
         d = o.read()
         if d.m_Name.startswith("DiceRoller_Cannon"):
