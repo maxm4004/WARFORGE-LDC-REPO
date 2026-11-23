@@ -421,6 +421,9 @@ end
 --   - appoggiate sopra la base ma non attaccate.
 -- nomeModello: nome per il campo "modello" quando la figura non
 -- ha un nome in TTS (default "FIGURA").
+-- Per ogni figura anche la rotazione rispetto alla base: "rot_y"
+-- nella riga JSON (campo del contratto) e, sotto, rot x/y/z (con
+-- avviso se è inclinata) e la scala nel mondo (Max 23/11).
 -- ============================================================
 function debug_offsetFigure(nomeModello)
     local sel = debug_selectedObjects()
@@ -433,32 +436,50 @@ function debug_offsetFigure(nomeModello)
         if n and n ~= "" then return n end
         return nomeModello or "FIGURA"
     end
+    -- angolo in (-180, 180], arrotondato a 0,1 gradi
+    local function ang(a)
+        a = (a or 0) % 360
+        if a > 180 then a = a - 360 end
+        return math.floor(a * 10 + 0.5) / 10
+    end
+    local function fa(a) return string.format("%.1f", ang(a)) end
+    -- rotazione intorno a Y (come Unity/TTS) di un punto locale
+    local function ruota(x, z, gradi)
+        local r = math.rad(gradi or 0)
+        return x * math.cos(r) + z * math.sin(r), -x * math.sin(r) + z * math.cos(r)
+    end
 
     for _, s in ipairs(sel) do
         local base = s.obj
         local scala = base.getScale().x
+        local rb = base.getRotation()
         local righe = {}
         local attaccate, appoggiate = 0, 0
 
         -- 1. Attaccate: posizioni locali alla base (in unità della
-        --    base non scalata), sommate livello per livello
-        local function visita(figli, ox, oy, oz, sc)
+        --    base non scalata), sommate livello per livello tenendo
+        --    conto della rotazione del livello sopra (figura attaccata
+        --    a una figura ruotata)
+        local function visita(figli, ox, oy, oz, sc, rx, ry, rz)
             for _, c in ipairs(figli or {}) do
                 local t = c.Transform or {}
-                local x = ox + (t.posX or 0) * sc
-                local y = oy + (t.posY or 0) * sc
-                local z = oz + (t.posZ or 0) * sc
+                local lx, lz = ruota((t.posX or 0) * sc, (t.posZ or 0) * sc, ry)
+                local x, y, z = ox + lx, oy + (t.posY or 0) * sc, oz + lz
+                local cx, cy, cz = rx + (t.rotX or 0), ry + (t.rotY or 0), rz + (t.rotZ or 0)
+                local s2 = sc * (t.scaleX or 1)
                 if c.CustomMesh or c.CustomAssetbundle then
                     attaccate = attaccate + 1
-                    table.insert(righe, { nome = nomeDi(c.Nickname), x = x, y = y, z = z })
+                    table.insert(righe, { nome = nomeDi(c.Nickname), x = x, y = y, z = z,
+                        rotX = cx, rotY = cy, rotZ = cz, scala = s2 * scala, tipo = "attaccata" })
                 end
-                visita(c.ChildObjects, x, y, z, sc * (t.scaleX or 1))
+                visita(c.ChildObjects, x, y, z, s2, cx, cy, cz)
             end
         end
-        visita(base.getData().ChildObjects, 0, 0, 0, 1)
+        visita(base.getData().ChildObjects, 0, 0, 0, 1, 0, 0, 0)
 
         -- 2. Appoggiate: oggetti non attaccati il cui centro cade
-        --    dentro l'impronta della base, sopra di essa
+        --    dentro l'impronta della base, sopra di essa; rotazione
+        --    relativa alla base
         local b = base.getBounds()
         local giaAttaccati = {}
         for _, a in ipairs(base.getAttachments and base.getAttachments() or {}) do
@@ -474,20 +495,29 @@ function debug_offsetFigure(nomeModello)
                     and p.y >= b.center.y - b.size.y / 2
                 if dentro then
                     appoggiate = appoggiate + 1
-                    table.insert(righe, { nome = nomeDi(o.getName()), x = l.x, y = l.y, z = l.z })
+                    local ro = o.getRotation()
+                    table.insert(righe, { nome = nomeDi(o.getName()), x = l.x, y = l.y, z = l.z,
+                        rotX = ro.x - rb.x, rotY = ro.y - rb.y, rotZ = ro.z - rb.z,
+                        scala = o.getScale().x, tipo = "appoggiata" })
                 end
             end
         end
 
-        print(string.format("[FIGURE] ===== %s \"%s\": %d attaccate, %d appoggiate, scala base %s",
-            base.getGUID(), base.getName() or "", attaccate, appoggiate, debug_fmt(scala)))
+        print(string.format("[FIGURE] ===== %s \"%s\": %d attaccate, %d appoggiate, scala base %s, rotazione base %s",
+            base.getGUID(), base.getName() or "", attaccate, appoggiate, debug_fmt(scala), fa(rb.y)))
 
         local function cm(v)
             return string.format("%.2f", main_ttsToCm(v * scala))
         end
         for i, r in ipairs(righe) do
-            print(string.format('[FIGURE] { "modello": "%s", "x": %s, "y": %s, "z": %s }%s',
-                r.nome, cm(r.x), cm(r.y), cm(r.z), (i < #righe) and "," or ""))
+            -- rot_y: gradi rispetto alla base (campo del contratto,
+            -- si somma al rot_y del modello)
+            print(string.format('[FIGURE] { "modello": "%s", "x": %s, "y": %s, "z": %s, "rot_y": %s }%s',
+                r.nome, cm(r.x), cm(r.y), cm(r.z), fa(r.rotY), (i < #righe) and "," or ""))
+            local inclinata = math.abs(ang(r.rotX)) > 0.5 or math.abs(ang(r.rotZ)) > 0.5
+            print(string.format("[FIGURE]     %s: rot x %s, y %s, z %s (rispetto alla base)%s, scala nel mondo %s",
+                r.tipo, fa(r.rotX), fa(r.rotY), fa(r.rotZ),
+                inclinata and " INCLINATA" or "", debug_fmt(r.scala)))
         end
     end
 end
